@@ -120,7 +120,7 @@ export function PostCard({
 
             <CardContent className="pb-3">
                 {/* 标题 */}
-                <Link href={`/post/${id}`}>
+                <Link href={`/posts/${id}`}>
                     <h3 className="text-lg font-bold text-foreground hover:text-primary transition-colors mb-2 line-clamp-2">
                         {title}
                     </h3>
