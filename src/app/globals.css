@@ -508,3 +508,117 @@
   font-family: var(--font-mono);
   font-size: 0.875rem;
 }
+
+/* ============================================
+   Code Block Copy Button
+   ============================================ */
+
+.code-block-container {
+  position: relative;
+}
+
+.code-block-container::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  font-size: 0.75rem;
+  color: oklch(0.6 0 0);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.5rem;
+  background: oklch(0.25 0 0);
+  border: 1px solid oklch(0.35 0 0);
+  border-radius: 0.375rem;
+  color: oklch(0.7 0 0);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.code-block-container:hover .copy-button {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  background: oklch(0.3 0 0);
+  color: oklch(0.9 0 0);
+}
+
+.copy-button.copied {
+  background: oklch(0.35 0.15 150);
+  border-color: oklch(0.5 0.15 150);
+  color: oklch(0.9 0.1 150);
+}
+
+.copy-button .hidden {
+  display: none;
+}
+
+/* ============================================
+   Academic Blockquote Style
+   ============================================ */
+
+.rich-text-content blockquote {
+  position: relative;
+  border-left: 4px solid oklch(0.6 0.15 260);
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  background: linear-gradient(135deg, oklch(0.97 0.01 260), oklch(0.98 0 0));
+  border-radius: 0 0.75rem 0.75rem 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+.dark .rich-text-content blockquote {
+  background: linear-gradient(135deg, oklch(0.2 0.02 260), oklch(0.18 0 0));
+}
+
+.rich-text-content blockquote::before {
+  content: '"';
+  position: absolute;
+  top: -0.5rem;
+  left: 0.5rem;
+  font-size: 3rem;
+  color: oklch(0.6 0.15 260 / 30%);
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+
+/* ============================================
+   Table of Contents Styles
+   ============================================ */
+
+.toc-item {
+  transition: all 0.2s ease;
+}
+
+.toc-item:hover {
+  color: var(--primary);
+}
+
+.toc-item.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.toc-item.level-1 {
+  padding-left: 0;
+}
+
+.toc-item.level-2 {
+  padding-left: 1rem;
+}
+
+.toc-item.level-3 {
+  padding-left: 2rem;
+}

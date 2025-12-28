@@ -116,49 +116,55 @@ export default function MessagesPage() {
                     </div>
                 </div>
 
-                {/* 对话列表 */}
-                {conversationsLoading ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                ) : filteredConversations.length > 0 ? (
-                    <ChatList
-                        conversations={filteredConversations}
-                        currentUserId={currentUserId}
-                        selectedPartnerId={selectedPartnerId || undefined}
-                        onSelectConversation={setSelectedPartnerId}
-                    />
-                ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
-                        <MessageSquare className="h-12 w-12 mb-3 opacity-50" />
-                        <p className="text-sm text-center">暂无对话</p>
-                        <p className="text-xs text-center mt-1">
-                            点击好友头像开始聊天
-                        </p>
-                    </div>
-                )}
-
-                {/* 快捷好友列表 */}
-                {friends.length > 0 && (
-                    <div className="border-t p-4">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                            好友
-                        </h3>
+                {/* 好友列表 - 放在顶部 */}
+                <div className="p-4 border-b bg-muted/30">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                        好友 ({friends.length})
+                    </h3>
+                    {friends.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                            {friends.slice(0, 6).map((f) => (
+                            {friends.map((f) => (
                                 <Button
                                     key={f.friendshipId}
-                                    variant="outline"
+                                    variant={selectedPartnerId === f.friend.id ? "default" : "outline"}
                                     size="sm"
                                     onClick={() => setSelectedPartnerId(f.friend.id)}
                                     className="text-xs"
                                 >
-                                    {f.friend.username || f.friend.email.split("@")[0]}
+                                    {f.friend.username || f.friend.email?.split("@")[0] || "未知"}
                                 </Button>
                             ))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <p className="text-xs text-muted-foreground">
+                            暂无好友，请先在好友页添加好友
+                        </p>
+                    )}
+                </div>
+
+                {/* 对话列表 */}
+                <div className="flex-1 overflow-y-auto">
+                    {conversationsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : filteredConversations.length > 0 ? (
+                        <ChatList
+                            conversations={filteredConversations}
+                            currentUserId={currentUserId}
+                            selectedPartnerId={selectedPartnerId || undefined}
+                            onSelectConversation={setSelectedPartnerId}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-muted-foreground p-8">
+                            <MessageSquare className="h-10 w-10 mb-3 opacity-50" />
+                            <p className="text-sm text-center">暂无对话</p>
+                            <p className="text-xs text-center mt-1 text-muted-foreground/70">
+                                点击上方好友开始聊天
+                            </p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* 右侧聊天窗口 */}

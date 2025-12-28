@@ -216,13 +216,13 @@ export default function DashboardPage() {
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem asChild>
-                                        <Link href="/profile" className="cursor-pointer">
+                                        <Link href={currentUserId ? `/user/${currentUserId}` : "/dashboard"} className="cursor-pointer">
                                             <User className="mr-2 h-4 w-4" />
                                             个人主页
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
-                                        <Link href="/settings" className="cursor-pointer">
+                                        <Link href="/settings/profile" className="cursor-pointer">
                                             <Settings className="mr-2 h-4 w-4" />
                                             设置
                                         </Link>

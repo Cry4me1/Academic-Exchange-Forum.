@@ -63,8 +63,12 @@ export function useMessages(
 
     // 获取会话列表
     const fetchConversations = useCallback(async () => {
-        if (!currentUserId) return;
+        if (!currentUserId) {
+            setLoading(false);
+            return;
+        }
 
+        setLoading(true);
         try {
             // 获取所有消息，按对话伙伴分组
             const { data: allMessages, error: messagesError } = await supabase
@@ -133,6 +137,8 @@ export function useMessages(
             }
         } catch (err) {
             console.error("获取会话列表失败:", err);
+        } finally {
+            setLoading(false);
         }
     }, [currentUserId, supabase]);
 

@@ -22,32 +22,34 @@ function FriendItem({ friend, friendshipId, isOnline }: FriendItemProps) {
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Link href={`/messages?user=${friend.id}`}>
-                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors duration-200 group">
-                            <div className="relative">
-                                <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
-                                    <AvatarImage src={friend.avatar_url || undefined} alt={displayName} />
-                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-medium text-sm">
-                                        {initials}
-                                    </AvatarFallback>
-                                </Avatar>
-                                {/* 在线状态指示器 */}
-                                <span
-                                    className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline
-                                        ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"
-                                        : "bg-gray-400"
-                                        }`}
-                                />
-                            </div>
+                    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors duration-200 group">
+                        {/* 头像点击跳转到用户主页 */}
+                        <Link href={`/user/${friend.id}`} className="relative">
+                            <Avatar className="h-9 w-9 border-2 border-background shadow-sm group-hover:ring-2 group-hover:ring-primary/20 transition-all">
+                                <AvatarImage src={friend.avatar_url || undefined} alt={displayName} />
+                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-medium text-sm">
+                                    {initials}
+                                </AvatarFallback>
+                            </Avatar>
+                            {/* 在线状态指示器 */}
+                            <span
+                                className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline
+                                    ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                                    : "bg-gray-400"
+                                    }`}
+                            />
+                        </Link>
+                        {/* 名字点击跳转到消息页 */}
+                        <Link href={`/messages?user=${friend.id}`} className="flex-1 truncate">
                             <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground truncate">
                                 {displayName}
                             </span>
-                        </div>
-                    </Link>
+                        </Link>
+                    </div>
                 </TooltipTrigger>
                 <TooltipContent side="right">
                     <p>{displayName} - {isOnline ? "在线" : "离线"}</p>
-                    <p className="text-xs text-muted-foreground">点击发送私信</p>
+                    <p className="text-xs text-muted-foreground">点击头像查看主页，点击名字发消息</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
