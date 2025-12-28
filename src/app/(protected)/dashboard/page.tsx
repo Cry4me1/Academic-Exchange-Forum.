@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { NotificationCenter } from "@/components/notifications";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,6 @@ import {
     LogOut,
     User,
     Settings,
-    Bell,
     Search
 } from "lucide-react";
 
@@ -96,6 +97,32 @@ const fadeInUp = {
 export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState<FeedFilter>("latest");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUser, setCurrentUser] = useState<{
+        username: string | null;
+        email: string | null;
+        avatar_url: string | null;
+    } | null>(null);
+
+    const supabase = createClient();
+
+    // 获取当前用户
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+                // 获取用户 profile
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("username, email, avatar_url")
+                    .eq("id", user.id)
+                    .single();
+                setCurrentUser(profile);
+            }
+        };
+        getUser();
+    }, [supabase]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -132,20 +159,19 @@ export default function DashboardPage() {
 
                         {/* 右侧操作区 */}
                         <div className="flex items-center gap-2">
-                            {/* 通知 */}
-                            <Button variant="ghost" size="icon" className="relative">
-                                <Bell className="h-5 w-5" />
-                                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
-                            </Button>
+                            {/* 通知中心 */}
+                            {currentUserId && (
+                                <NotificationCenter currentUserId={currentUserId} />
+                            )}
 
                             {/* 用户菜单 */}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                                         <Avatar className="h-9 w-9">
-                                            <AvatarImage src="" alt="用户头像" />
+                                            <AvatarImage src={currentUser?.avatar_url || ""} alt="用户头像" />
                                             <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
-                                                我
+                                                {(currentUser?.username || currentUser?.email || "我").charAt(0).toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
                                     </Button>
@@ -153,8 +179,8 @@ export default function DashboardPage() {
                                 <DropdownMenuContent align="end" className="w-56">
                                     <DropdownMenuLabel className="font-normal">
                                         <div className="flex flex-col space-y-1">
-                                            <p className="text-sm font-medium">当前用户</p>
-                                            <p className="text-xs text-muted-foreground">user@example.com</p>
+                                            <p className="text-sm font-medium">{currentUser?.username || "当前用户"}</p>
+                                            <p className="text-xs text-muted-foreground">{currentUser?.email || "user@example.com"}</p>
                                         </div>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
@@ -221,7 +247,7 @@ export default function DashboardPage() {
                                 className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-4"
                             >
                                 <h3 className="text-sm font-semibold text-foreground mb-3 px-2">好友动态</h3>
-                                <FriendsList />
+                                <FriendsList currentUserId={currentUserId} />
                             </motion.div>
                         </motion.div>
                     </aside>
@@ -305,7 +331,7 @@ export default function DashboardPage() {
                             <QuickPostButton />
                         </div>
                         <div className="mt-6">
-                            <FriendsList />
+                            <FriendsList currentUserId={currentUserId} />
                         </div>
                     </motion.div>
                 </div>

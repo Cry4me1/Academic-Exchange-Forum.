@@ -8,12 +8,16 @@ import {
     Flame,
     Bookmark,
     User,
-    Settings
+    Settings,
+    MessageSquare,
+    Users
 } from "lucide-react";
 
 const navItems = [
     { href: "/dashboard", label: "首页", icon: Home },
     { href: "/trending", label: "热门学术", icon: Flame },
+    { href: "/messages", label: "私信", icon: MessageSquare },
+    { href: "/friends", label: "好友", icon: Users },
     { href: "/favorites", label: "我的收藏", icon: Bookmark },
     { href: "/profile", label: "个人中心", icon: User },
 ];
@@ -33,8 +37,8 @@ export function MainNav() {
                         variant="ghost"
                         asChild
                         className={`w-full justify-start gap-3 h-11 text-base font-medium transition-all duration-200 ${isActive
-                                ? "bg-primary/10 text-primary hover:bg-primary/15"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            ? "bg-primary/10 text-primary hover:bg-primary/15"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             }`}
                     >
                         <Link href={item.href}>
