@@ -6,6 +6,12 @@ export async function GET(request: Request) {
     const code = searchParams.get("code");
     const next = searchParams.get("next") ?? "/dashboard";
 
+    if (searchParams.get("error")) {
+        const error = searchParams.get("error");
+        const errorDescription = searchParams.get("error_description");
+        return NextResponse.redirect(`${origin}/login?error=${error}&error_description=${errorDescription}`);
+    }
+
     if (code) {
         const supabase = await createClient();
         const { error } = await supabase.auth.exchangeCodeForSession(code);

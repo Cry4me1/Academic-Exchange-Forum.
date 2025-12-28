@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
@@ -11,10 +11,21 @@ import { Label } from "@/components/ui/label";
 import { Mail, Loader2, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
+import { useSearchParams } from "next/navigation";
+
 export function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const error = searchParams.get("error");
+        const errorDescription = searchParams.get("error_description");
+        if (error) {
+            setError(errorDescription || "登录验证失败，请重试");
+        }
+    }, [searchParams]);
 
     const {
         register,

@@ -92,7 +92,7 @@ export function PostCard({
                             <p className="text-sm font-semibold text-foreground group-hover/author:text-primary transition-colors">
                                 {author.name}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                                 {formatRelativeTime(createdAt)}
                             </p>
                         </div>

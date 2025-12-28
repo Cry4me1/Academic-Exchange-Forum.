@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationCenter } from "@/components/notifications";
 import { motion } from "framer-motion";
@@ -105,6 +106,13 @@ export default function DashboardPage() {
     } | null>(null);
 
     const supabase = createClient();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push("/login"); // Redirect to login
+        router.refresh(); // Clear server cache
+    };
 
     // 获取当前用户
     useEffect(() => {
@@ -112,13 +120,36 @@ export default function DashboardPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setCurrentUserId(user.id);
-                // 获取用户 profile
-                const { data: profile } = await supabase
+
+                // 尝试获取用户 profile
+                const { data: profile, error } = await supabase
                     .from("profiles")
                     .select("username, email, avatar_url")
                     .eq("id", user.id)
                     .single();
-                setCurrentUser(profile);
+
+                if (profile) {
+                    setCurrentUser(profile);
+                } else if (error && error.code === 'PGRST116') {
+                    // Profile 不存在 (PGRST116)，尝试创建
+                    const newProfile = {
+                        id: user.id,
+                        email: user.email || null,
+                        username: user.email?.split('@')[0] || "User",
+                        avatar_url: ""
+                    };
+
+                    const { error: insertError } = await supabase
+                        .from("profiles")
+                        .insert([newProfile]);
+
+                    if (!insertError) {
+                        setCurrentUser(newProfile);
+                        console.log("Auto-created missing profile");
+                    } else {
+                        console.error("Failed to auto-create profile:", insertError);
+                    }
+                }
             }
         };
         getUser();
@@ -197,7 +228,10 @@ export default function DashboardPage() {
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+                                    <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive cursor-pointer"
+                                        onClick={handleLogout}
+                                    >
                                         <LogOut className="mr-2 h-4 w-4" />
                                         退出登录
                                     </DropdownMenuItem>

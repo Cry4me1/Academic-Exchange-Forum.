@@ -187,6 +187,7 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
 
             if (error) {
                 console.error("搜索用户失败:", error);
+                console.error("Details:", JSON.stringify(error, null, 2));
                 return [];
             }
 
