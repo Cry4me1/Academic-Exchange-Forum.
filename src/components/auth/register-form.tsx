@@ -33,7 +33,7 @@ export function RegisterForm() {
             const { error: authError } = await supabase.auth.signInWithOtp({
                 email: data.email,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
                     data: {
                         username: data.username,
                     },

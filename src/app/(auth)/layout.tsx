@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { BookOpen, Lightbulb, MessageSquare, Sigma } from "lucide-react";
+import { motion } from "framer-motion";
 
 const features = [
     {
@@ -26,9 +29,14 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen flex">
+        <div className="min-h-screen flex overflow-hidden">
             {/* 左侧 - 学术氛围背景 */}
-            <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+            <motion.div
+                initial={{ width: "100vw" }}
+                animate={{ width: "50vw" }}
+                transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                className="hidden lg:flex relative bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden flex-shrink-0"
+            >
                 {/* 装饰性光效 */}
                 <div className="absolute inset-0">
                     <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl" />
@@ -46,7 +54,7 @@ export default function AuthLayout({
                 />
 
                 {/* 内容 */}
-                <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
+                <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 w-full max-w-2xl mx-auto">
                     {/* Logo */}
                     <Link href="/" className="inline-block mb-8">
                         <span className="text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
@@ -95,11 +103,16 @@ export default function AuthLayout({
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* 右侧 - 表单区域 */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-background">
-                <div className="w-full max-w-md">
+            <div className="w-full lg:w-[50vw] flex items-center justify-center p-6 lg:p-12 bg-background flex-shrink-0">
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                    className="w-full max-w-md"
+                >
                     {/* 移动端 Logo */}
                     <div className="lg:hidden text-center mb-8">
                         <Link href="/" className="inline-block">
@@ -120,7 +133,7 @@ export default function AuthLayout({
                             ← 返回首页
                         </Link>
                     </p>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

@@ -8,6 +8,7 @@ import {
     Sigma,
     Lightbulb
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const features = [
     {
@@ -48,29 +49,61 @@ const features = [
     },
 ];
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.6,
+            ease: "easeOut" as const
+        }
+    }
+};
+
 export function Features() {
     return (
         <section className="py-24 px-6 bg-gradient-to-b from-slate-900 to-slate-950">
             <div className="max-w-6xl mx-auto">
                 {/* 标题 */}
-                <div className="text-center mb-16">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                         为学术而生的功能
                     </h2>
                     <p className="text-lg text-white/60 max-w-2xl mx-auto">
                         Scholarly 提供一系列专为学术交流设计的特性，助力知识传播与创新
                     </p>
-                </div>
+                </motion.div>
 
                 {/* 功能网格 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {features.map((feature, index) => (
-                        <div
+                <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                    {features.map((feature) => (
+                        <motion.div
                             key={feature.title}
+                            variants={itemVariants}
                             className="group relative p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
-                            style={{
-                                animationDelay: `${index * 100}ms`,
-                            }}
                         >
                             {/* 图标 */}
                             <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.gradient} mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
@@ -89,9 +122,9 @@ export function Features() {
 
                             {/* 悬停装饰 */}
                             <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
             </div>
         </section>
     );

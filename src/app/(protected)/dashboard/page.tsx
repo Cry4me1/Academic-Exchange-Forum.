@@ -1,0 +1,315 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    MainNav,
+    FriendsList,
+    FeedTabs,
+    PostFeed,
+    AnnouncementCard,
+    TagCloud,
+    QuickPostButton,
+    type FeedFilter
+} from "@/components/dashboard";
+import {
+    Menu,
+    X,
+    LogOut,
+    User,
+    Settings,
+    Bell,
+    Search
+} from "lucide-react";
+
+// 动画变体
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.1,
+        },
+    },
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.5,
+            ease: [0.22, 1, 0.36, 1] as const,
+        },
+    },
+};
+
+const slideInLeft = {
+    hidden: { opacity: 0, x: -30 },
+    visible: {
+        opacity: 1,
+        x: 0,
+        transition: {
+            duration: 0.6,
+            ease: [0.22, 1, 0.36, 1] as const,
+        },
+    },
+};
+
+const slideInRight = {
+    hidden: { opacity: 0, x: 30 },
+    visible: {
+        opacity: 1,
+        x: 0,
+        transition: {
+            duration: 0.6,
+            ease: [0.22, 1, 0.36, 1] as const,
+        },
+    },
+};
+
+const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.5,
+            ease: [0.22, 1, 0.36, 1] as const,
+        },
+    },
+};
+
+export default function DashboardPage() {
+    const [activeTab, setActiveTab] = useState<FeedFilter>("latest");
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+            {/* 顶部导航栏 */}
+            <motion.header
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
+            >
+                <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        {/* Logo */}
+                        <Link href="/dashboard" className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                                <span className="text-primary-foreground font-bold text-lg">S</span>
+                            </div>
+                            <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                                Scholarly
+                            </span>
+                        </Link>
+
+                        {/* 桌面端搜索栏 */}
+                        <div className="hidden md:flex flex-1 max-w-md mx-8">
+                            <div className="relative w-full">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    placeholder="搜索帖子、话题或用户..."
+                                    className="w-full h-10 pl-10 pr-4 rounded-full bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* 右侧操作区 */}
+                        <div className="flex items-center gap-2">
+                            {/* 通知 */}
+                            <Button variant="ghost" size="icon" className="relative">
+                                <Bell className="h-5 w-5" />
+                                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+                            </Button>
+
+                            {/* 用户菜单 */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                                        <Avatar className="h-9 w-9">
+                                            <AvatarImage src="" alt="用户头像" />
+                                            <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
+                                                我
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel className="font-normal">
+                                        <div className="flex flex-col space-y-1">
+                                            <p className="text-sm font-medium">当前用户</p>
+                                            <p className="text-xs text-muted-foreground">user@example.com</p>
+                                        </div>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/profile" className="cursor-pointer">
+                                            <User className="mr-2 h-4 w-4" />
+                                            个人主页
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/settings" className="cursor-pointer">
+                                            <Settings className="mr-2 h-4 w-4" />
+                                            设置
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        退出登录
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* 移动端菜单按钮 */}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="lg:hidden"
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            >
+                                {mobileMenuOpen ? (
+                                    <X className="h-5 w-5" />
+                                ) : (
+                                    <Menu className="h-5 w-5" />
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </motion.header>
+
+            {/* 主内容区域 */}
+            <main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div className="flex gap-6">
+                    {/* 左侧栏 - 桌面端显示，固定定位 */}
+                    <aside className="hidden lg:block w-80 shrink-0">
+                        <motion.div
+                            variants={slideInLeft}
+                            initial="hidden"
+                            animate="visible"
+                            className="fixed top-20 w-80 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2 scrollbar-hidden"
+                        >
+                            {/* 主导航 */}
+                            <motion.div
+                                variants={itemVariants}
+                                className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-4"
+                            >
+                                <MainNav />
+                            </motion.div>
+
+                            {/* 好友列表 */}
+                            <motion.div
+                                variants={itemVariants}
+                                className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-4"
+                            >
+                                <h3 className="text-sm font-semibold text-foreground mb-3 px-2">好友动态</h3>
+                                <FriendsList />
+                            </motion.div>
+                        </motion.div>
+                    </aside>
+
+                    {/* 中间栏 - 主要内容 */}
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="flex-1 min-w-0"
+                    >
+                        {/* 移动端搜索栏 */}
+                        <div className="md:hidden mb-4">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    placeholder="搜索..."
+                                    className="w-full h-10 pl-10 pr-4 rounded-full bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Tabs 筛选器 */}
+                        <motion.div variants={fadeInUp} className="mb-6">
+                            <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
+                        </motion.div>
+
+                        {/* 帖子列表 */}
+                        <motion.div variants={fadeInUp}>
+                            <PostFeed filter={activeTab} />
+                        </motion.div>
+                    </motion.div>
+
+                    {/* 右侧栏 - 桌面端显示 */}
+                    <aside className="hidden xl:block w-[420px] shrink-0">
+                        <motion.div
+                            variants={slideInRight}
+                            initial="hidden"
+                            animate="visible"
+                            className="sticky top-24 space-y-6"
+                        >
+                            {/* 快速发帖 */}
+                            <motion.div variants={itemVariants}>
+                                <QuickPostButton />
+                            </motion.div>
+
+                            {/* 公告卡片 */}
+                            <motion.div variants={itemVariants}>
+                                <AnnouncementCard />
+                            </motion.div>
+
+                            {/* 热门话题 */}
+                            <motion.div variants={itemVariants}>
+                                <TagCloud />
+                            </motion.div>
+                        </motion.div>
+                    </aside>
+                </div>
+            </main>
+
+            {/* 移动端侧边栏 */}
+            {mobileMenuOpen && (
+                <div className="fixed inset-0 z-40 lg:hidden">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-background/80 backdrop-blur-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+                    <motion.div
+                        initial={{ x: -300 }}
+                        animate={{ x: 0 }}
+                        exit={{ x: -300 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="fixed inset-y-0 left-0 w-72 bg-card border-r border-border p-6 overflow-y-auto"
+                    >
+                        <MainNav />
+                        <div className="mt-6 pt-6 border-t border-border">
+                            <QuickPostButton />
+                        </div>
+                        <div className="mt-6">
+                            <FriendsList />
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </div>
+    );
+}
