@@ -144,10 +144,13 @@ export default function UserProfilePage() {
             if (likesData) {
                 const likedPostsList = likesData
                     .filter((item) => item.post)
-                    .map((item) => ({
-                        ...item.post as Post,
-                        liked_at: item.created_at,
-                    }));
+                    .map((item) => {
+                        const postData = item.post as unknown as Post;
+                        return {
+                            ...postData,
+                            liked_at: item.created_at,
+                        };
+                    });
                 setLikedPosts(likedPostsList);
             }
 
@@ -168,10 +171,13 @@ export default function UserProfilePage() {
                 if (bookmarksData) {
                     const bookmarkedPostsList = bookmarksData
                         .filter((item) => item.post)
-                        .map((item) => ({
-                            ...item.post as Post,
-                            bookmarked_at: item.created_at,
-                        }));
+                        .map((item) => {
+                            const postData = item.post as unknown as Post;
+                            return {
+                                ...postData,
+                                bookmarked_at: item.created_at,
+                            };
+                        });
                     setBookmarkedPosts(bookmarkedPostsList);
                 }
             }
