@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
+export const runtime = "edge";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
