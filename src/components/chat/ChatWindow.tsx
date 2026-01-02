@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +11,11 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Send,
@@ -24,6 +29,7 @@ import {
 import { ChatMessages } from "./ChatBubble";
 import { useMessages } from "@/hooks/useMessages";
 import { usePresence } from "@/hooks/usePresence";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -168,9 +174,21 @@ export function ChatWindow({
             <div className="border-t bg-card/50 p-3">
                 <div className="flex items-center gap-2">
                     {/* 表情按钮 */}
-                    <Button variant="ghost" size="icon" className="flex-shrink-0">
-                        <Smile className="h-5 w-5 text-muted-foreground" />
-                    </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="flex-shrink-0">
+                                <Smile className="h-5 w-5 text-muted-foreground" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <EmojiPicker
+                                onSelect={(emoji) => {
+                                    setInputValue((prev) => prev + emoji);
+                                    inputRef.current?.focus();
+                                }}
+                            />
+                        </PopoverContent>
+                    </Popover>
 
                     {/* 附件/分享帖子 */}
                     <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
@@ -228,27 +246,95 @@ function PostSelector({
 }: {
     onSelect: (postId: string, postTitle: string) => void;
 }) {
-    // 这里应该从 Supabase 获取用户的帖子列表
-    // 暂时使用模拟数据
-    const mockPosts = [
-        { id: "1", title: "关于量子计算的最新进展" },
-        { id: "2", title: "机器学习在医学影像中的应用" },
-        { id: "3", title: "区块链技术在供应链管理中的实践" },
-    ];
+    const [posts, setPosts] = useState<{ id: string; title: string }[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            setLoading(true);
+            const supabase = createClient();
+            const { data } = await supabase
+                .from("posts")
+                .select("id, title")
+                .eq("is_published", true)
+                .order("created_at", { ascending: false })
+                .limit(20);
+
+            setPosts(data || []);
+            setLoading(false);
+        };
+        fetchPosts();
+    }, []);
+
+    const filteredPosts = posts.filter((post) =>
+        post.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
 
     return (
-        <ScrollArea className="max-h-[300px]">
-            <div className="space-y-2">
-                {mockPosts.map((post) => (
-                    <div
-                        key={post.id}
-                        onClick={() => onSelect(post.id, post.title)}
-                        className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                    >
-                        <p className="font-medium text-sm">{post.title}</p>
-                    </div>
-                ))}
-            </div>
-        </ScrollArea>
+        <div className="space-y-3">
+            <Input
+                placeholder="搜索帖子..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <ScrollArea className="max-h-[300px]">
+                <div className="space-y-2">
+                    {filteredPosts.length > 0 ? (
+                        filteredPosts.map((post) => (
+                            <div
+                                key={post.id}
+                                onClick={() => onSelect(post.id, post.title)}
+                                className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                            >
+                                <p className="font-medium text-sm line-clamp-2">{post.title}</p>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-sm text-muted-foreground py-4">
+                            暂无帖子
+                        </p>
+                    )}
+                </div>
+            </ScrollArea>
+        </div>
     );
 }
+
+// 表情选择器
+const EMOJI_LIST = [
+    "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂",
+    "🙂", "🙃", "😉", "😊", "😇", "🥰", "😍", "🤩",
+    "😘", "😗", "😚", "😙", "🥲", "😋", "😛", "😜",
+    "👍", "👎", "👏", "🙌", "🤝", "🙏", "✨", "🔥",
+    "💯", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤",
+];
+
+function EmojiPicker({
+    onSelect,
+}: {
+    onSelect: (emoji: string) => void;
+}) {
+    return (
+        <div className="grid grid-cols-8 gap-1 p-2">
+            {EMOJI_LIST.map((emoji) => (
+                <button
+                    key={emoji}
+                    onClick={() => onSelect(emoji)}
+                    className="h-8 w-8 flex items-center justify-center text-lg hover:bg-muted rounded transition-colors"
+                >
+                    {emoji}
+                </button>
+            ))}
+        </div>
+    );
+}
+

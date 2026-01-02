@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { RichTextRenderer } from "@/components/posts/RichTextRenderer";
-import { MessageCircle, Heart, CornerDownRight } from "lucide-react";
+import { MessageCircle, Heart, CornerDownRight, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "@/lib/utils";
+import { toggleLikeComment, deleteComment } from "@/app/(protected)/posts/[id]/actions";
+import { toast } from "sonner";
 
 export interface CommentAuthor {
     id: string;
@@ -16,6 +18,7 @@ export interface CommentAuthor {
 
 export interface CommentData {
     id: string;
+    post_id?: string;
     content: object;
     author: CommentAuthor;
     created_at: string;
@@ -25,32 +28,69 @@ export interface CommentData {
 
 interface CommentItemProps {
     comment: CommentData;
+    postId: string;
+    currentUserId?: string;
     depth?: number;
     maxDepth?: number;
     onReply?: (parentId: string) => void;
+    onDelete?: (commentId: string) => void;
+    isLiked?: boolean;
 }
 
 export function CommentItem({
     comment,
+    postId,
+    currentUserId,
     depth = 0,
     maxDepth = 2,
-    onReply
+    onReply,
+    onDelete,
+    isLiked: initialIsLiked = false,
 }: CommentItemProps) {
-    const [isLiked, setIsLiked] = useState(false);
+    const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(comment.like_count);
+    const [isPending, startTransition] = useTransition();
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleLike = () => {
-        setIsLiked(!isLiked);
-        setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
-        // TODO: 调用 API 更新点赞状态
+        // 乐观更新
+        const newLiked = !isLiked;
+        setIsLiked(newLiked);
+        setLikeCount(newLiked ? likeCount + 1 : likeCount - 1);
+
+        startTransition(async () => {
+            const result = await toggleLikeComment(comment.id);
+            if (result.error) {
+                // 回滚
+                setIsLiked(!newLiked);
+                setLikeCount(newLiked ? likeCount : likeCount + 1);
+                toast.error(result.error);
+            }
+        });
     };
 
     const handleReply = () => {
         onReply?.(comment.id);
     };
 
+    const handleDelete = async () => {
+        if (!confirm("确定要删除这条评论吗？")) return;
+
+        setIsDeleting(true);
+        const result = await deleteComment(comment.id, postId);
+        setIsDeleting(false);
+
+        if (result.error) {
+            toast.error(result.error);
+        } else {
+            toast.success("评论已删除");
+            onDelete?.(comment.id);
+        }
+    };
+
     const authorInitials = comment.author.username?.slice(0, 2).toUpperCase() || "?";
     const isNested = depth > 0;
+    const isAuthor = currentUserId === comment.author.id;
 
     return (
         <div className={`${isNested ? "ml-8 border-l-2 border-border/50 pl-4" : ""}`}>
@@ -95,6 +135,7 @@ export function CommentItem({
                                 size="sm"
                                 className={`h-7 px-2 gap-1.5 text-xs ${isLiked ? "text-red-500" : "text-muted-foreground"}`}
                                 onClick={handleLike}
+                                disabled={isPending}
                             >
                                 <Heart className={`h-3.5 w-3.5 ${isLiked ? "fill-current" : ""}`} />
                                 {likeCount > 0 && <span>{likeCount}</span>}
@@ -111,6 +152,19 @@ export function CommentItem({
                                     回复
                                 </Button>
                             )}
+
+                            {isAuthor && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    {isDeleting ? "删除中..." : "删除"}
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -123,9 +177,12 @@ export function CommentItem({
                         <CommentItem
                             key={reply.id}
                             comment={reply}
+                            postId={postId}
+                            currentUserId={currentUserId}
                             depth={depth + 1}
                             maxDepth={maxDepth}
                             onReply={onReply}
+                            onDelete={onDelete}
                         />
                     ))}
                 </div>

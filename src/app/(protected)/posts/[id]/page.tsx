@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PostDetailClient from "./PostDetailClient";
+import { getPostInteractionStatus, getCommentLikeStatus } from "./actions";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -112,7 +113,7 @@ async function getAuthorOtherPosts(authorId: string, currentPostId: string) {
 // 增加阅读量
 async function incrementViewCount(postId: string) {
     const supabase = await createClient();
-    await supabase.rpc("increment_view_count", { post_id: postId });
+    await supabase.rpc("increment_view_count", { target_post_id: postId });
 }
 
 // 获取当前用户
@@ -144,8 +145,19 @@ export default async function PostDetailPage({ params }: PageProps) {
         notFound();
     }
 
-    // 增加阅读量
-    await incrementViewCount(id);
+    // 获取用户互动状态和评论点赞状态
+    const [interactionStatus, commentLikeStatus] = await Promise.all([
+        getPostInteractionStatus(id),
+        getCommentLikeStatus(
+            comments.flatMap((c: { id: string; replies?: { id: string }[] }) => [
+                c.id,
+                ...(c.replies?.map((r: { id: string }) => r.id) || []),
+            ])
+        ),
+    ]);
+
+    // 增加阅读量（非阻塞）
+    incrementViewCount(id);
 
     // 获取作者其他文章
     const authorOtherPosts = await getAuthorOtherPosts(post.author_id, id);
@@ -156,6 +168,9 @@ export default async function PostDetailPage({ params }: PageProps) {
             comments={comments}
             authorOtherPosts={authorOtherPosts}
             currentUser={currentUser}
+            initialIsLiked={interactionStatus.isLiked}
+            initialIsBookmarked={interactionStatus.isBookmarked}
+            commentLikeStatus={commentLikeStatus}
         />
     );
 }

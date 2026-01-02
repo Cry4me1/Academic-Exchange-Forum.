@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toggleLikePost, toggleBookmarkPost, createShareRecord } from "@/app/(protected)/posts/[id]/actions";
+import { toast } from "sonner";
 
 // 学科标签颜色映射
 const tagColors: Record<string, string> = {
@@ -28,6 +31,8 @@ const tagColors: Record<string, string> = {
     "Chemistry": "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-orange-500/20",
     "Economics": "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20",
     "Philosophy": "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20",
+    "AI": "bg-cyan-500/10 text-cyan-600 hover:bg-cyan-500/20 border-cyan-500/20",
+    "Engineering": "bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 border-indigo-500/20",
     "default": "bg-muted text-muted-foreground hover:bg-muted/80 border-muted",
 };
 
@@ -73,9 +78,59 @@ export function PostCard({
     createdAt,
     likes,
     comments,
-    isLiked = false,
-    isBookmarked = false,
+    isLiked: initialIsLiked = false,
+    isBookmarked: initialIsBookmarked = false,
 }: PostCardProps) {
+    const [isLiked, setIsLiked] = useState(initialIsLiked);
+    const [likeCount, setLikeCount] = useState(likes);
+    const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
+    const [isPending, startTransition] = useTransition();
+
+    const handleLike = () => {
+        // 乐观更新
+        const newLiked = !isLiked;
+        setIsLiked(newLiked);
+        setLikeCount(newLiked ? likeCount + 1 : likeCount - 1);
+
+        startTransition(async () => {
+            const result = await toggleLikePost(id);
+            if (result.error) {
+                // 回滚
+                setIsLiked(!newLiked);
+                setLikeCount(newLiked ? likeCount : likeCount + 1);
+                toast.error(result.error);
+            }
+        });
+    };
+
+    const handleBookmark = () => {
+        // 乐观更新
+        const newBookmarked = !isBookmarked;
+        setIsBookmarked(newBookmarked);
+
+        startTransition(async () => {
+            const result = await toggleBookmarkPost(id);
+            if (result.error) {
+                // 回滚
+                setIsBookmarked(!newBookmarked);
+                toast.error(result.error);
+            } else {
+                toast.success(newBookmarked ? "已添加到收藏" : "已取消收藏");
+            }
+        });
+    };
+
+    const handleShare = async () => {
+        try {
+            await navigator.clipboard.writeText(`${window.location.origin}/posts/${id}`);
+            toast.success("链接已复制到剪贴板");
+            // 记录分享（不阻塞 UI）
+            createShareRecord(id, "copy_link");
+        } catch {
+            toast.error("复制失败");
+        }
+    };
+
     return (
         <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-border bg-card/50 backdrop-blur-sm">
             <CardHeader className="pb-3">
@@ -112,7 +167,7 @@ export function PostCard({
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem>举报</DropdownMenuItem>
                             <DropdownMenuItem>屏蔽作者</DropdownMenuItem>
-                            <DropdownMenuItem>复制链接</DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleShare}>复制链接</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -156,26 +211,31 @@ export function PostCard({
                             variant="ghost"
                             size="sm"
                             className={`gap-1.5 h-9 px-3 ${isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
+                            onClick={handleLike}
+                            disabled={isPending}
                         >
                             <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
-                            <span className="text-sm font-medium">{likes}</span>
+                            <span className="text-sm font-medium">{likeCount}</span>
                         </Button>
 
                         {/* 评论 */}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1.5 h-9 px-3 text-muted-foreground hover:text-primary"
-                        >
-                            <MessageCircle className="h-4 w-4" />
-                            <span className="text-sm font-medium">{comments}</span>
-                        </Button>
+                        <Link href={`/posts/${id}#comments`}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1.5 h-9 px-3 text-muted-foreground hover:text-primary"
+                            >
+                                <MessageCircle className="h-4 w-4" />
+                                <span className="text-sm font-medium">{comments}</span>
+                            </Button>
+                        </Link>
 
                         {/* 分享 */}
                         <Button
                             variant="ghost"
                             size="sm"
                             className="gap-1.5 h-9 px-3 text-muted-foreground hover:text-primary"
+                            onClick={handleShare}
                         >
                             <Share2 className="h-4 w-4" />
                         </Button>
@@ -186,6 +246,8 @@ export function PostCard({
                         variant="ghost"
                         size="icon"
                         className={`h-9 w-9 ${isBookmarked ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                        onClick={handleBookmark}
+                        disabled={isPending}
                     >
                         <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
                     </Button>

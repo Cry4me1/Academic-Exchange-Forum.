@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -30,6 +30,8 @@ export function CommentInput({
     autoFocus = false,
 }: CommentInputProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isEditorReady, setIsEditorReady] = useState(false);
+    const [hasContent, setHasContent] = useState(false);
 
     const editor = useEditor({
         extensions: [
@@ -45,12 +47,27 @@ export function CommentInput({
         ],
         content: "",
         autofocus: autoFocus,
+        immediatelyRender: false,
         editorProps: {
             attributes: {
                 class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[60px] p-3",
             },
         },
+        onUpdate: ({ editor }) => {
+            setHasContent(!editor.isEmpty);
+        },
+        onCreate: () => {
+            setIsEditorReady(true);
+        },
     });
+
+    // 确保编辑器状态同步
+    useEffect(() => {
+        if (editor) {
+            setIsEditorReady(true);
+            setHasContent(!editor.isEmpty);
+        }
+    }, [editor]);
 
     const handleSubmit = async () => {
         if (!editor || editor.isEmpty) return;
@@ -60,6 +77,7 @@ export function CommentInput({
             const content = editor.getJSON();
             await onSubmit(content, parentId);
             editor.commands.clearContent();
+            setHasContent(false);
         } catch (error) {
             console.error("Failed to submit comment:", error);
         } finally {
@@ -94,10 +112,16 @@ export function CommentInput({
                 </Avatar>
 
                 <div className="flex-1">
-                    <EditorContent
-                        editor={editor}
-                        className="border border-border/50 rounded-md bg-background focus-within:ring-2 focus-within:ring-primary/20"
-                    />
+                    {!isEditorReady ? (
+                        <div className="border border-border/50 rounded-md bg-background h-[84px] flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : (
+                        <EditorContent
+                            editor={editor}
+                            className="border border-border/50 rounded-md bg-background focus-within:ring-2 focus-within:ring-primary/20"
+                        />
+                    )}
                 </div>
             </div>
 
@@ -110,6 +134,7 @@ export function CommentInput({
                         className="h-8 w-8"
                         onClick={toggleBold}
                         title="加粗"
+                        disabled={!isEditorReady}
                     >
                         <Bold className="h-4 w-4" />
                     </Button>
@@ -132,7 +157,7 @@ export function CommentInput({
                     <Button
                         size="sm"
                         onClick={handleSubmit}
-                        disabled={isSubmitting || !editor || editor.isEmpty}
+                        disabled={isSubmitting || !isEditorReady || !hasContent}
                         className="gap-1.5"
                     >
                         {isSubmitting ? (

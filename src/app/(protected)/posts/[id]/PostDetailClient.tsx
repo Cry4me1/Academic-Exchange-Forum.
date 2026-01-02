@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useTransition } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,9 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RichTextRenderer, TableOfContents, HeadingItem } from "@/components/posts";
 import { CommentItem, CommentInput, CommentData } from "@/components/comments";
-import { createClient } from "@/lib/supabase/client";
+import { ReportDialog } from "@/components/ReportDialog";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+    toggleLikePost,
+    toggleBookmarkPost,
+    createShareRecord,
+    createComment,
+    deletePost,
+} from "./actions";
 import {
     ArrowLeft,
     Heart,
@@ -20,7 +27,16 @@ import {
     MoreHorizontal,
     Calendar,
     Eye,
+    Flag,
+    Trash2,
 } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PostDetailClientProps {
     post: {
@@ -51,6 +67,9 @@ interface PostDetailClientProps {
         username: string;
         avatar_url?: string;
     } | null;
+    initialIsLiked?: boolean;
+    initialIsBookmarked?: boolean;
+    commentLikeStatus?: Record<string, boolean>;
 }
 
 // 标签颜色映射
@@ -109,13 +128,18 @@ export default function PostDetailClient({
     comments: initialComments,
     authorOtherPosts,
     currentUser,
+    initialIsLiked = false,
+    initialIsBookmarked = false,
+    commentLikeStatus = {},
 }: PostDetailClientProps) {
     const [headings, setHeadings] = useState<HeadingItem[]>([]);
     const [comments, setComments] = useState<CommentData[]>(initialComments);
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
-    const [isLiked, setIsLiked] = useState(false);
+    const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(post.like_count);
-    const [isBookmarked, setIsBookmarked] = useState(false);
+    const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
+    const [isPending, startTransition] = useTransition();
+    const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
     const authorDisplayName = post.author.full_name || post.author.username;
@@ -124,22 +148,56 @@ export default function PostDetailClient({
         setHeadings(extractedHeadings);
     }, []);
 
-    const handleLike = async () => {
-        setIsLiked(!isLiked);
-        setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
-        // TODO: 调用 API 更新点赞状态
+    const handleLike = () => {
+        if (!currentUser) {
+            toast.error("请先登录");
+            return;
+        }
+
+        // 乐观更新
+        const newLiked = !isLiked;
+        setIsLiked(newLiked);
+        setLikeCount(newLiked ? likeCount + 1 : likeCount - 1);
+
+        startTransition(async () => {
+            const result = await toggleLikePost(post.id);
+            if (result.error) {
+                // 回滚
+                setIsLiked(!newLiked);
+                setLikeCount(newLiked ? likeCount : likeCount + 1);
+                toast.error(result.error);
+            }
+        });
     };
 
-    const handleBookmark = async () => {
-        setIsBookmarked(!isBookmarked);
-        toast.success(isBookmarked ? "已取消收藏" : "已添加到收藏");
-        // TODO: 调用 API 更新收藏状态
+    const handleBookmark = () => {
+        if (!currentUser) {
+            toast.error("请先登录");
+            return;
+        }
+
+        // 乐观更新
+        const newBookmarked = !isBookmarked;
+        setIsBookmarked(newBookmarked);
+
+        startTransition(async () => {
+            const result = await toggleBookmarkPost(post.id);
+            if (result.error) {
+                // 回滚
+                setIsBookmarked(!newBookmarked);
+                toast.error(result.error);
+            } else {
+                toast.success(newBookmarked ? "已添加到收藏" : "已取消收藏");
+            }
+        });
     };
 
     const handleShare = async () => {
         try {
             await navigator.clipboard.writeText(window.location.href);
             toast.success("链接已复制到剪贴板");
+            // 记录分享
+            createShareRecord(post.id, "copy_link");
         } catch {
             toast.error("复制失败");
         }
@@ -155,32 +213,19 @@ export default function PostDetailClient({
             return;
         }
 
-        const supabase = createClient();
+        const result = await createComment({
+            postId: post.id,
+            parentId: parentId || undefined,
+            content,
+        });
 
-        const { data: newComment, error } = await supabase
-            .from("comments")
-            .insert({
-                post_id: post.id,
-                author_id: currentUser.id,
-                parent_id: parentId || null,
-                content,
-            })
-            .select(`
-                *,
-                author:profiles!author_id (
-                    id,
-                    username,
-                    full_name,
-                    avatar_url
-                )
-            `)
-            .single();
-
-        if (error) {
-            toast.error("评论发送失败");
-            console.error("Failed to submit comment:", error);
+        if (result.error) {
+            toast.error(result.error);
             return;
         }
+
+        const newComment = result.data;
+        if (!newComment) return;
 
         // 更新评论列表
         if (parentId) {
@@ -212,224 +257,278 @@ export default function PostDetailClient({
     };
 
     return (
-        <motion.div
-            variants={pageVariants}
-            initial="hidden"
-            animate="visible"
-            className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20"
-        >
-            {/* 顶部导航 */}
-            <motion.header
-                variants={itemVariants}
-                className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
+        <>
+            <motion.div
+                variants={pageVariants}
+                initial="hidden"
+                animate="visible"
+                className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20"
             >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <Link href="/dashboard">
-                            <Button variant="ghost" size="sm" className="gap-2">
-                                <ArrowLeft className="h-4 w-4" />
-                                返回
-                            </Button>
-                        </Link>
+                {/* 顶部导航 */}
+                <motion.header
+                    variants={itemVariants}
+                    className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
+                >
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-16">
+                            <Link href="/dashboard">
+                                <Button variant="ghost" size="sm" className="gap-2">
+                                    <ArrowLeft className="h-4 w-4" />
+                                    返回
+                                </Button>
+                            </Link>
 
-                        <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" onClick={handleShare}>
-                                <Share2 className="h-5 w-5" />
-                            </Button>
-                            <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-5 w-5" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" onClick={handleShare}>
+                                    <Share2 className="h-5 w-5" />
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreHorizontal className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {currentUser?.id === post.author.id && (
+                                            <>
+                                                <DropdownMenuItem
+                                                    onClick={async () => {
+                                                        if (confirm("确定要删除这篇帖子吗？此操作不可撤销。")) {
+                                                            const result = await deletePost(post.id);
+                                                            if (result.error) {
+                                                                toast.error(result.error);
+                                                            } else {
+                                                                toast.success("帖子已删除");
+                                                                window.location.href = "/dashboard";
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="text-destructive focus:text-destructive"
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    删除帖子
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                            </>
+                                        )}
+                                        <DropdownMenuItem
+                                            onClick={() => setReportDialogOpen(true)}
+                                            className="text-orange-600 focus:text-orange-600"
+                                        >
+                                            <Flag className="mr-2 h-4 w-4" />
+                                            举报
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </motion.header>
+                </motion.header>
 
-            {/* 主内容区域 */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex gap-8">
-                    {/* 左侧主内容 */}
-                    <main className="flex-1 min-w-0">
-                        {/* 文章头部 */}
-                        <motion.article variants={itemVariants} className="mb-8">
-                            {/* 标签 */}
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                {post.tags.map((tag) => (
-                                    <Badge
-                                        key={tag}
-                                        variant="outline"
-                                        className={`${tagColors[tag] || tagColors.default} font-medium`}
+                {/* 主内容区域 */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="flex gap-8">
+                        {/* 左侧主内容 */}
+                        <main className="flex-1 min-w-0">
+                            {/* 文章头部 */}
+                            <motion.article variants={itemVariants} className="mb-8">
+                                {/* 标签 */}
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {post.tags.map((tag) => (
+                                        <Badge
+                                            key={tag}
+                                            variant="outline"
+                                            className={`${tagColors[tag] || tagColors.default} font-medium`}
+                                        >
+                                            {tag}
+                                        </Badge>
+                                    ))}
+                                </div>
+
+                                {/* 标题 */}
+                                <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 leading-tight">
+                                    {post.title}
+                                </h1>
+
+                                {/* 作者信息 */}
+                                <div className="flex items-center justify-between flex-wrap gap-4 pb-6 border-b border-border/50">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-12 w-12 ring-2 ring-primary/10">
+                                            <AvatarImage src={post.author.avatar_url} alt={authorDisplayName} />
+                                            <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
+                                                {authorInitials}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-semibold text-foreground">{authorDisplayName}</p>
+                                            {post.author.bio && (
+                                                <p className="text-sm text-muted-foreground line-clamp-1">{post.author.bio}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-1">
+                                            <Calendar className="h-4 w-4" />
+                                            <span>{formatDate(post.created_at)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Eye className="h-4 w-4" />
+                                            <span>{post.view_count} 浏览</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.article>
+
+                            {/* 文章内容 */}
+                            <motion.div variants={contentVariants} className="mb-12">
+                                <RichTextRenderer
+                                    content={post.content}
+                                    className="leading-relaxed"
+                                    onHeadingsExtracted={handleHeadingsExtracted}
+                                />
+                            </motion.div>
+
+                            {/* 互动区域 */}
+                            <motion.div
+                                variants={itemVariants}
+                                className="flex items-center justify-between py-6 border-t border-b border-border/50"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className={`gap-2 ${isLiked ? "text-red-500" : ""}`}
+                                        onClick={handleLike}
+                                        disabled={isPending}
                                     >
-                                        {tag}
-                                    </Badge>
-                                ))}
-                            </div>
-
-                            {/* 标题 */}
-                            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 leading-tight">
-                                {post.title}
-                            </h1>
-
-                            {/* 作者信息 */}
-                            <div className="flex items-center justify-between flex-wrap gap-4 pb-6 border-b border-border/50">
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-12 w-12 ring-2 ring-primary/10">
-                                        <AvatarImage src={post.author.avatar_url} alt={authorDisplayName} />
-                                        <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
-                                            {authorInitials}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-semibold text-foreground">{authorDisplayName}</p>
-                                        {post.author.bio && (
-                                            <p className="text-sm text-muted-foreground line-clamp-1">{post.author.bio}</p>
-                                        )}
-                                    </div>
+                                        <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
+                                        <span>{likeCount}</span>
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="gap-2">
+                                        <MessageCircle className="h-5 w-5" />
+                                        <span>{comments.length}</span>
+                                    </Button>
                                 </div>
 
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>{formatDate(post.created_at)}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Eye className="h-4 w-4" />
-                                        <span>{post.view_count} 浏览</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.article>
-
-                        {/* 文章内容 */}
-                        <motion.div variants={contentVariants} className="mb-12">
-                            <RichTextRenderer
-                                content={post.content}
-                                className="leading-relaxed"
-                                onHeadingsExtracted={handleHeadingsExtracted}
-                            />
-                        </motion.div>
-
-                        {/* 互动区域 */}
-                        <motion.div
-                            variants={itemVariants}
-                            className="flex items-center justify-between py-6 border-t border-b border-border/50"
-                        >
-                            <div className="flex items-center gap-4">
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className={`gap-2 ${isLiked ? "text-red-500" : ""}`}
-                                    onClick={handleLike}
+                                    className={`gap-2 ${isBookmarked ? "text-primary" : ""}`}
+                                    onClick={handleBookmark}
+                                    disabled={isPending}
                                 >
-                                    <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
-                                    <span>{likeCount}</span>
+                                    <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
+                                    收藏
                                 </Button>
-                                <Button variant="ghost" size="sm" className="gap-2">
-                                    <MessageCircle className="h-5 w-5" />
-                                    <span>{comments.length}</span>
-                                </Button>
-                            </div>
+                            </motion.div>
 
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`gap-2 ${isBookmarked ? "text-primary" : ""}`}
-                                onClick={handleBookmark}
-                            >
-                                <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
-                                收藏
-                            </Button>
-                        </motion.div>
+                            {/* 评论区 */}
+                            <motion.section variants={itemVariants} className="mt-12" id="comments">
+                                <h2 className="text-xl font-semibold text-foreground mb-6">
+                                    评论 ({comments.length})
+                                </h2>
 
-                        {/* 评论区 */}
-                        <motion.section variants={itemVariants} className="mt-12">
-                            <h2 className="text-xl font-semibold text-foreground mb-6">
-                                评论 ({comments.length})
-                            </h2>
-
-                            {/* 评论输入框 */}
-                            <div className="mb-8">
-                                <CommentInput
-                                    currentUser={currentUser}
-                                    onSubmit={handleSubmitComment}
-                                    placeholder="写下你的评论..."
-                                />
-                            </div>
-
-                            {/* 评论列表 */}
-                            {comments.length > 0 ? (
-                                <div className="divide-y divide-border/50">
-                                    {comments.map((comment) => (
-                                        <div key={comment.id}>
-                                            <CommentItem
-                                                comment={comment}
-                                                maxDepth={2}
-                                                onReply={handleReply}
-                                            />
-
-                                            {/* 回复输入框 */}
-                                            {replyingTo === comment.id && (
-                                                <div className="ml-12 mb-4">
-                                                    <CommentInput
-                                                        currentUser={currentUser}
-                                                        parentId={comment.id}
-                                                        onSubmit={handleSubmitComment}
-                                                        onCancel={() => setReplyingTo(null)}
-                                                        placeholder={`回复 ${comment.author.username}...`}
-                                                        autoFocus
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                {/* 评论输入框 */}
+                                <div className="mb-8">
+                                    <CommentInput
+                                        currentUser={currentUser}
+                                        onSubmit={handleSubmitComment}
+                                        placeholder="写下你的评论..."
+                                    />
                                 </div>
-                            ) : (
-                                <div className="bg-muted/30 rounded-xl p-8 text-center">
-                                    <p className="text-muted-foreground">暂无评论，快来发表第一条评论吧！</p>
-                                </div>
-                            )}
-                        </motion.section>
-                    </main>
 
-                    {/* 右侧侧边栏（桌面端显示） */}
-                    <aside className="hidden lg:block w-72 flex-shrink-0">
-                        <div className="sticky top-24 space-y-6">
-                            {/* 目录 */}
-                            {headings.length > 0 && (
-                                <motion.div
-                                    variants={itemVariants}
-                                    className="bg-card border border-border/50 rounded-xl p-4"
-                                >
-                                    <TableOfContents headings={headings} />
-                                </motion.div>
-                            )}
+                                {/* 评论列表 */}
+                                {comments.length > 0 ? (
+                                    <div className="divide-y divide-border/50">
+                                        {comments.map((comment) => (
+                                            <div key={comment.id}>
+                                                <CommentItem
+                                                    comment={comment}
+                                                    postId={post.id}
+                                                    currentUserId={currentUser?.id}
+                                                    maxDepth={2}
+                                                    onReply={handleReply}
+                                                    onDelete={(commentId) => {
+                                                        setComments((prev) => prev.filter((c) => c.id !== commentId));
+                                                    }}
+                                                    isLiked={commentLikeStatus[comment.id]}
+                                                />
 
-                            {/* 作者其他文章 */}
-                            {authorOtherPosts.length > 0 && (
-                                <motion.div
-                                    variants={itemVariants}
-                                    className="bg-card border border-border/50 rounded-xl p-4"
-                                >
-                                    <h3 className="font-semibold text-sm text-foreground mb-3">
-                                        作者的其他文章
-                                    </h3>
-                                    <ul className="space-y-2">
-                                        {authorOtherPosts.map((otherPost) => (
-                                            <li key={otherPost.id}>
-                                                <Link
-                                                    href={`/posts/${otherPost.id}`}
-                                                    className="block text-sm text-muted-foreground hover:text-foreground transition-colors line-clamp-2"
-                                                >
-                                                    {otherPost.title}
-                                                </Link>
-                                            </li>
+                                                {/* 回复输入框 */}
+                                                {replyingTo === comment.id && (
+                                                    <div className="ml-12 mb-4">
+                                                        <CommentInput
+                                                            currentUser={currentUser}
+                                                            parentId={comment.id}
+                                                            onSubmit={handleSubmitComment}
+                                                            onCancel={() => setReplyingTo(null)}
+                                                            placeholder={`回复 ${comment.author.username}...`}
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
                                         ))}
-                                    </ul>
-                                </motion.div>
-                            )}
-                        </div>
-                    </aside>
+                                    </div>
+                                ) : (
+                                    <div className="bg-muted/30 rounded-xl p-8 text-center">
+                                        <p className="text-muted-foreground">暂无评论，快来发表第一条评论吧！</p>
+                                    </div>
+                                )}
+                            </motion.section>
+                        </main>
+
+                        {/* 右侧侧边栏（桌面端显示） */}
+                        <aside className="hidden lg:block w-72 flex-shrink-0">
+                            <div className="sticky top-24 space-y-6">
+                                {/* 目录 */}
+                                {headings.length > 0 && (
+                                    <motion.div
+                                        variants={itemVariants}
+                                        className="bg-card border border-border/50 rounded-xl p-4"
+                                    >
+                                        <TableOfContents headings={headings} />
+                                    </motion.div>
+                                )}
+
+                                {/* 作者其他文章 */}
+                                {authorOtherPosts.length > 0 && (
+                                    <motion.div
+                                        variants={itemVariants}
+                                        className="bg-card border border-border/50 rounded-xl p-4"
+                                    >
+                                        <h3 className="font-semibold text-sm text-foreground mb-3">
+                                            作者的其他文章
+                                        </h3>
+                                        <ul className="space-y-2">
+                                            {authorOtherPosts.map((otherPost) => (
+                                                <li key={otherPost.id}>
+                                                    <Link
+                                                        href={`/posts/${otherPost.id}`}
+                                                        className="block text-sm text-muted-foreground hover:text-foreground transition-colors line-clamp-2"
+                                                    >
+                                                        {otherPost.title}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </motion.div>
+                                )}
+                            </div>
+                        </aside>
+                    </div>
                 </div>
-            </div>
-        </motion.div>
+            </motion.div>
+
+            {/* 举报对话框 */}
+            <ReportDialog
+                open={reportDialogOpen}
+                onOpenChange={setReportDialogOpen}
+                type="post"
+                targetId={post.id}
+                targetTitle={post.title}
+            />
+        </>
     );
 }

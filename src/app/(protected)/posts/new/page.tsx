@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { RichTextEditor } from "@/components/editor";
 import { ArrowLeft, Send, X, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { createPost } from "../actions";
 
 const AVAILABLE_TAGS = [
     "Computer Science",
@@ -82,21 +83,27 @@ export default function NewPostPage() {
             return;
         }
 
+        if (!contentJson) {
+            toast.error("内容格式错误");
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
-            // TODO: 实际提交到数据库
-            console.log("Submitting post:", {
-                title,
-                content,
-                contentJson,
+            const result = await createPost({
+                title: title.trim(),
+                content: contentJson,
                 tags: selectedTags,
             });
 
-            await new Promise((resolve) => setTimeout(resolve, 1000)); // 模拟网络请求
+            if (result.error) {
+                toast.error(result.error);
+                return;
+            }
 
             toast.success("发布成功！");
-            router.push("/dashboard");
+            router.push(`/posts/${result.data?.id}`);
         } catch (error) {
             toast.error("发布失败，请重试");
             console.error("Submit error:", error);
@@ -223,7 +230,7 @@ export default function NewPostPage() {
                         <RichTextEditor
                             onChange={setContent}
                             onJsonChange={setContentJson}
-                            placeholder="开始撰写你的学术内容...&#10;&#10;提示：&#10;• 使用 $...$ 插入行内数学公式，如 $E=mc^2$&#10;• 使用 $$...$$ 插入块级公式&#10;• 拖拽图片直接上传&#10;• 点击工具栏按钮添加代码块"
+                            placeholder={"开始撰写你的学术内容...\n\n提示：\n• 使用 $...$ 插入行内数学公式，如 $E=mc^2$\n• 使用 $$...$$ 插入块级公式\n• 拖拽图片直接上传\n• 点击工具栏按钮添加代码块"}
                             className="min-h-[400px]"
                         />
                     </motion.div>

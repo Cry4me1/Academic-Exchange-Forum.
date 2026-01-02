@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowLeft, UserPlus, MessageCircle, Calendar, MapPin, Globe } from "lucide-react";
+import { Loader2, ArrowLeft, UserPlus, MessageCircle, Calendar, MapPin, Globe, Heart, Bookmark } from "lucide-react";
 import { useFriends } from "@/hooks/useFriends";
 import { motion } from "framer-motion";
 
@@ -29,10 +29,18 @@ interface UserProfile {
 interface Post {
     id: string;
     title: string;
-    content: string;
+    content: string | object;
     created_at: string;
-    likes_count: number;
-    comments_count: number;
+    like_count: number;
+    comment_count: number;
+}
+
+interface LikedPost extends Post {
+    liked_at: string;
+}
+
+interface BookmarkedPost extends Post {
+    bookmarked_at: string;
 }
 
 const genderLabels: Record<string, string> = {
@@ -42,16 +50,45 @@ const genderLabels: Record<string, string> = {
     private: "未公开",
 };
 
+// 从 JSON 内容中提取文本
+function extractTextFromContent(content: string | object): string {
+    if (typeof content === "string") {
+        return content.replace(/<[^>]*>/g, "");
+    }
+    try {
+        const jsonContent = content as { content?: Array<{ content?: Array<{ text?: string }> }> };
+        if (jsonContent.content) {
+            const texts: string[] = [];
+            for (const node of jsonContent.content) {
+                if (node.content) {
+                    for (const child of node.content) {
+                        if (child.text) {
+                            texts.push(child.text);
+                        }
+                    }
+                }
+            }
+            return texts.join(" ").slice(0, 200);
+        }
+    } catch {
+        // ignore
+    }
+    return "";
+}
+
 export default function UserProfilePage() {
     const params = useParams();
     const userId = params.id as string;
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
+    const [likedPosts, setLikedPosts] = useState<LikedPost[]>([]);
+    const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [isFriend, setIsFriend] = useState(false);
     const [friendRequestSent, setFriendRequestSent] = useState(false);
+    const [activeTab, setActiveTab] = useState("posts");
 
     const supabase = createClient();
     const { sendFriendRequest } = useFriends(currentUserId);
@@ -80,13 +117,63 @@ export default function UserProfilePage() {
             // 获取该用户的帖子
             const { data: postsData, error: postsError } = await supabase
                 .from("posts")
-                .select("id, title, content, created_at, likes_count, comments_count")
+                .select("id, title, content, created_at, like_count, comment_count")
                 .eq("author_id", userId)
+                .eq("is_published", true)
                 .order("created_at", { ascending: false })
-                .limit(10);
+                .limit(20);
 
             if (!postsError && postsData) {
                 setPosts(postsData);
+            }
+
+            // 获取该用户点赞的帖子
+            const { data: likesData } = await supabase
+                .from("likes")
+                .select(`
+                    created_at,
+                    post:posts!inner (
+                        id, title, content, created_at, like_count, comment_count
+                    )
+                `)
+                .eq("user_id", userId)
+                .not("post_id", "is", null)
+                .order("created_at", { ascending: false })
+                .limit(20);
+
+            if (likesData) {
+                const likedPostsList = likesData
+                    .filter((item) => item.post)
+                    .map((item) => ({
+                        ...item.post as Post,
+                        liked_at: item.created_at,
+                    }));
+                setLikedPosts(likedPostsList);
+            }
+
+            // 获取该用户收藏的帖子（仅自己可见）
+            if (user && user.id === userId) {
+                const { data: bookmarksData } = await supabase
+                    .from("bookmarks")
+                    .select(`
+                        created_at,
+                        post:posts!inner (
+                            id, title, content, created_at, like_count, comment_count
+                        )
+                    `)
+                    .eq("user_id", userId)
+                    .order("created_at", { ascending: false })
+                    .limit(20);
+
+                if (bookmarksData) {
+                    const bookmarkedPostsList = bookmarksData
+                        .filter((item) => item.post)
+                        .map((item) => ({
+                            ...item.post as Post,
+                            bookmarked_at: item.created_at,
+                        }));
+                    setBookmarkedPosts(bookmarkedPostsList);
+                }
             }
 
             // 检查好友状态
@@ -145,6 +232,36 @@ export default function UserProfilePage() {
     const displayName = profile.full_name || profile.username || profile.email?.split("@")[0] || "未知用户";
     const initials = displayName.charAt(0).toUpperCase();
     const isOwnProfile = currentUserId === userId;
+
+    // 渲染帖子卡片
+    const renderPostCard = (post: Post, extraInfo?: { label: string; time: string }) => (
+        <Card key={post.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-4">
+                <Link href={`/posts/${post.id}`}>
+                    <h3 className="font-semibold hover:text-primary transition-colors line-clamp-1">
+                        {post.title}
+                    </h3>
+                </Link>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {extractTextFromContent(post.content).substring(0, 150)}...
+                </p>
+                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                    <span>{new Date(post.created_at).toLocaleDateString("zh-CN")}</span>
+                    <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" /> {post.like_count || 0}
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" /> {post.comment_count || 0}
+                    </span>
+                    {extraInfo && (
+                        <span className="ml-auto text-muted-foreground/60">
+                            {extraInfo.label}于 {new Date(extraInfo.time).toLocaleDateString("zh-CN")}
+                        </span>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -266,35 +383,27 @@ export default function UserProfilePage() {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="mt-6"
                 >
-                    <Tabs defaultValue="posts" className="w-full">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList className="mb-4">
-                            <TabsTrigger value="posts">帖子 ({posts.length})</TabsTrigger>
-                            <TabsTrigger value="likes" disabled>点赞</TabsTrigger>
-                            <TabsTrigger value="comments" disabled>评论</TabsTrigger>
+                            <TabsTrigger value="posts">
+                                帖子 ({posts.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="likes">
+                                <Heart className="h-3.5 w-3.5 mr-1" />
+                                点赞 ({likedPosts.length})
+                            </TabsTrigger>
+                            {isOwnProfile && (
+                                <TabsTrigger value="bookmarks">
+                                    <Bookmark className="h-3.5 w-3.5 mr-1" />
+                                    收藏 ({bookmarkedPosts.length})
+                                </TabsTrigger>
+                            )}
                         </TabsList>
 
                         <TabsContent value="posts">
                             {posts.length > 0 ? (
                                 <div className="space-y-4">
-                                    {posts.map((post) => (
-                                        <Card key={post.id} className="hover:shadow-md transition-shadow">
-                                            <CardContent className="pt-4">
-                                                <Link href={`/posts/${post.id}`}>
-                                                    <h3 className="font-semibold hover:text-primary transition-colors line-clamp-1">
-                                                        {post.title}
-                                                    </h3>
-                                                </Link>
-                                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                                    {post.content.replace(/<[^>]*>/g, "").substring(0, 150)}...
-                                                </p>
-                                                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                                                    <span>{new Date(post.created_at).toLocaleDateString("zh-CN")}</span>
-                                                    <span>❤️ {post.likes_count || 0}</span>
-                                                    <span>💬 {post.comments_count || 0}</span>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+                                    {posts.map((post) => renderPostCard(post))}
                                 </div>
                             ) : (
                                 <div className="text-center py-12">
@@ -302,6 +411,36 @@ export default function UserProfilePage() {
                                 </div>
                             )}
                         </TabsContent>
+
+                        <TabsContent value="likes">
+                            {likedPosts.length > 0 ? (
+                                <div className="space-y-4">
+                                    {likedPosts.map((post) =>
+                                        renderPostCard(post, { label: "点赞", time: post.liked_at })
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <p className="text-muted-foreground">暂无点赞的帖子</p>
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        {isOwnProfile && (
+                            <TabsContent value="bookmarks">
+                                {bookmarkedPosts.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {bookmarkedPosts.map((post) =>
+                                            renderPostCard(post, { label: "收藏", time: post.bookmarked_at })
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <p className="text-muted-foreground">暂无收藏的帖子</p>
+                                    </div>
+                                )}
+                            </TabsContent>
+                        )}
                     </Tabs>
                 </motion.div>
             </div>
