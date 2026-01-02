@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RichTextRenderer, TableOfContents, HeadingItem } from "@/components/posts";
+import { TableOfContents, type HeadingItem } from "@/components/posts";
+import NovelViewer from "@/components/editor/NovelViewer";
 import { CommentItem, CommentInput, CommentData } from "@/components/comments";
 import { ReportDialog } from "@/components/ReportDialog";
 import { formatDate } from "@/lib/utils";
@@ -144,9 +145,23 @@ export default function PostDetailClient({
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
     const authorDisplayName = post.author.full_name || post.author.username;
 
-    const handleHeadingsExtracted = useCallback((extractedHeadings: HeadingItem[]) => {
-        setHeadings(extractedHeadings);
-    }, []);
+    // Extract headings from content directly
+    useEffect(() => {
+        if (post.content && typeof post.content === 'object' && 'content' in post.content) {
+            const extractedHeadings: HeadingItem[] = [];
+            // @ts-ignore
+            post.content.content?.forEach((node: any) => {
+                if (node.type === "heading") {
+                    extractedHeadings.push({
+                        level: node.attrs?.level || 1,
+                        text: node.content?.[0]?.text || "Untitled",
+                        id: node.content?.[0]?.text?.toLowerCase().replace(/\s+/g, "-") || `heading-${Math.random()}`
+                    });
+                }
+            });
+            setHeadings(extractedHeadings);
+        }
+    }, [post.content]);
 
     const handleLike = () => {
         if (!currentUser) {
@@ -382,10 +397,8 @@ export default function PostDetailClient({
 
                             {/* 文章内容 */}
                             <motion.div variants={contentVariants} className="mb-12">
-                                <RichTextRenderer
-                                    content={post.content}
-                                    className="leading-relaxed"
-                                    onHeadingsExtracted={handleHeadingsExtracted}
+                                <NovelViewer
+                                    initialValue={post.content}
                                 />
                             </motion.div>
 

@@ -8,13 +8,16 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, User, Loader2, CheckCircle } from "lucide-react";
+import { Mail, User, Loader2, CheckCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export function RegisterForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
     const {
         register,
@@ -30,8 +33,11 @@ export function RegisterForm() {
 
         try {
             const supabase = createClient();
-            const { error: authError } = await supabase.auth.signInWithOtp({
+
+            // 使用账号密码注册
+            const { error: authError, data: authData } = await supabase.auth.signUp({
                 email: data.email,
+                password: data.password,
                 options: {
                     emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
                     data: {
@@ -45,7 +51,13 @@ export function RegisterForm() {
                 return;
             }
 
+            if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+                setError("该邮箱已被注册，请直接登录");
+                return;
+            }
+
             setIsSuccess(true);
+            toast.success("注册成功！请检查邮箱完成验证");
         } catch {
             setError("注册时出错，请稍后重试");
         } finally {
@@ -65,6 +77,11 @@ export function RegisterForm() {
                 <p className="text-muted-foreground">
                     请检查您的邮箱，点击链接完成注册。
                 </p>
+                <div className="mt-4">
+                    <Link href="/login">
+                        <Button variant="outline">前往登录</Button>
+                    </Link>
+                </div>
             </div>
         );
     }
@@ -115,9 +132,46 @@ export function RegisterForm() {
                 )}
             </div>
 
+            {/* 密码输入 */}
+            <div className="space-y-2">
+                <Label htmlFor="password">密码</Label>
+                <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                        id="password"
+                        type="password"
+                        placeholder="设置登录密码"
+                        className="pl-10 h-11"
+                        {...register("password")}
+                    />
+                </div>
+                {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password.message}</p>
+                )}
+            </div>
+
+            {/* 确认密码输入 */}
+            <div className="space-y-2">
+                <Label htmlFor="confirmPassword">确认密码</Label>
+                <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="再次输入密码"
+                        className="pl-10 h-11"
+                        {...register("confirmPassword")}
+                    />
+                </div>
+                {errors.confirmPassword && (
+                    <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+                )}
+            </div>
+
             {/* 错误提示 */}
             {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                    <Loader2 className="w-4 h-4" />
                     {error}
                 </div>
             )}
@@ -131,10 +185,10 @@ export function RegisterForm() {
                 {isLoading ? (
                     <>
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        发送中...
+                        注册中...
                     </>
                 ) : (
-                    "发送验证邮件"
+                    "注册账号"
                 )}
             </Button>
 

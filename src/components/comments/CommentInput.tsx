@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
+import { StarterKit, Placeholder, Mathematics } from "novel";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bold, Send, Loader2 } from "lucide-react";
@@ -33,18 +32,21 @@ export function CommentInput({
     const [isEditorReady, setIsEditorReady] = useState(false);
     const [hasContent, setHasContent] = useState(false);
 
+    // Build extensions for comment input
+    const extensions = useMemo(() => [
+        StarterKit.configure({
+            codeBlock: false,
+            horizontalRule: false,
+            gapcursor: false,
+        }),
+        Placeholder.configure({
+            placeholder: placeholder,
+        }),
+        Mathematics.configure({}),
+    ] as any, [placeholder]);
+
     const editor = useEditor({
-        extensions: [
-            StarterKit.configure({
-                heading: false,
-                codeBlock: false,
-                horizontalRule: false,
-                blockquote: false,
-            }),
-            Placeholder.configure({
-                placeholder,
-            }),
-        ],
+        extensions,
         content: "",
         autofocus: autoFocus,
         immediatelyRender: false,
@@ -86,7 +88,7 @@ export function CommentInput({
     };
 
     const toggleBold = () => {
-        editor?.chain().focus().toggleBold().run();
+        (editor?.chain().focus() as any).toggleBold?.().run();
     };
 
     const userInitials = currentUser?.username?.slice(0, 2).toUpperCase() || "?";

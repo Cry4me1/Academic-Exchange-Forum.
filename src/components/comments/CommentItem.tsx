@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { RichTextRenderer } from "@/components/posts/RichTextRenderer";
+import NovelViewer from "@/components/editor/NovelViewer";
 import { MessageCircle, Heart, CornerDownRight, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "@/lib/utils";
 import { toggleLikeComment, deleteComment } from "@/app/(protected)/posts/[id]/actions";
@@ -122,9 +122,8 @@ export function CommentItem({
 
                         {/* 评论内容 */}
                         <div className="mt-2">
-                            <RichTextRenderer
-                                content={comment.content}
-                                className="text-sm prose-sm"
+                            <NovelViewer
+                                initialValue={comment.content}
                             />
                         </div>
 

@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { RichTextEditor } from "@/components/editor";
+import NovelEditor from "@/components/editor/NovelEditor";
 import { ArrowLeft, Send, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { createPost } from "../actions";
+import { type JSONContent } from "novel";
 
 const AVAILABLE_TAGS = [
     "Computer Science",
@@ -53,7 +54,7 @@ export default function NewPostPage() {
     const router = useRouter();
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
-    const [contentJson, setContentJson] = useState<object | null>(null);
+    const [contentJson, setContentJson] = useState<JSONContent | undefined>(undefined);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -223,16 +224,43 @@ export default function NewPostPage() {
                     </motion.div>
 
                     {/* 内容编辑器 */}
-                    <motion.div variants={itemVariants} className="space-y-2">
-                        <Label className="text-sm font-medium">
-                            内容 <span className="text-destructive">*</span>
-                        </Label>
-                        <RichTextEditor
-                            onChange={setContent}
-                            onJsonChange={setContentJson}
-                            placeholder={"开始撰写你的学术内容...\n\n提示：\n• 使用 $...$ 插入行内数学公式，如 $E=mc^2$\n• 使用 $$...$$ 插入块级公式\n• 拖拽图片直接上传\n• 点击工具栏按钮添加代码块"}
-                            className="min-h-[400px]"
-                        />
+                    <motion.div variants={itemVariants} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">
+                                内容 <span className="text-destructive">*</span>
+                            </Label>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border font-mono">/</kbd>
+                                <span>唤起命令菜单</span>
+                            </div>
+                        </div>
+                        <div className="relative group">
+                            {/* 渐变边框效果 */}
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 via-primary/25 to-primary/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
+                            <div className="relative min-h-[500px] bg-background rounded-lg border border-border/50 shadow-lg overflow-hidden">
+                                {/* 顶部装饰条 */}
+                                <div className="h-10 bg-muted/30 border-b border-border/50 flex items-center px-4 gap-2">
+                                    <div className="flex gap-1.5">
+                                        <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                                        <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                                        <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                                    </div>
+                                    <span className="text-xs text-muted-foreground ml-2">富文本编辑器</span>
+                                </div>
+                                <NovelEditor
+                                    initialValue={contentJson}
+                                    onChange={(json) => {
+                                        setContentJson(json);
+                                        // Simple validation for "empty" content
+                                        // Check if there is at least one node with content
+                                        const hasContent = json?.content?.some((node: any) =>
+                                            node.content?.length > 0 || (node.type === 'image') || (node.type === 'codeBlock')
+                                        );
+                                        setContent(hasContent ? "valid" : "");
+                                    }}
+                                />
+                            </div>
+                        </div>
                     </motion.div>
 
                     {/* 提示信息 */}
@@ -243,9 +271,10 @@ export default function NewPostPage() {
                         <h3 className="text-sm font-medium text-foreground mb-2">发布提示</h3>
                         <ul className="text-sm text-muted-foreground space-y-1">
                             <li>• 请确保内容符合学术规范，尊重他人知识产权</li>
-                            <li>• 数学公式使用 LaTeX 语法，如 $\int_0^\infty e^{"{-x^2}"}dx$</li>
-                            <li>• 代码块支持多种编程语言的语法高亮</li>
-                            <li>• 图片大小限制为 10MB，支持 JPEG、PNG、GIF、WebP 格式</li>
+                            <li>• <strong>数学公式</strong>：输入 LaTeX 文本后，选中并点击工具栏 <span className="font-mono bg-muted px-1 rounded">Σ</span> 按钮渲染</li>
+                            <li>• <strong>代码块</strong>：输入 <span className="font-mono bg-muted px-1 rounded">/代码块</span> 插入，支持语法高亮</li>
+                            <li>• <strong>图片上传</strong>：输入 <span className="font-mono bg-muted px-1 rounded">/上传图片</span> 或直接粘贴/拖放</li>
+                            <li>• 图片大小限制 2MB，支持 JPEG、PNG、GIF、WebP 格式</li>
                         </ul>
                     </motion.div>
                 </div>
