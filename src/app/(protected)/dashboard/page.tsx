@@ -22,6 +22,7 @@ import {
     FeedTabs,
     PostFeed,
     AnnouncementCard,
+    AiFeatureCard,
     TagCloud,
     QuickPostButton,
     type FeedFilter
@@ -305,6 +306,13 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
+                        {/* Mobile/Tablet only: Right sidebar content */}
+                        <div className="xl:hidden space-y-6 mb-6">
+                            <AnnouncementCard />
+                            <AiFeatureCard />
+                            <TagCloud />
+                        </div>
+
                         {/* Tabs 筛选器 */}
                         <motion.div variants={fadeInUp} className="mb-6">
                             <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -332,6 +340,11 @@ export default function DashboardPage() {
                             {/* 公告卡片 */}
                             <motion.div variants={itemVariants}>
                                 <AnnouncementCard />
+                            </motion.div>
+
+                            {/* AI Feature Announcement with Animation */}
+                            <motion.div variants={itemVariants}>
+                                <AiFeatureCard />
                             </motion.div>
 
                             {/* 热门话题 */}

@@ -1,10 +1,11 @@
 "use client";
 
-import { EditorBubble, EditorBubbleItem, useEditor } from "novel";
+import { EditorBubbleItem, useEditor } from "novel";
 import { Bold, Italic, Strikethrough, Code, Link, Palette, Highlighter, Sigma } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
+import GenerativeMenuSwitch from "./generative/generative-menu-switch";
 
 interface BubbleButtonProps {
     children: React.ReactNode;
@@ -134,6 +135,7 @@ export default function BubbleMenu() {
     const { editor } = useEditor();
     const [showLinkInput, setShowLinkInput] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState<"text" | "highlight" | null>(null);
+    const [openAI, setOpenAI] = useState(false);
 
     if (!editor) return null;
 
@@ -190,12 +192,7 @@ export default function BubbleMenu() {
     };
 
     return (
-        <EditorBubble
-            tippyOptions={{
-                placement: "top",
-            }}
-            className="flex items-center gap-0.5 bg-background border rounded-lg shadow-xl p-1"
-        >
+        <GenerativeMenuSwitch open={openAI} onOpenChange={setOpenAI}>
             {showLinkInput ? (
                 <LinkInput
                     onSubmit={handleLink}
@@ -339,6 +336,6 @@ export default function BubbleMenu() {
                     </EditorBubbleItem>
                 </>
             )}
-        </EditorBubble>
+        </GenerativeMenuSwitch>
     );
 }

@@ -6,3 +6,4 @@ export { PostFeed } from "./PostFeed";
 export { AnnouncementCard } from "./AnnouncementCard";
 export { TagCloud } from "./TagCloud";
 export { QuickPostButton } from "./QuickPostButton";
+export { AiFeatureCard } from "./AiFeatureCard";

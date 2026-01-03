@@ -16,6 +16,7 @@ import { suggestionItems } from "./slash-command";
 import { handleImageDrop, handleImagePaste } from "novel";
 import { onUpload, onDelete } from "@/lib/image-upload";
 import BubbleMenu from "./BubbleMenu";
+import { SlashAISelector } from "./generative/slash-ai-selector";
 
 interface NovelEditorProps {
     initialValue?: JSONContent;
@@ -82,7 +83,7 @@ export default function NovelEditor({
     }, [onChange]);
 
     return (
-        <div className="novel-editor-container relative w-full border rounded-lg overflow-hidden bg-background">
+        <div className="novel-editor-container relative w-full border rounded-lg bg-background">
             <EditorRoot>
                 <EditorContent
                     initialContent={initialValue}
@@ -134,6 +135,7 @@ export default function NovelEditor({
                     </EditorCommand>
                     <ImageResizer />
                     <BubbleMenu />
+                    <SlashAISelector />
                 </EditorContent>
             </EditorRoot>
         </div>
