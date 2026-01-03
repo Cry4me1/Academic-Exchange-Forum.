@@ -44,7 +44,7 @@ export async function sendReportEmail(params: SendReportEmailParams) {
 
     try {
         const { data, error } = await resend.emails.send({
-            from: "Scholarly 举报系统 <noreply@scholarly.app>", // 需要配置已验证的发送域名
+            from: "Scholarly 举报系统 <onboarding@resend.dev>", // 使用 Resend 测试域名
             to: ["ddanthumytrang@gmail.com"],
             subject: `[Scholarly 举报] ${typeLabel}举报 - ${reason}`,
             html: emailContent,
