@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TableOfContents, type HeadingItem } from "@/components/posts";
+import { TableOfContents, type HeadingItem, PostHistoryDialog } from "@/components/posts";
 import NovelViewer from "@/components/editor/NovelViewer";
 import { CommentItem, CommentInput, CommentData } from "@/components/comments";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -32,6 +32,8 @@ import {
     Trash2,
     CheckCircle2,
     HelpCircle,
+    History,
+    Pencil,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -145,6 +147,7 @@ export default function PostDetailClient({
     const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
     const [isPending, startTransition] = useTransition();
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
+    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
     const authorDisplayName = post.author.full_name || post.author.username;
@@ -329,6 +332,14 @@ export default function PostDetailClient({
                                         {currentUser?.id === post.author.id && (
                                             <>
                                                 <DropdownMenuItem
+                                                    onClick={() => {
+                                                        window.location.href = `/posts/${post.id}/edit`;
+                                                    }}
+                                                >
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    编辑帖子
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
                                                     onClick={async () => {
                                                         if (confirm("确定要删除这篇帖子吗？此操作不可撤销。")) {
                                                             const result = await deletePost(post.id);
@@ -348,6 +359,12 @@ export default function PostDetailClient({
                                                 <DropdownMenuSeparator />
                                             </>
                                         )}
+                                        <DropdownMenuItem
+                                            onClick={() => setHistoryDialogOpen(true)}
+                                        >
+                                            <History className="mr-2 h-4 w-4" />
+                                            查看历史
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onClick={() => setReportDialogOpen(true)}
                                             className="text-orange-600 focus:text-orange-600"
@@ -580,6 +597,14 @@ export default function PostDetailClient({
                 type="post"
                 targetId={post.id}
                 targetTitle={post.title}
+            />
+
+            {/* 历史版本对话框 */}
+            <PostHistoryDialog
+                open={historyDialogOpen}
+                onOpenChange={setHistoryDialogOpen}
+                postId={post.id}
+                currentTitle={post.title}
             />
         </>
     );

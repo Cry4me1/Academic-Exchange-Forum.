@@ -54,6 +54,7 @@
     "cmdk": "^1.1.1",
     "framer-motion": "^12.23.26",
     "highlight.js": "^11.11.1",
+    "jsondiffpatch": "^0.7.3",
     "katex": "^0.16.27",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.562.0",
