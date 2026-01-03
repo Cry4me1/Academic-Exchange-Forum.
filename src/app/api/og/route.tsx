@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
 
 // 使用 nodejs runtime（@vercel/og 自动处理 WASM）
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 // 主题配置
 const themes = {
