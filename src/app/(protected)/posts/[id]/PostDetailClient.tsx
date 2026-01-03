@@ -30,6 +30,8 @@ import {
     Eye,
     Flag,
     Trash2,
+    CheckCircle2,
+    HelpCircle,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -56,6 +58,8 @@ interface PostDetailClientProps {
             avatar_url?: string;
             bio?: string;
         };
+        is_solved?: boolean;
+        is_help_wanted?: boolean;
     };
     comments: CommentData[];
     authorOtherPosts: {
@@ -222,6 +226,24 @@ export default function PostDetailClient({
         setReplyingTo(parentId);
     };
 
+    const handleAccept = useCallback((commentId: string) => {
+        setComments(currentComments =>
+            currentComments.map(c => {
+                // 如果是目标评论，切换状态
+                if (c.id === commentId) {
+                    return { ...c, is_accepted: !c.is_accepted };
+                }
+                // 如果是其他评论且当前是采纳操作（假设之前只有一个采纳），取消其他的
+                // 但这里我们简单点，让数据库保证互斥，前端乐观更新只关心被点击的
+                // 为了更好的体验，如果我们采纳了新的，应该把旧的取消
+                if (c.is_accepted) {
+                    return { ...c, is_accepted: false };
+                }
+                return c;
+            })
+        );
+    }, []);
+
     const handleSubmitComment = async (content: object, parentId?: string | null) => {
         if (!currentUser) {
             toast.error("请先登录");
@@ -365,6 +387,21 @@ export default function PostDetailClient({
                                     {post.title}
                                 </h1>
 
+                                <div className="flex items-center gap-2 mb-6">
+                                    {post.is_solved && (
+                                        <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20 gap-1 pl-2">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            已解决
+                                        </Badge>
+                                    )}
+                                    {post.is_help_wanted && !post.is_solved && (
+                                        <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 pl-2">
+                                            <HelpCircle className="h-4 w-4" />
+                                            求助
+                                        </Badge>
+                                    )}
+                                </div>
+
                                 {/* 作者信息 */}
                                 <div className="flex items-center justify-between flex-wrap gap-4 pb-6 border-b border-border/50">
                                     <div className="flex items-center gap-3">
@@ -466,6 +503,8 @@ export default function PostDetailClient({
                                                         setComments((prev) => prev.filter((c) => c.id !== commentId));
                                                     }}
                                                     isLiked={commentLikeStatus[comment.id]}
+                                                    isPostAuthor={currentUser?.id === post.author.id}
+                                                    onAccept={handleAccept}
                                                 />
 
                                                 {/* 回复输入框 */}

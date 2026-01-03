@@ -11,7 +11,9 @@ import {
     MessageCircle,
     Share2,
     MoreHorizontal,
-    Bookmark
+    Bookmark,
+    CheckCircle2,
+    HelpCircle
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -52,6 +54,8 @@ export interface PostCardProps {
     comments: number;
     isLiked?: boolean;
     isBookmarked?: boolean;
+    isSolved?: boolean;
+    isHelpWanted?: boolean;
 }
 
 function formatRelativeTime(date: Date): string {
@@ -80,6 +84,8 @@ export function PostCard({
     comments,
     isLiked: initialIsLiked = false,
     isBookmarked: initialIsBookmarked = false,
+    isSolved = false,
+    isHelpWanted = false,
 }: PostCardProps) {
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(likes);
@@ -174,6 +180,21 @@ export function PostCard({
             </CardHeader>
 
             <CardContent className="pb-3">
+                <div className="flex items-center gap-2 mb-2">
+                    {isSolved && (
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20 gap-1 pl-2">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            已解决
+                        </Badge>
+                    )}
+                    {isHelpWanted && !isSolved && (
+                        <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 gap-1 pl-2">
+                            <HelpCircle className="h-3.5 w-3.5" />
+                            求助
+                        </Badge>
+                    )}
+                </div>
+
                 {/* 标题 */}
                 <Link href={`/posts/${id}`}>
                     <h3 className="text-lg font-bold text-foreground hover:text-primary transition-colors mb-2 line-clamp-2">

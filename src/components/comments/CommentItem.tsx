@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import NovelViewer from "@/components/editor/NovelViewer";
-import { MessageCircle, Heart, CornerDownRight, Trash2 } from "lucide-react";
+import { MessageCircle, Heart, CornerDownRight, Trash2, CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "@/lib/utils";
 import { toggleLikeComment, deleteComment } from "@/app/(protected)/posts/[id]/actions";
+import { toggleAcceptAnswer } from "@/app/(protected)/posts/actions";
 import { toast } from "sonner";
 
 export interface CommentAuthor {
@@ -24,6 +25,7 @@ export interface CommentData {
     created_at: string;
     like_count: number;
     replies?: CommentData[];
+    is_accepted?: boolean;
 }
 
 interface CommentItemProps {
@@ -35,6 +37,8 @@ interface CommentItemProps {
     onReply?: (parentId: string) => void;
     onDelete?: (commentId: string) => void;
     isLiked?: boolean;
+    isPostAuthor?: boolean;
+    onAccept?: (commentId: string) => void;
 }
 
 export function CommentItem({
@@ -46,11 +50,32 @@ export function CommentItem({
     onReply,
     onDelete,
     isLiked: initialIsLiked = false,
+    isPostAuthor = false,
+    onAccept,
 }: CommentItemProps) {
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(comment.like_count);
     const [isPending, startTransition] = useTransition();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isAccepted, setIsAccepted] = useState(comment.is_accepted);
+
+    const handleAccept = async () => {
+        if (!isPostAuthor) return;
+
+        // 乐观更新
+        const newAccepted = !isAccepted;
+        setIsAccepted(newAccepted);
+        // 通知父组件以便更新其他评论的状态 (例如互斥)
+        onAccept?.(comment.id);
+
+        const result = await toggleAcceptAnswer(comment.id);
+        if (result.error) {
+            setIsAccepted(!newAccepted);
+            toast.error(result.error);
+        } else {
+            toast.success(newAccepted ? "已采纳回答" : "已取消采纳");
+        }
+    };
 
     const handleLike = () => {
         // 乐观更新
@@ -93,7 +118,7 @@ export function CommentItem({
     const isAuthor = currentUserId === comment.author.id;
 
     return (
-        <div className={`${isNested ? "ml-8 border-l-2 border-border/50 pl-4" : ""}`}>
+        <div className={`${isNested ? "ml-8 border-l-2 border-border/50 pl-4" : ""} ${isAccepted ? "bg-green-500/5 rounded-xl border border-green-500/20 p-2 -mx-2" : ""}`}>
             <div className="py-4">
                 {/* 评论头部 */}
                 <div className="flex items-start gap-3">
@@ -113,6 +138,12 @@ export function CommentItem({
                             {comment.author.title && (
                                 <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
                                     {comment.author.title}
+                                </span>
+                            )}
+                            {isAccepted && (
+                                <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    已采纳
                                 </span>
                             )}
                             <span className="text-xs text-muted-foreground">
@@ -164,6 +195,18 @@ export function CommentItem({
                                     {isDeleting ? "删除中..." : "删除"}
                                 </Button>
                             )}
+
+                            {isPostAuthor && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-7 px-2 gap-1.5 text-xs ${isAccepted ? "text-green-600 hover:text-green-700 hover:bg-green-500/10" : "text-muted-foreground hover:text-green-600"}`}
+                                    onClick={handleAccept}
+                                >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    {isAccepted ? "取消采纳" : "采纳"}
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -182,6 +225,8 @@ export function CommentItem({
                             maxDepth={maxDepth}
                             onReply={onReply}
                             onDelete={onDelete}
+                            isPostAuthor={isPostAuthor}
+                            onAccept={onAccept}
                         />
                     ))}
                 </div>

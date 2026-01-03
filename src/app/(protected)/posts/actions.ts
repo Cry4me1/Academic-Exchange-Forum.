@@ -8,6 +8,7 @@ export async function createPost(data: {
     title: string;
     content: object;
     tags: string[];
+    is_help_wanted?: boolean;
 }) {
     const supabase = await createClient();
 
@@ -23,6 +24,7 @@ export async function createPost(data: {
             title: data.title,
             content: data.content,
             tags: data.tags,
+            is_help_wanted: data.is_help_wanted || false,
             is_published: true,
         })
         .select("id")
@@ -118,6 +120,11 @@ export async function getPosts(options: {
             comment_count,
             bookmark_count,
             share_count,
+            comment_count,
+            bookmark_count,
+            share_count,
+            is_solved,
+            is_help_wanted,
             created_at,
             author:profiles!author_id (
                 id,
@@ -175,4 +182,36 @@ export async function getPosts(options: {
     }));
 
     return { posts: postsWithStatus };
+}
+
+// 切换评论的“采纳”状态
+export async function toggleAcceptAnswer(commentId: string) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: "请先登录" };
+    }
+
+    const { data, error } = await supabase
+        .rpc("toggle_comment_acceptance", {
+            target_comment_id: commentId
+        });
+
+    if (error) {
+        console.error("Toggle acceptance error:", error);
+        return { error: "操作失败" };
+    }
+
+    // @ts-ignore
+    if (data?.error) {
+        // @ts-ignore
+        return { error: data.error };
+    }
+
+    revalidatePath("/posts/[id]", "page");
+    revalidatePath("/dashboard");
+
+    // @ts-ignore
+    return { success: true, status: data?.status };
 }

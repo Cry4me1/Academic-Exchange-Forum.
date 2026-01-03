@@ -15,6 +15,8 @@ interface PostData {
     comment_count: number;
     bookmark_count: number;
     share_count: number;
+    is_solved: boolean;
+    is_help_wanted: boolean;
     created_at: string;
     author: {
         id: string;
@@ -139,6 +141,8 @@ export function PostFeed({ filter }: PostFeedProps) {
                     comments={post.comment_count}
                     isLiked={post.isLiked}
                     isBookmarked={post.isBookmarked}
+                    isSolved={post.is_solved}
+                    isHelpWanted={post.is_help_wanted}
                 />
             ))}
         </div>

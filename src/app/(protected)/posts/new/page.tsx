@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import NovelEditor from "@/components/editor/NovelEditor";
-import { ArrowLeft, Send, X, Plus } from "lucide-react";
+import { ArrowLeft, Send, X, Plus, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { createPost } from "../actions";
 import { type JSONContent } from "novel";
@@ -56,6 +56,7 @@ export default function NewPostPage() {
     const [content, setContent] = useState("");
     const [contentJson, setContentJson] = useState<JSONContent | undefined>(undefined);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [isHelpWanted, setIsHelpWanted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleTagToggle = (tag: string) => {
@@ -96,6 +97,7 @@ export default function NewPostPage() {
                 title: title.trim(),
                 content: contentJson,
                 tags: selectedTags,
+                is_help_wanted: isHelpWanted,
             });
 
             if (result.error) {
@@ -137,23 +139,35 @@ export default function NewPostPage() {
                             <h1 className="text-lg font-semibold text-foreground">发布新帖子</h1>
                         </div>
 
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={isSubmitting}
-                            className="gap-2"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                    发布中...
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="h-4 w-4" />
-                                    发布
-                                </>
-                            )}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant={isHelpWanted ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setIsHelpWanted(!isHelpWanted)}
+                                className={`gap-2 ${isHelpWanted ? "bg-amber-500 hover:bg-amber-600 text-white border-transparent" : "text-muted-foreground"}`}
+                            >
+                                <HelpCircle className="h-4 w-4" />
+                                {isHelpWanted ? "高亮求助" : "设为求助"}
+                            </Button>
+
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                        发布中...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="h-4 w-4" />
+                                        发布
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </motion.header>
