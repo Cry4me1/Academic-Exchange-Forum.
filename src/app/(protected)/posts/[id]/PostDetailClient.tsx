@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TableOfContents, type HeadingItem, PostHistoryDialog } from "@/components/posts";
+import { TableOfContents, type HeadingItem, PostHistoryDialog, ShareCardDialog } from "@/components/posts";
 import NovelViewer from "@/components/editor/NovelViewer";
 import { CommentItem, CommentInput, CommentData } from "@/components/comments";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -148,6 +148,7 @@ export default function PostDetailClient({
     const [isPending, startTransition] = useTransition();
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+    const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
     const authorDisplayName = post.author.full_name || post.author.username;
@@ -214,15 +215,10 @@ export default function PostDetailClient({
         });
     };
 
-    const handleShare = async () => {
-        try {
-            await navigator.clipboard.writeText(window.location.href);
-            toast.success("链接已复制到剪贴板");
-            // 记录分享
-            createShareRecord(post.id, "copy_link");
-        } catch {
-            toast.error("复制失败");
-        }
+    const handleShare = () => {
+        setShareDialogOpen(true);
+        // 记录分享
+        createShareRecord(post.id, "copy_link");
     };
 
     const handleReply = (parentId: string) => {
@@ -605,6 +601,14 @@ export default function PostDetailClient({
                 onOpenChange={setHistoryDialogOpen}
                 postId={post.id}
                 currentTitle={post.title}
+            />
+
+            {/* 分享卡片对话框 */}
+            <ShareCardDialog
+                open={shareDialogOpen}
+                onOpenChange={setShareDialogOpen}
+                postId={post.id}
+                postTitle={post.title}
             />
         </>
     );
