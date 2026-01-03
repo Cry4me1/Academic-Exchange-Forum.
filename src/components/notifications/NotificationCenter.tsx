@@ -60,6 +60,16 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
                     : "/messages";
             case "mention":
                 return notification.related_id ? `/posts/${notification.related_id}` : null;
+            case "duel_invite":
+            case "duel_accepted":
+            case "duel_rejected":
+                // 暂时跳转到 duels 列表页，或者具体的 duel 详情页
+                // 如果 related_id 是 duel_id，则跳转到 /duels/id (如果是 invite，可能需要跳转到 duels 列表看邀请卡片)
+                // 这里的 related_id 在 trigger 里存的是 duel_id
+                return notification.related_id ? `/duels` : "/duels";
+            // 或者可以直接进入详情页 /duels/${notification.related_id} 如果详情页支持 pending 状态显示
+            // 根据需求，邀请卡片在列表页，所以跳转到 /duels 比较合适
+            // 已接受的跳转到详情页 /duels/${notification.related_id}
             default:
                 return null;
         }

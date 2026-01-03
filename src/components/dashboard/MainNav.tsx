@@ -10,12 +10,14 @@ import {
     User,
     Settings,
     MessageSquare,
-    Users
+    Users,
+    Swords
 } from "lucide-react";
 
 const navItems = [
     { href: "/dashboard", label: "首页", icon: Home },
     { href: "/trending", label: "热门学术", icon: Flame },
+    { href: "/duels", label: "决斗场", icon: Swords },
     { href: "/messages", label: "私信", icon: MessageSquare },
     { href: "/friends", label: "好友", icon: Users },
     { href: "/favorites", label: "我的收藏", icon: Bookmark },

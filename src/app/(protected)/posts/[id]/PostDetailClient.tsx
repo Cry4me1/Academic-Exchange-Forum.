@@ -2,16 +2,19 @@
 
 import { useState, useCallback, useTransition, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableOfContents, type HeadingItem, PostHistoryDialog, ShareCardDialog } from "@/components/posts";
+import { CreateDuelDialog } from "@/components/duel/CreateDuelDialog";
 import NovelViewer from "@/components/editor/NovelViewer";
 import { CommentItem, CommentInput, CommentData } from "@/components/comments";
 import { ReportDialog } from "@/components/ReportDialog";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { ReputationBadgeCompact } from "@/components/duel/ReputationBadge";
 import {
     toggleLikePost,
     toggleBookmarkPost,
@@ -34,6 +37,8 @@ import {
     HelpCircle,
     History,
     Pencil,
+    Code2,
+    Swords,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -59,6 +64,9 @@ interface PostDetailClientProps {
             full_name?: string;
             avatar_url?: string;
             bio?: string;
+            reputation_score?: number;
+            is_developer?: boolean;
+            developer_title?: string;
         };
         is_solved?: boolean;
         is_help_wanted?: boolean;
@@ -139,6 +147,7 @@ export default function PostDetailClient({
     initialIsBookmarked = false,
     commentLikeStatus = {},
 }: PostDetailClientProps) {
+    const router = useRouter();
     const [headings, setHeadings] = useState<HeadingItem[]>([]);
     const [comments, setComments] = useState<CommentData[]>(initialComments);
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -149,6 +158,7 @@ export default function PostDetailClient({
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const [duelDialogOpen, setDuelDialogOpen] = useState(false);
 
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
     const authorDisplayName = post.author.full_name || post.author.username;
@@ -318,6 +328,24 @@ export default function PostDetailClient({
                                 <Button variant="ghost" size="icon" onClick={handleShare}>
                                     <Share2 className="h-5 w-5" />
                                 </Button>
+                                {(!currentUser || currentUser.id !== post.author.id) && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hidden sm:flex"
+                                        onClick={() => {
+                                            if (!currentUser) {
+                                                toast.error("请先登录后发起挑战");
+                                                router.push("/login");
+                                                return;
+                                            }
+                                            setDuelDialogOpen(true);
+                                        }}
+                                    >
+                                        <Swords className="h-4 w-4" />
+                                        发起挑战
+                                    </Button>
+                                )}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon">
@@ -353,6 +381,25 @@ export default function PostDetailClient({
                                                     删除帖子
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
+                                            </>
+                                        )}
+                                        {(!currentUser || currentUser.id !== post.author.id) && (
+                                            <>
+                                                <DropdownMenuItem
+                                                    onClick={() => {
+                                                        if (!currentUser) {
+                                                            toast.error("请先登录后发起挑战");
+                                                            router.push("/login");
+                                                            return;
+                                                        }
+                                                        setDuelDialogOpen(true);
+                                                    }}
+                                                    className="sm:hidden text-primary focus:text-primary"
+                                                >
+                                                    <Swords className="mr-2 h-4 w-4" />
+                                                    发起挑战
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator className="sm:hidden" />
                                             </>
                                         )}
                                         <DropdownMenuItem
@@ -425,7 +472,21 @@ export default function PostDetailClient({
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <p className="font-semibold text-foreground">{authorDisplayName}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-semibold text-foreground">{authorDisplayName}</p>
+                                                {post.author.is_developer && (
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500/10 via-fuchsia-500/10 to-pink-500/10 text-xs">
+                                                        <Code2 className="h-3 w-3 text-violet-500" />
+                                                        <span className="font-bold bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 bg-clip-text text-transparent">开发者</span>
+                                                    </span>
+                                                )}
+                                                {post.author.reputation_score !== undefined && (
+                                                    <ReputationBadgeCompact
+                                                        score={post.author.reputation_score}
+                                                        isDeveloper={post.author.is_developer}
+                                                    />
+                                                )}
+                                            </div>
                                             {post.author.bio && (
                                                 <p className="text-sm text-muted-foreground line-clamp-1">{post.author.bio}</p>
                                             )}
@@ -609,6 +670,14 @@ export default function PostDetailClient({
                 onOpenChange={setShareDialogOpen}
                 postId={post.id}
                 postTitle={post.title}
+            />
+
+            {/* 发起决斗对话框 */}
+            <CreateDuelDialog
+                open={duelDialogOpen}
+                onOpenChange={setDuelDialogOpen}
+                currentUser={currentUser}
+                defaultTopic={post.title}
             />
         </>
     );

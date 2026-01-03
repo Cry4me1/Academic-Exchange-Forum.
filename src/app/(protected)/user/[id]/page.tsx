@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowLeft, UserPlus, MessageCircle, Calendar, MapPin, Globe, Heart, Bookmark } from "lucide-react";
+import { Loader2, ArrowLeft, UserPlus, MessageCircle, Calendar, MapPin, Globe, Heart, Bookmark, Swords, Code2, Sparkles } from "lucide-react";
 import { useFriends } from "@/hooks/useFriends";
 import { motion } from "framer-motion";
+import { ReputationBadge } from "@/components/duel/ReputationBadge";
 
 interface UserProfile {
     id: string;
@@ -24,6 +25,11 @@ interface UserProfile {
     country: string | null;
     language: string | null;
     created_at: string | null;
+    reputation_score: number | null;
+    duel_wins: number | null;
+    duel_losses: number | null;
+    is_developer: boolean | null;
+    developer_title: string | null;
 }
 
 interface Post {
@@ -309,7 +315,30 @@ export default function UserProfilePage() {
 
                                 {/* 用户名和操作按钮 */}
                                 <div className="flex-1 text-center sm:text-left">
-                                    <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                                    <div className="flex items-center justify-center sm:justify-start gap-3 flex-wrap">
+                                        <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                                        {/* 开发者特殊标签 */}
+                                        {profile.is_developer && (
+                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 shadow-lg shadow-amber-500/30">
+                                                <Code2 className="h-4 w-4 text-white" />
+                                                <span className="font-bold text-white text-sm">
+                                                    {profile.developer_title || '系统开发者'}
+                                                </span>
+                                                <Sparkles className="h-4 w-4 text-yellow-200 animate-pulse" />
+                                            </div>
+                                        )}
+                                        {profile.reputation_score !== null && (
+                                            <ReputationBadge
+                                                score={profile.reputation_score}
+                                                wins={profile.duel_wins || 0}
+                                                losses={profile.duel_losses || 0}
+                                                size="md"
+                                                showStats
+                                                isDeveloper={profile.is_developer || undefined}
+                                                developerTitle={profile.developer_title || undefined}
+                                            />
+                                        )}
+                                    </div>
                                     {profile.username && profile.full_name && (
                                         <p className="text-muted-foreground mt-1">@{profile.username}</p>
                                     )}
@@ -342,6 +371,12 @@ export default function UserProfilePage() {
                                             <div className="flex items-center gap-1">
                                                 <Calendar className="h-3.5 w-3.5" />
                                                 {new Date(profile.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "long" })} 加入
+                                            </div>
+                                        )}
+                                        {(profile.duel_wins || 0) + (profile.duel_losses || 0) > 0 && (
+                                            <div className="flex items-center gap-1">
+                                                <Swords className="h-3.5 w-3.5" />
+                                                {profile.duel_wins || 0} 胜 / {profile.duel_losses || 0} 负
                                             </div>
                                         )}
                                     </div>

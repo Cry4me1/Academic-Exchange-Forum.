@@ -20,7 +20,10 @@ async function getPost(id: string) {
                 username,
                 full_name,
                 avatar_url,
-                bio
+                bio,
+                reputation_score,
+                is_developer,
+                developer_title
             )
         `)
         .eq("id", id)
@@ -137,8 +140,14 @@ export default async function PostDetailPage({ params }: PageProps) {
 
     const [post, comments, currentUser] = await Promise.all([
         getPost(id),
-        getComments(id),
-        getCurrentUser(),
+        getComments(id).catch(e => {
+            console.error("Failed to fetch comments:", e);
+            return [];
+        }),
+        getCurrentUser().catch(e => {
+            console.error("Failed to fetch current user:", e);
+            return null;
+        }),
     ]);
 
     if (!post) {
