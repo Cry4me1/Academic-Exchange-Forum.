@@ -21,5 +21,19 @@ export const registerSchema = z.object({
     path: ["confirmPassword"],
 });
 
+export const forgotPasswordSchema = z.object({
+    email: z.string().email("请输入有效的邮箱地址"),
+});
+
+export const resetPasswordSchema = z.object({
+    password: passwordSchema,
+    confirmPassword: passwordSchema,
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "两次输入的密码不一致",
+    path: ["confirmPassword"],
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
