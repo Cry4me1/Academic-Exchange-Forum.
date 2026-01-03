@@ -3,24 +3,22 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { usePresence } from "@/hooks/usePresence";
+import { usePresenceContext } from "@/contexts/PresenceContext";
 import type { Conversation } from "@/hooks/useMessages";
 import { cn } from "@/lib/utils";
 
 interface ChatListProps {
     conversations: Conversation[];
-    currentUserId: string;
     selectedPartnerId?: string;
     onSelectConversation: (partnerId: string) => void;
 }
 
 export function ChatList({
     conversations,
-    currentUserId,
     selectedPartnerId,
     onSelectConversation,
 }: ChatListProps) {
-    const { isOnline } = usePresence(currentUserId);
+    const { isOnline } = usePresenceContext();
 
     const formatTime = (dateString: string) => {
         const date = new Date(dateString);

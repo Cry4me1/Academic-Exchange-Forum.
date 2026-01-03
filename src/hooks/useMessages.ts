@@ -211,15 +211,36 @@ export function useMessages(
                 messageData.referenced_post_id = referencedPostId;
             }
 
-            const { error } = await supabase.from("messages").insert(messageData);
+            const { data, error } = await supabase
+                .from("messages")
+                .insert(messageData)
+                .select(`
+                    *,
+                    referenced_post:posts(id, title, author_id)
+                `)
+                .single();
 
             if (error) {
                 return { success: false, error: error.message };
             }
 
+            // 乐观更新：立即将新消息添加到本地状态
+            if (data && conversationPartnerId && receiverId === conversationPartnerId) {
+                setMessages((prev) => {
+                    // 避免重复添加（realtime 可能也会推送）
+                    if (prev.some((m) => m.id === data.id)) {
+                        return prev;
+                    }
+                    return [...prev, data as Message];
+                });
+            }
+
+            // 更新会话列表
+            fetchConversations();
+
             return { success: true };
         },
-        [currentUserId, supabase]
+        [currentUserId, conversationPartnerId, supabase, fetchConversations]
     );
 
     // 标记消息为已读

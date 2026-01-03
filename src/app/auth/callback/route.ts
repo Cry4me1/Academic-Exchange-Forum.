@@ -34,7 +34,6 @@ export async function GET(request: Request) {
     } else {
         console.error("Auth callback missing code");
     }
-
     // 返回错误页面或重定向到登录
     return NextResponse.redirect(`${origin}/login?error=auth_failed_no_code`);
 }

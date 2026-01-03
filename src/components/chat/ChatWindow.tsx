@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { ChatMessages } from "./ChatBubble";
 import { useMessages } from "@/hooks/useMessages";
-import { usePresence } from "@/hooks/usePresence";
+import { usePresenceContext } from "@/contexts/PresenceContext";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ export function ChatWindow({
         currentUserId,
         partnerId
     );
-    const { isOnline } = usePresence(currentUserId);
+    const { isOnline } = usePresenceContext();
 
     const isPartnerOnline = isOnline(partnerId);
     const partnerInitials = (partnerName || partnerEmail || "?").charAt(0).toUpperCase();
