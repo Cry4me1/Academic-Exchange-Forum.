@@ -12,6 +12,9 @@ import {
     AtSign,
     Bell,
     Trash2,
+    Swords,
+    Trophy,
+    XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +32,9 @@ const notificationIcons: Record<Notification["type"], React.ComponentType<{ clas
     friend_accepted: UserCheck,
     message: Mail,
     mention: AtSign,
+    duel_invite: Swords,
+    duel_accepted: Trophy,
+    duel_rejected: XCircle,
 };
 
 const notificationColors: Record<Notification["type"], string> = {
@@ -38,6 +44,9 @@ const notificationColors: Record<Notification["type"], string> = {
     friend_accepted: "text-green-500 bg-green-500/10",
     message: "text-amber-500 bg-amber-500/10",
     mention: "text-cyan-500 bg-cyan-500/10",
+    duel_invite: "text-orange-500 bg-orange-500/10",
+    duel_accepted: "text-green-500 bg-green-500/10",
+    duel_rejected: "text-red-500 bg-red-500/10",
 };
 
 export function NotificationItem({

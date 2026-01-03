@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -64,11 +64,7 @@ export default function EditPostPage() {
     const [isHelpWanted, setIsHelpWanted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        loadPost();
-    }, [postId]);
-
-    const loadPost = async () => {
+    const loadPost = useCallback(async () => {
         const supabase = createClient();
 
         // 验证用户身份
@@ -105,7 +101,11 @@ export default function EditPostPage() {
         setIsHelpWanted(post.is_help_wanted || false);
         setContent("valid");
         setLoading(false);
-    };
+    }, [postId, router]);
+
+    useEffect(() => {
+        loadPost();
+    }, [loadPost]);
 
     const handleTagToggle = (tag: string) => {
         if (selectedTags.includes(tag)) {

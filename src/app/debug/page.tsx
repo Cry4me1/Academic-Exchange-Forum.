@@ -58,7 +58,7 @@ export default function DebugPage() {
             }
         }
         debug();
-    }, []);
+    }, [supabase]);
 
     return (
         <div className="p-8 space-y-4 max-w-4xl mx-auto">

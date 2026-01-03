@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Download, Copy, Check, Loader2, Moon, Sun, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
+import NextImage from "next/image";
 
 type ThemeType = "dark" | "light" | "academic";
 
@@ -158,10 +159,13 @@ export function ShareCardDialog({
                                     </div>
                                 </div>
                             ) : (
-                                <img
+                                <NextImage
                                     src={imageUrl}
                                     alt="分享卡片预览"
+                                    width={1200}
+                                    height={630}
                                     className="w-full aspect-[1200/630] object-cover"
+                                    unoptimized
                                 />
                             )}
                         </div>
