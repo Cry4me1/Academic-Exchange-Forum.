@@ -54,14 +54,25 @@ export function LoginForm() {
         try {
             if (activeTab === "magic-link") {
                 // 邮箱链接登录
+                // 优先使用环境变量中的站点URL，否则使用当前页面origin
+                const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+                const redirectTo = `${siteUrl}/auth/callback?next=/dashboard`;
+
+                console.log("[Auth] Sending magic link to:", data.email);
+                console.log("[Auth] Redirect URL:", redirectTo);
+
                 const { error: authError } = await supabase.auth.signInWithOtp({
                     email: data.email,
                     options: {
-                        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+                        emailRedirectTo: redirectTo,
                     },
                 });
 
-                if (authError) throw authError;
+                if (authError) {
+                    console.error("[Auth] Magic link error:", authError);
+                    throw authError;
+                }
+                console.log("[Auth] Magic link sent successfully");
                 setIsSuccess(true);
             } else {
                 // 密码登录

@@ -40,9 +40,29 @@
 
 1.  `NEXT_PUBLIC_SUPABASE_URL`: (填入你的 Supabase URL)
 2.  `NEXT_PUBLIC_SUPABASE_ANON_KEY`: (填入你的 Supabase Anon Key)
-3.  `NODE_VERSION`: `20.18.0` (推荐显式指定 Node 版本)
+3.  `NEXT_PUBLIC_SITE_URL`: `https://你的项目名.pages.dev` (你的 Cloudflare Pages 域名，**非常重要！**)
+4.  `NODE_VERSION`: `20.18.0` (推荐显式指定 Node 版本)
 
-## 第五步：部署与后续配置
+## 第五步：配置 Supabase Authentication ⚠️ 关键步骤
+
+**这一步是解决「验证邮件链接跳转到 localhost」问题的关键！**
+
+1.  登录 [Supabase Dashboard](https://supabase.com/dashboard)
+2.  选择你的项目
+3.  进入 **Authentication** → **URL Configuration**
+4.  更新以下设置：
+
+| 设置项 | 值 | 说明 |
+|--------|---|------|
+| **Site URL** | `https://你的项目名.pages.dev` | 邮件中链接的基础URL |
+| **Redirect URLs** | `https://你的项目名.pages.dev/**` | 允许的重定向URL（必须包含 `**` 通配符） |
+
+> ⚠️ **重要提示**:
+> - Site URL 决定了 Supabase 发送的验证邮件中的链接地址
+> - Redirect URLs 必须包含通配符 `**`，才能匹配 `/auth/callback` 等所有子路径
+> - 如果你有自定义域名，也需要添加到 Redirect URLs 中
+
+## 第六步：部署与后续配置
 
 1.  点击 **Save and Deploy** (保存并部署)。
 2.  等待构建和部署完成。这可能需要几分钟。

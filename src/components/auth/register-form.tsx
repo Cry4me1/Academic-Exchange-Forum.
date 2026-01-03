@@ -35,11 +35,18 @@ export function RegisterForm() {
             const supabase = createClient();
 
             // 使用账号密码注册
+            // 优先使用环境变量中的站点URL，否则使用当前页面origin
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+            const redirectTo = `${siteUrl}/auth/callback?next=/dashboard`;
+
+            console.log("[Auth] Registering user:", data.email);
+            console.log("[Auth] Redirect URL:", redirectTo);
+
             const { error: authError, data: authData } = await supabase.auth.signUp({
                 email: data.email,
                 password: data.password,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+                    emailRedirectTo: redirectTo,
                     data: {
                         username: data.username,
                     },
