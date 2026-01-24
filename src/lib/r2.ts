@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 // R2 配置 - 检查是否启用
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
@@ -106,4 +106,45 @@ export function isR2Url(url: string): boolean {
  */
 export function isSupabaseUrl(url: string): boolean {
     return url.includes(".supabase.co/storage");
+}
+
+/**
+ * 批量从 Cloudflare R2 删除文件
+ * @param keys 文件 Key 列表 (不是 URL)
+ */
+export async function deleteObjectsFromR2(keys: string[]): Promise<void> {
+    if (!isR2Configured() || keys.length === 0) {
+        return;
+    }
+
+    try {
+        const client = createR2Client();
+        const command = new DeleteObjectsCommand({
+            Bucket: R2_BUCKET_NAME!,
+            Delete: {
+                Objects: keys.map(key => ({ Key: key })),
+                Quiet: true,
+            },
+        });
+
+        await client.send(command);
+        console.log(`成功从 R2 批量删除 ${keys.length} 个文件`);
+    } catch (error) {
+        console.error("批量删除 R2 文件失败:", error);
+    }
+}
+
+/**
+ * 获取 R2 文件流
+ * @param fileName 文件名
+ */
+export async function getFileStream(fileName: string) {
+    const client = createR2Client();
+    const command = new GetObjectCommand({
+        Bucket: R2_BUCKET_NAME!,
+        Key: fileName,
+    });
+
+    const response = await client.send(command);
+    return response.Body;
 }

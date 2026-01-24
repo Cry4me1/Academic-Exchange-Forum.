@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -11,27 +9,34 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { usePresenceContext } from "@/contexts/PresenceContext";
+import { useMessages } from "@/hooks/useMessages";
+import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE, formatFileSize } from "@/lib/file-utils";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import {
-    Send,
-    Paperclip,
-    Smile,
-    MoreVertical,
     ArrowLeft,
     Link as LinkIcon,
     Loader2,
+    MessageSquare,
+    MoreVertical,
+    Paperclip,
+    Send,
+    Smile,
+    Type,
 } from "lucide-react";
-import { ChatMessages } from "./ChatBubble";
-import { useMessages } from "@/hooks/useMessages";
-import { usePresenceContext } from "@/contexts/PresenceContext";
-import { createClient } from "@/lib/supabase/client";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { ChatMessages } from "./ChatBubble";
+import { ChatEditor, type ChatEditorRef } from "./ChatEditor";
+import { uploadMessageFile } from "./FileUploader";
 
 interface ChatWindowProps {
     currentUserId: string;
@@ -57,11 +62,16 @@ export function ChatWindow({
     className,
 }: ChatWindowProps) {
     const [inputValue, setInputValue] = useState("");
+    const [richContent, setRichContent] = useState("");
     const [sending, setSending] = useState(false);
     const [showPostSelector, setShowPostSelector] = useState(false);
+    const [useRichEditor, setUseRichEditor] = useState(false);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+    const editorRef = useRef<ChatEditorRef>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { messages, loading, sendMessage, markAsRead } = useMessages(
+    const { messages, loading, sendMessage, markAsRead, revokeMessage, canRevoke } = useMessages(
         currentUserId,
         partnerId
     );
@@ -80,19 +90,58 @@ export function ChatWindow({
         }
     }, [messages, currentUserId, markAsRead]);
 
-    // 发送消息
+    // 发送消息（支持富文本和附件）
     const handleSend = async () => {
-        if (!inputValue.trim() || sending) return;
+        let content = useRichEditor ? richContent : inputValue.trim();
+
+        // 如果内容为空但有文件，设置默认提示文本
+        if ((!content || content === "<p></p>") && pendingFiles.length > 0) {
+            const isAllImages = pendingFiles.every(f => f.type.startsWith("image/"));
+            content = isAllImages ? "[图片]" : "[文件]";
+        }
+
+        if ((!content || content === "<p></p>") && pendingFiles.length === 0) return;
+
+        if (sending) return;
 
         setSending(true);
-        const result = await sendMessage(partnerId, inputValue.trim());
-        setSending(false);
 
-        if (result.success) {
-            setInputValue("");
-            inputRef.current?.focus();
-        } else {
-            toast.error(result.error || "发送失败");
+        try {
+            // 发送文本消息
+            const contentType = useRichEditor ? "rich_text" : "text";
+            const result = await sendMessage(partnerId, content, contentType);
+
+            if (!result.success) {
+                toast.error(result.error || "发送失败");
+                setSending(false);
+                return;
+            }
+
+            // 如果有待上传的文件，上传附件
+            if (pendingFiles.length > 0 && result.messageId) {
+                for (const file of pendingFiles) {
+                    try {
+                        await uploadMessageFile(file, result.messageId);
+                    } catch (error) {
+                        console.error("文件上传失败:", error);
+                        toast.error(`${file.name} 上传失败`);
+                    }
+                }
+            }
+
+            // 清空输入
+            if (useRichEditor) {
+                editorRef.current?.clear();
+                setRichContent("");
+            } else {
+                setInputValue("");
+                inputRef.current?.focus();
+            }
+            setPendingFiles([]);
+        } catch (error) {
+            toast.error("发送失败");
+        } finally {
+            setSending(false);
         }
     };
 
@@ -113,6 +162,34 @@ export function ChatWindow({
         } else {
             toast.error(result.error || "分享失败");
         }
+    };
+
+    // 处理文件选择
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        const validFiles: File[] = [];
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.size > MAX_FILE_SIZE) {
+                toast.error(`${file.name} 超过 10MB 限制`);
+                continue;
+            }
+            if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+                toast.error(`${file.name} 不支持的文件类型`);
+                continue;
+            }
+            validFiles.push(file);
+        }
+
+        setPendingFiles((prev) => [...prev, ...validFiles]);
+        e.target.value = ""; // 重置 input
+    };
+
+    // 移除待上传文件
+    const removePendingFile = (index: number) => {
+        setPendingFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
     return (
@@ -167,74 +244,207 @@ export function ChatWindow({
                     partnerAvatar={partnerAvatar}
                     currentUserName={currentUserName}
                     currentUserAvatar={currentUserAvatar}
+                    canRevoke={canRevoke}
+                    onRevoke={revokeMessage}
                 />
+            )}
+
+            {/* 待上传文件预览 */}
+            {pendingFiles.length > 0 && (
+                <div className="px-4 py-2 border-t bg-muted/30">
+                    <div className="flex flex-wrap gap-2">
+                        {pendingFiles.map((file, index) => (
+                            <div
+                                key={index}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border"
+                            >
+                                <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm truncate max-w-[120px]">{file.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {formatFileSize(file.size)}
+                                </span>
+                                <button
+                                    onClick={() => removePendingFile(index)}
+                                    className="ml-1 text-muted-foreground hover:text-destructive"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             )}
 
             {/* Input Area */}
             <div className="border-t bg-card/50 p-3">
-                <div className="flex items-center gap-2">
-                    {/* 表情按钮 */}
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="flex-shrink-0">
-                                <Smile className="h-5 w-5 text-muted-foreground" />
+                {useRichEditor ? (
+                    // 富文本编辑器模式
+                    <div className="space-y-2">
+                        <ChatEditor
+                            ref={editorRef}
+                            onChange={(html) => setRichContent(html)}
+                            onSubmit={handleSend}
+                            placeholder="输入消息... 支持 Markdown 格式"
+                        />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                                {/* 切换到普通模式 */}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setUseRichEditor(false)}
+                                    className="text-xs"
+                                >
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    简单模式
+                                </Button>
+
+                                {/* 文件上传 */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    className="hidden"
+                                    accept={ALLOWED_FILE_TYPES.join(",")}
+                                    onChange={handleFileSelect}
+                                />
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Paperclip className="h-4 w-4 mr-1" />
+                                    附件
+                                </Button>
+
+                                {/* 分享帖子 */}
+                                <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                            <LinkIcon className="h-4 w-4 mr-1" />
+                                            分享帖子
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>分享帖子</DialogTitle>
+                                        </DialogHeader>
+                                        <PostSelector onSelect={handleSharePost} />
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+
+                            <Button
+                                onClick={handleSend}
+                                disabled={(!richContent || richContent === "<p></p>") && pendingFiles.length === 0 || sending}
+                                size="sm"
+                            >
+                                {sending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <>
+                                        <Send className="h-4 w-4 mr-1" />
+                                        发送
+                                    </>
+                                )}
                             </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <EmojiPicker
-                                onSelect={(emoji) => {
-                                    setInputValue((prev) => prev + emoji);
-                                    inputRef.current?.focus();
-                                }}
-                            />
-                        </PopoverContent>
-                    </Popover>
+                        </div>
+                    </div>
+                ) : (
+                    // 简单输入模式
+                    <div className="flex items-center gap-2">
+                        {/* 表情按钮 */}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="flex-shrink-0">
+                                    <Smile className="h-5 w-5 text-muted-foreground" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <EmojiPicker
+                                    onSelect={(emoji) => {
+                                        setInputValue((prev) => prev + emoji);
+                                        inputRef.current?.focus();
+                                    }}
+                                />
+                            </PopoverContent>
+                        </Popover>
 
-                    {/* 附件/分享帖子 */}
-                    <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
-                        <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="flex-shrink-0">
-                                <LinkIcon className="h-5 w-5 text-muted-foreground" />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>分享帖子</DialogTitle>
-                            </DialogHeader>
-                            <PostSelector onSelect={handleSharePost} />
-                        </DialogContent>
-                    </Dialog>
+                        {/* 附件按钮 */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            className="hidden"
+                            accept={ALLOWED_FILE_TYPES.join(",")}
+                            onChange={handleFileSelect}
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="flex-shrink-0"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <Paperclip className="h-5 w-5 text-muted-foreground" />
+                        </Button>
 
-                    {/* 输入框 */}
-                    <Input
-                        ref={inputRef}
-                        placeholder="输入消息..."
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                        onFocus={handleMarkAsRead}
-                        className="flex-1"
-                    />
+                        {/* 分享帖子 */}
+                        <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="flex-shrink-0">
+                                    <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>分享帖子</DialogTitle>
+                                </DialogHeader>
+                                <PostSelector onSelect={handleSharePost} />
+                            </DialogContent>
+                        </Dialog>
 
-                    {/* 发送按钮 */}
-                    <Button
-                        onClick={handleSend}
-                        disabled={!inputValue.trim() || sending}
-                        size="icon"
-                        className="flex-shrink-0"
-                    >
-                        {sending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <Send className="h-4 w-4" />
-                        )}
-                    </Button>
-                </div>
+                        {/* 切换富文本模式 */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="flex-shrink-0"
+                            onClick={() => setUseRichEditor(true)}
+                            title="富文本模式"
+                        >
+                            <Type className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+
+                        {/* 输入框 */}
+                        <Input
+                            ref={inputRef}
+                            placeholder="输入消息..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend();
+                                }
+                            }}
+                            onFocus={handleMarkAsRead}
+                            className="flex-1"
+                        />
+
+                        {/* 发送按钮 */}
+                        <Button
+                            onClick={handleSend}
+                            disabled={(!inputValue.trim() && pendingFiles.length === 0) || sending}
+                            size="icon"
+                            className="flex-shrink-0"
+                        >
+                            {sending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -337,4 +547,3 @@ function EmojiPicker({
         </div>
     );
 }
-

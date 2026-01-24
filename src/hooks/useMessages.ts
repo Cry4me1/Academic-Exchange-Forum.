@@ -1,6 +1,20 @@
-import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+// 附件类型
+export interface MessageAttachment {
+    id: string;
+    message_id: string;
+    file_name: string;
+    file_type: string;
+    file_size: number;
+    storage_path: string;
+    public_url: string;
+    expires_at: string;
+    is_expired: boolean;
+    created_at: string;
+}
 
 export interface Message {
     id: string;
@@ -10,6 +24,8 @@ export interface Message {
     content_type: "text" | "rich_text" | "post_reference";
     referenced_post_id: string | null;
     is_read: boolean;
+    is_revoked: boolean;
+    revoked_at: string | null;
     created_at: string;
     // 关联的帖子信息（如果是引用帖子类型）
     referenced_post?: {
@@ -17,6 +33,8 @@ export interface Message {
         title: string;
         author_id: string;
     } | null;
+    // 附件列表
+    attachments?: MessageAttachment[];
 }
 
 export interface Conversation {
@@ -39,10 +57,12 @@ interface UseMessagesReturn {
         content: string,
         contentType?: "text" | "rich_text" | "post_reference",
         referencedPostId?: string
-    ) => Promise<{ success: boolean; error?: string }>;
+    ) => Promise<{ success: boolean; error?: string; messageId?: string }>;
+    revokeMessage: (messageId: string) => Promise<{ success: boolean; error?: string }>;
     markAsRead: (messageIds: string[]) => Promise<void>;
     loadMoreMessages: () => Promise<void>;
     hasMore: boolean;
+    canRevoke: (message: Message) => boolean;
 }
 
 const PAGE_SIZE = 50;
@@ -156,7 +176,8 @@ export function useMessages(
                 .from("messages")
                 .select(`
           *,
-          referenced_post:posts(id, title, author_id)
+          referenced_post:posts(id, title, author_id),
+          attachments:message_attachments(*)
         `)
                 .or(
                     `and(sender_id.eq.${currentUserId},receiver_id.eq.${conversationPartnerId}),and(sender_id.eq.${conversationPartnerId},receiver_id.eq.${currentUserId})`
@@ -238,7 +259,7 @@ export function useMessages(
             // 更新会话列表
             fetchConversations();
 
-            return { success: true };
+            return { success: true, messageId: data?.id };
         },
         [currentUserId, conversationPartnerId, supabase, fetchConversations]
     );
@@ -341,6 +362,43 @@ export function useMessages(
                     fetchConversations();
                 }
             )
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "messages",
+                },
+                (payload) => {
+                    const updatedMessage = payload.new as Message;
+                    setMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.id === updatedMessage.id
+                                ? { ...msg, ...updatedMessage, attachments: msg.attachments } // 保留原来的附件
+                                : msg
+                        )
+                    );
+                    fetchConversations();
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "message_attachments",
+                },
+                (payload) => {
+                    const attachment = payload.new as MessageAttachment;
+                    setMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.id === attachment.message_id
+                                ? { ...msg, attachments: [...(msg.attachments || []), attachment] }
+                                : msg
+                        )
+                    );
+                }
+            )
             .subscribe();
 
         channelRef.current = channel;
@@ -350,14 +408,78 @@ export function useMessages(
         };
     }, [currentUserId, conversationPartnerId, supabase, fetchConversations]);
 
+    // 撤回时间限制：2分钟
+    const REVOKE_TIME_LIMIT_MS = 2 * 60 * 1000;
+
+    // 判断消息是否可以撤回
+    const canRevoke = useCallback(
+        (message: Message): boolean => {
+            if (!currentUserId) return false;
+            if (message.sender_id !== currentUserId) return false;
+            if (message.is_revoked) return false;
+
+            const messageCreatedAt = new Date(message.created_at).getTime();
+            const now = Date.now();
+            return now - messageCreatedAt <= REVOKE_TIME_LIMIT_MS;
+        },
+        [currentUserId]
+    );
+
+    // 撤回消息
+    const revokeMessage = useCallback(
+        async (messageId: string): Promise<{ success: boolean; error?: string }> => {
+            if (!currentUserId) return { success: false, error: "未登录" };
+
+            try {
+                const response = await fetch("/api/messages/revoke", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ messageId }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    return { success: false, error: data.error || "撤回失败" };
+                }
+
+                // 乐观更新：立即更新本地状态
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === messageId
+                            ? {
+                                ...msg,
+                                is_revoked: true,
+                                revoked_at: new Date().toISOString(),
+                                content: "[消息已撤回]",
+                            }
+                            : msg
+                    )
+                );
+
+                return { success: true };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : "撤回失败",
+                };
+            }
+        },
+        [currentUserId]
+    );
+
     return {
         messages,
         conversations,
         loading,
         error,
         sendMessage,
+        revokeMessage,
         markAsRead,
         loadMoreMessages,
         hasMore,
+        canRevoke,
     };
 }
