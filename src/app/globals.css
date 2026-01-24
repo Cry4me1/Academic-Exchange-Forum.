@@ -3,7 +3,7 @@
 @source "../../node_modules/novel";
 @import "tw-animate-css";
 @import "katex/dist/katex.min.css";
-@import "highlight.js/styles/github-dark.css";
+/* 使用自定义 One Dark Pro 风格代码高亮主题 */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -364,15 +364,18 @@
 
 .editor-content .ProseMirror pre,
 .rich-text-content pre {
-  background: oklch(0.18 0 0);
-  color: oklch(0.9 0 0);
-  padding: 1rem;
-  border-radius: 0.5rem;
+  background: #282c34;
+  color: #abb2bf;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
   overflow-x: auto;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
   font-family: var(--font-mono);
   font-size: 0.875rem;
-  line-height: 1.6;
+  line-height: 1.7;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -2px rgba(0, 0, 0, 0.2);
 }
 
 .editor-content .ProseMirror pre code,
@@ -383,71 +386,120 @@
   color: inherit;
 }
 
-/* Syntax highlighting colors (One Dark theme inspired) */
+/* ============================================
+   One Dark Pro Theme - Syntax Highlighting
+   ============================================ */
+
+/* 注释 - 灰色斜体 */
 .hljs-comment,
 .hljs-quote {
-  color: oklch(0.55 0 0);
+  color: #5c6370;
   font-style: italic;
 }
 
+/* 关键字 - 紫色 */
 .hljs-keyword,
 .hljs-selector-tag,
-.hljs-addition {
-  color: oklch(0.75 0.15 340);
-}
-
-.hljs-number,
-.hljs-string,
-.hljs-meta .hljs-meta-string,
-.hljs-literal,
+.hljs-meta-keyword,
 .hljs-doctag,
-.hljs-regexp {
-  color: oklch(0.78 0.15 140);
+.hljs-section {
+  color: #c678dd;
 }
 
+/* 字符串 - 绿色 */
+.hljs-string,
+.hljs-meta .hljs-string,
+.hljs-literal,
+.hljs-regexp,
+.hljs-addition {
+  color: #98c379;
+}
+
+/* 数字 - 橙色 */
+.hljs-number {
+  color: #d19a66;
+}
+
+/* 类型/类名/标题 - 黄色 */
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-title.class_,
 .hljs-title,
-.hljs-section,
-.hljs-name,
-.hljs-selector-id,
-.hljs-selector-class {
-  color: oklch(0.8 0.18 80);
+.hljs-title.function_ {
+  color: #e5c07b;
 }
 
-.hljs-attribute,
+/* 属性/变量 - 红色 */
 .hljs-attr,
+.hljs-attribute,
 .hljs-variable,
 .hljs-template-variable,
-.hljs-class .hljs-title,
-.hljs-type {
-  color: oklch(0.85 0.15 60);
+.hljs-property {
+  color: #e06c75;
 }
 
+/* 函数调用/方法 - 蓝色 */
+.hljs-function,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #61afef;
+}
+
+/* 标签/符号 - 青色 */
+.hljs-tag,
 .hljs-symbol,
 .hljs-bullet,
-.hljs-subst,
-.hljs-meta,
-.hljs-meta .hljs-keyword,
 .hljs-selector-attr,
-.hljs-selector-pseudo,
-.hljs-link {
-  color: oklch(0.75 0.15 200);
+.hljs-selector-pseudo {
+  color: #56b6c2;
 }
 
-.hljs-built_in,
+/* 删除 - 红色背景 */
 .hljs-deletion {
-  color: oklch(0.7 0.2 30);
+  color: #e06c75;
+  background: rgba(224, 108, 117, 0.15);
 }
 
+/* 添加 - 绿色背景 */
+.hljs-addition {
+  color: #98c379;
+  background: rgba(152, 195, 121, 0.15);
+}
+
+/* 链接 - 蓝色下划线 */
+.hljs-link {
+  color: #61afef;
+  text-decoration: underline;
+}
+
+/* 公式背景 */
 .hljs-formula {
-  background: oklch(0.25 0 0);
+  background: #3e4451;
+  padding: 0.15rem 0.3rem;
+  border-radius: 0.25rem;
 }
 
+/* 强调样式 */
 .hljs-emphasis {
   font-style: italic;
 }
 
 .hljs-strong {
   font-weight: bold;
+}
+
+/* Meta 信息 - 青色 */
+.hljs-meta,
+.hljs-meta .hljs-keyword {
+  color: #56b6c2;
+}
+
+/* 子表达式 */
+.hljs-subst {
+  color: #e06c75;
 }
 
 /* ============================================
@@ -683,14 +735,11 @@
 }
 
 
-/* Novel Editor Overrides */
-.novel-editor-container {
-  /* Prevent full screen toggle from messing up layout if triggered */
-}
 
-/* Ensure code blocks in Novel have correct background in dark mode if not handled by extensions */
-.dark .novel-editor-container pre {
-  background: oklch(0.2 0 0);
+/* Novel Editor/Viewer code block dark mode consistency */
+.dark .novel-editor-container pre,
+.dark .novel-viewer-container pre {
+  background: #282c34;
 }
 
 /* ============================================
