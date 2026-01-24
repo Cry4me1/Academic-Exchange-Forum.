@@ -1,7 +1,15 @@
 "use server";
 
+import { deleteImages, extractImageUrls, findRemovedImages } from "@/lib/storage-cleanup";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+
+// JSONContent 类型定义
+interface JSONContentNode {
+    type?: string;
+    attrs?: Record<string, unknown>;
+    content?: JSONContentNode[];
+}
 
 // 创建帖子
 export async function createPost(data: {
@@ -56,6 +64,21 @@ export async function updatePost(
         return { error: "请先登录" };
     }
 
+    // 如果内容被更新，先获取旧内容用于对比图片
+    let oldContent: JSONContentNode | null = null;
+    if (data.content) {
+        const { data: oldPost } = await supabase
+            .from("posts")
+            .select("content")
+            .eq("id", postId)
+            .eq("author_id", user.id)
+            .single();
+
+        if (oldPost) {
+            oldContent = oldPost.content as JSONContentNode;
+        }
+    }
+
     const { error } = await supabase
         .from("posts")
         .update(data)
@@ -65,6 +88,20 @@ export async function updatePost(
     if (error) {
         console.error("Update post error:", error);
         return { error: "更新帖子失败" };
+    }
+
+    // 清理被移除的图片（异步执行，不阻塞响应）
+    if (data.content && oldContent) {
+        const removedUrls = findRemovedImages(
+            oldContent,
+            data.content as JSONContentNode
+        );
+        if (removedUrls.length > 0) {
+            console.log(`[updatePost] 检测到 ${removedUrls.length} 个被移除的图片，正在清理...`);
+            deleteImages(removedUrls).catch((err) => {
+                console.error("[updatePost] 清理图片失败:", err);
+            });
+        }
     }
 
     revalidatePath(`/posts/${postId}`);
@@ -81,15 +118,40 @@ export async function deletePost(postId: string) {
         return { error: "请先登录" };
     }
 
+    // 先获取帖子内容，用于提取图片 URL
+    const { data: post } = await supabase
+        .from("posts")
+        .select("author_id, content")
+        .eq("id", postId)
+        .single();
+
+    if (!post) {
+        return { error: "帖子不存在" };
+    }
+
+    if (post.author_id !== user.id) {
+        return { error: "无权删除此帖子" };
+    }
+
+    // 提取帖子中的所有图片 URL
+    const imageUrls = extractImageUrls(post.content as JSONContentNode);
+
     const { error } = await supabase
         .from("posts")
         .delete()
-        .eq("id", postId)
-        .eq("author_id", user.id);
+        .eq("id", postId);
 
     if (error) {
         console.error("Delete post error:", error);
         return { error: "删除帖子失败" };
+    }
+
+    // 清理帖子中的所有图片（异步执行，不阻塞响应）
+    if (imageUrls.length > 0) {
+        console.log(`[deletePost] 正在清理帖子中的 ${imageUrls.length} 个图片...`);
+        deleteImages(imageUrls).catch((err) => {
+            console.error("[deletePost] 清理图片失败:", err);
+        });
     }
 
     revalidatePath("/dashboard");

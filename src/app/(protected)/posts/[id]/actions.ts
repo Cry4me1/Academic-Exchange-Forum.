@@ -1,7 +1,15 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { deleteImages, extractImageUrls } from "@/lib/storage-cleanup";
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+
+// JSONContent 类型定义
+interface JSONContentNode {
+    type?: string;
+    attrs?: Record<string, unknown>;
+    content?: JSONContentNode[];
+}
 
 // 切换帖子点赞状态
 export async function toggleLikePost(postId: string) {
@@ -227,15 +235,40 @@ export async function deleteComment(commentId: string, postId: string) {
         return { error: "请先登录" };
     }
 
+    // 先获取评论内容，用于提取图片 URL
+    const { data: comment } = await supabase
+        .from("comments")
+        .select("author_id, content")
+        .eq("id", commentId)
+        .single();
+
+    if (!comment) {
+        return { error: "评论不存在" };
+    }
+
+    if (comment.author_id !== user.id) {
+        return { error: "无权删除此评论" };
+    }
+
+    // 提取评论中的所有图片 URL
+    const imageUrls = extractImageUrls(comment.content as JSONContentNode);
+
     const { error } = await supabase
         .from("comments")
         .delete()
-        .eq("id", commentId)
-        .eq("author_id", user.id);
+        .eq("id", commentId);
 
     if (error) {
         console.error("Delete comment error:", error);
         return { error: "删除评论失败" };
+    }
+
+    // 清理评论中的所有图片（异步执行，不阻塞响应）
+    if (imageUrls.length > 0) {
+        console.log(`[deleteComment] 正在清理评论中的 ${imageUrls.length} 个图片...`);
+        deleteImages(imageUrls).catch((err) => {
+            console.error("[deleteComment] 清理图片失败:", err);
+        });
     }
 
     revalidatePath(`/posts/${postId}`);
@@ -306,10 +339,10 @@ export async function deletePost(postId: string) {
         return { error: "请先登录" };
     }
 
-    // 验证是否为帖子作者
+    // 验证是否为帖子作者并获取内容
     const { data: post } = await supabase
         .from("posts")
-        .select("author_id")
+        .select("author_id, content")
         .eq("id", postId)
         .single();
 
@@ -321,6 +354,9 @@ export async function deletePost(postId: string) {
         return { error: "无权删除此帖子" };
     }
 
+    // 提取帖子中的所有图片 URL
+    const imageUrls = extractImageUrls(post.content as JSONContentNode);
+
     // 删除帖子（相关的评论、点赞等会通过 CASCADE 自动删除）
     const { error } = await supabase
         .from("posts")
@@ -330,6 +366,14 @@ export async function deletePost(postId: string) {
     if (error) {
         console.error("Delete post error:", error);
         return { error: "删除帖子失败" };
+    }
+
+    // 清理帖子中的所有图片（异步执行，不阻塞响应）
+    if (imageUrls.length > 0) {
+        console.log(`[deletePost] 正在清理帖子中的 ${imageUrls.length} 个图片...`);
+        deleteImages(imageUrls).catch((err) => {
+            console.error("[deletePost] 清理图片失败:", err);
+        });
     }
 
     revalidatePath("/dashboard");
