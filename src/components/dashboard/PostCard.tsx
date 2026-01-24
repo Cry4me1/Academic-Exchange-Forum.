@@ -56,6 +56,7 @@ export interface PostCardProps {
     isBookmarked?: boolean;
     isSolved?: boolean;
     isHelpWanted?: boolean;
+    coverImage?: string;
 }
 
 function formatRelativeTime(date: Date): string {
@@ -86,6 +87,7 @@ export function PostCard({
     isBookmarked: initialIsBookmarked = false,
     isSolved = false,
     isHelpWanted = false,
+    coverImage,
 }: PostCardProps) {
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(likes);
@@ -207,6 +209,17 @@ export function PostCard({
                     {content}
                 </p>
 
+                {/* 封面图 */}
+                {coverImage && (
+                    <div className="mt-3 relative w-full h-48 overflow-hidden rounded-lg border border-border/50">
+                        <img
+                            src={coverImage}
+                            alt={title}
+                            className="object-cover w-full h-full hover:scale-105 transition-transform duration-500"
+                        />
+                    </div>
+                )}
+
                 {/* 学科标签 */}
                 {tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">
@@ -274,6 +287,6 @@ export function PostCard({
                     </Button>
                 </div>
             </CardFooter>
-        </Card>
+        </Card >
     );
 }

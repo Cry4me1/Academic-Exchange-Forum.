@@ -55,6 +55,34 @@ function extractTextFromContent(content: object): string {
     return "";
 }
 
+// 从富文本内容中提取第一张图片 URL
+function extractImageFromContent(content: object): string | undefined {
+    try {
+        const jsonContent = content as { content?: Array<{ type?: string, attrs?: { src?: string }, content?: Array<any> }> };
+
+        // 深度优先遍历查找第一个 image 节点
+        const findImage = (nodes: Array<any>): string | undefined => {
+            for (const node of nodes) {
+                if (node.type === 'image' && node.attrs?.src) {
+                    return node.attrs.src;
+                }
+                if (node.content) {
+                    const found = findImage(node.content);
+                    if (found) return found;
+                }
+            }
+            return undefined;
+        };
+
+        if (jsonContent.content) {
+            return findImage(jsonContent.content);
+        }
+    } catch {
+        // ignore
+    }
+    return undefined;
+}
+
 export function PostFeed({ filter }: PostFeedProps) {
     const [posts, setPosts] = useState<PostData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -135,6 +163,7 @@ export function PostFeed({ filter }: PostFeedProps) {
                     }}
                     title={post.title}
                     content={extractTextFromContent(post.content)}
+                    coverImage={extractImageFromContent(post.content)}
                     tags={post.tags}
                     createdAt={new Date(post.created_at)}
                     likes={post.like_count}

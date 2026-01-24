@@ -1,22 +1,22 @@
 "use client";
 
-import React, { useRef, useCallback } from "react";
+import { onDelete, onUpload } from "@/lib/image-upload";
 import {
-    EditorRoot,
-    EditorContent,
     EditorCommand,
     EditorCommandEmpty,
-    EditorCommandList,
     EditorCommandItem,
+    EditorCommandList,
+    EditorContent,
+    EditorRoot,
+    handleImageDrop, handleImagePaste,
     ImageResizer,
     type JSONContent,
 } from "novel";
-import { defaultExtensions } from "./extensions";
-import { suggestionItems } from "./slash-command";
-import { handleImageDrop, handleImagePaste } from "novel";
-import { onUpload, onDelete } from "@/lib/image-upload";
+import { useCallback, useRef } from "react";
 import BubbleMenu from "./BubbleMenu";
+import { defaultExtensions } from "./extensions";
 import { SlashAISelector } from "./generative/slash-ai-selector";
+import { suggestionItems } from "./slash-command";
 
 interface NovelEditorProps {
     initialValue?: JSONContent;

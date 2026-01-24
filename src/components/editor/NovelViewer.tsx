@@ -1,7 +1,7 @@
 "use client";
 
-import { EditorRoot, EditorContent, type JSONContent } from "novel";
-import { defaultExtensions } from "./extensions";
+import { EditorContent, EditorRoot, type JSONContent } from "novel";
+import { viewerExtensions } from "./viewer-extensions";
 
 interface NovelViewerProps {
     initialValue?: JSONContent;
@@ -11,11 +11,11 @@ export default function NovelViewer({ initialValue }: NovelViewerProps) {
     if (!initialValue) return null;
 
     return (
-        <div className="novel-viewer-container w-full bg-background">
+        <div className="novel-viewer-container rich-text-content w-full bg-background">
             <EditorRoot>
                 <EditorContent
                     initialContent={initialValue}
-                    extensions={defaultExtensions}
+                    extensions={viewerExtensions}
                     immediatelyRender={false}
                     editorProps={{
                         attributes: {

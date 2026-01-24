@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import Link from "next/link";
+import NovelEditor from "@/components/editor/NovelEditor";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import NovelEditor from "@/components/editor/NovelEditor";
-import { ArrowLeft, Send, X, Plus, HelpCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowLeft, HelpCircle, Plus, Send, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { type JSONContent } from "novel";
+import { useState } from "react";
 import { toast } from "sonner";
 import { createPost } from "../actions";
-import { type JSONContent } from "novel";
 
 const AVAILABLE_TAGS = [
     "Computer Science",
@@ -93,9 +93,12 @@ export default function NewPostPage() {
         setIsSubmitting(true);
 
         try {
+            // Deep copy to ensure no socialization issues with Server Actions
+            const cleanedContent = JSON.parse(JSON.stringify(contentJson));
+
             const result = await createPost({
                 title: title.trim(),
-                content: contentJson,
+                content: cleanedContent,
                 tags: selectedTags,
                 is_help_wanted: isHelpWanted,
             });

@@ -26,6 +26,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "@/lib/utils";
 import NovelEditor from "@/components/editor/NovelEditor";
+import NovelViewer from "@/components/editor/NovelViewer";
 
 interface Profile {
     id: string;
@@ -428,14 +429,13 @@ export default function DuelDetailClient({
                     className="mb-8"
                 >
                     <Card className="overflow-hidden">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between gap-4">
-                                {/* 挑战者 */}
+                        <CardContent className="p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
                                 <div className="flex-1 text-center">
                                     <div className="relative inline-block">
-                                        <Avatar className="h-20 w-20 mx-auto mb-3 ring-4 ring-blue-500/30">
+                                        <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mx-auto mb-2 sm:mb-3 ring-4 ring-blue-500/30">
                                             <AvatarImage src={currentDuel.challenger?.avatar_url} />
-                                            <AvatarFallback className="bg-blue-500/10 text-blue-600 text-xl">
+                                            <AvatarFallback className="bg-blue-500/10 text-blue-600 text-lg sm:text-xl">
                                                 {currentDuel.challenger?.username?.slice(0, 2).toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
@@ -443,14 +443,14 @@ export default function DuelDetailClient({
                                             <Trophy className="absolute -top-2 -right-2 h-6 w-6 text-yellow-500" />
                                         )}
                                     </div>
-                                    <p className="font-semibold text-lg">
+                                    <p className="font-semibold text-base sm:text-lg">
                                         {currentDuel.challenger?.full_name || currentDuel.challenger?.username}
                                     </p>
-                                    <Badge variant="outline" className="mt-1 bg-blue-500/5 border-blue-500/30 text-blue-600">
+                                    <Badge variant="outline" className="mt-1 bg-blue-500/5 border-blue-500/30 text-blue-600 text-xs sm:text-sm">
                                         {currentDuel.challenger_position}
                                     </Badge>
                                     {currentDuel.challenger?.reputation_score !== undefined && (
-                                        <div className="mt-2">
+                                        <div className="mt-2 hidden sm:block">
                                             <ReputationBadge
                                                 score={currentDuel.challenger.reputation_score}
                                                 wins={currentDuel.challenger.duel_wins}
@@ -460,25 +460,24 @@ export default function DuelDetailClient({
                                             />
                                         </div>
                                     )}
-                                    <p className="text-4xl font-bold text-blue-600 mt-3">
+                                    <p className="text-3xl sm:text-4xl font-bold text-blue-600 mt-2 sm:mt-3">
                                         {currentDuel.challenger_score}
                                     </p>
                                 </div>
 
                                 {/* VS */}
-                                <div className="flex flex-col items-center px-4">
-                                    <Swords className="h-12 w-12 text-muted-foreground mb-2" />
-                                    <span className="text-lg font-bold text-muted-foreground">VS</span>
+                                <div className="flex flex-col items-center px-2 sm:px-4 py-2 sm:py-0">
+                                    <Swords className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mb-1 sm:mb-2" />
+                                    <span className="text-base sm:text-lg font-bold text-muted-foreground">VS</span>
                                 </div>
 
-                                {/* 对手 */}
                                 <div className="flex-1 text-center">
                                     {currentDuel.opponent ? (
                                         <>
                                             <div className="relative inline-block">
-                                                <Avatar className="h-20 w-20 mx-auto mb-3 ring-4 ring-red-500/30">
+                                                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mx-auto mb-2 sm:mb-3 ring-4 ring-red-500/30">
                                                     <AvatarImage src={currentDuel.opponent?.avatar_url} />
-                                                    <AvatarFallback className="bg-red-500/10 text-red-600 text-xl">
+                                                    <AvatarFallback className="bg-red-500/10 text-red-600 text-lg sm:text-xl">
                                                         {currentDuel.opponent?.username?.slice(0, 2).toUpperCase()}
                                                     </AvatarFallback>
                                                 </Avatar>
@@ -486,14 +485,14 @@ export default function DuelDetailClient({
                                                     <Trophy className="absolute -top-2 -right-2 h-6 w-6 text-yellow-500" />
                                                 )}
                                             </div>
-                                            <p className="font-semibold text-lg">
+                                            <p className="font-semibold text-base sm:text-lg">
                                                 {currentDuel.opponent?.full_name || currentDuel.opponent?.username}
                                             </p>
-                                            <Badge variant="outline" className="mt-1 bg-red-500/5 border-red-500/30 text-red-600">
+                                            <Badge variant="outline" className="mt-1 bg-red-500/5 border-red-500/30 text-red-600 text-xs sm:text-sm">
                                                 {currentDuel.opponent_position}
                                             </Badge>
                                             {currentDuel.opponent?.reputation_score !== undefined && (
-                                                <div className="mt-2">
+                                                <div className="mt-2 hidden sm:block">
                                                     <ReputationBadge
                                                         score={currentDuel.opponent.reputation_score}
                                                         wins={currentDuel.opponent.duel_wins}
@@ -503,7 +502,7 @@ export default function DuelDetailClient({
                                                     />
                                                 </div>
                                             )}
-                                            <p className="text-4xl font-bold text-red-600 mt-3">
+                                            <p className="text-3xl sm:text-4xl font-bold text-red-600 mt-2 sm:mt-3">
                                                 {currentDuel.opponent_score}
                                             </p>
                                         </>
@@ -606,9 +605,7 @@ export default function DuelDetailClient({
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="prose prose-sm max-w-none dark:prose-invert">
-                                                    <p className="whitespace-pre-wrap">
-                                                        {round.content_text || "（内容加载中...）"}
-                                                    </p>
+                                                    <NovelViewer initialValue={round.content as any} />
                                                 </div>
                                             </CardContent>
                                         </Card>

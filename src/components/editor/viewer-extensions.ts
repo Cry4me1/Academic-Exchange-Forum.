@@ -6,17 +6,12 @@ import { common, createLowlight } from "lowlight";
 import {
     CodeBlockLowlight,
     HorizontalRule,
-    Placeholder,
     StarterKit,
     TaskItem,
     TaskList,
     TiptapLink,
 } from "novel";
-import AutoJoiner from "tiptap-extension-auto-joiner";
-import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { CustomImage } from "./extensions/custom-image";
-import { Command, renderItems } from "./extensions/slash-command-extension";
-import { suggestionItems } from "./slash-command";
 
 // Explicitly create lowlight instance
 const lowlight = createLowlight(common);
@@ -27,11 +22,14 @@ const codeBlockLowlight = CodeBlockLowlight.configure({
 
 // Configure Mathematics extension (v2 uses regex decorations)
 const mathExtension = Mathematics.configure({
+    // Standard dollar sign syntax for inline math: $E=mc^2$
     regex: /\$([^\$]+)\$/gi,
 });
 
-// We prefer constructing the list from what Novel exposes + our adds
-export const defaultExtensions: any[] = [
+/**
+ * Viewer-specific extensions (readonly, no slash commands or drag handles)
+ */
+export const viewerExtensions: any[] = [
     StarterKit.configure({
         bulletList: {
             HTMLAttributes: {
@@ -61,15 +59,12 @@ export const defaultExtensions: any[] = [
             },
         },
         horizontalRule: false,
-        dropcursor: {
-            color: "#DBEAFE",
-            width: 4,
-        },
+        dropcursor: false,
         gapcursor: false,
     }),
     // Core extensions
     TiptapLink.configure({
-        openOnClick: false,
+        openOnClick: true, // Allow clicking links in viewer
     }),
     CustomImage,
     TaskList,
@@ -77,34 +72,10 @@ export const defaultExtensions: any[] = [
         nested: true,
     }),
     HorizontalRule,
-    Placeholder.configure({
-        placeholder: "输入 '/' 唤起命令...",
-        includeChildren: true,
-    }),
     // Custom extensions
     codeBlockLowlight,
     // Math extension (v2)
     mathExtension,
-    // Slash command extension
-    Command.configure({
-        suggestion: {
-            items: ({ query }: { query: string }) =>
-                suggestionItems.filter((item) =>
-                    item.title.toLowerCase().includes(query.toLowerCase()) ||
-                    item.searchTerms.some((term) => term.includes(query.toLowerCase()))
-                ),
-            render: renderItems,
-        },
-    }),
-    // Global drag handle - Notion-style block drag and drop
-    GlobalDragHandle.configure({
-        dragHandleWidth: 20,
-        scrollTreshold: 100,
-    }),
-    // Auto joiner - fixes list joining when dragging
-    AutoJoiner.configure({
-        elementsToJoin: ["bulletList", "orderedList"],
-    }),
     // Text styling extensions for color
     TextStyle,
     Color,

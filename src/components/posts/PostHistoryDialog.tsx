@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDate } from "@/lib/utils";
 import {
     getPostRevisions,
@@ -86,7 +85,7 @@ export function PostHistoryDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-5xl max-h-[85vh] p-0 gap-0 overflow-hidden">
+            <DialogContent className="w-[95vw] max-w-[95vw] max-h-[85vh] p-0 gap-0 overflow-hidden">
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle className="flex items-center gap-2">
                         <History className="h-5 w-5 text-primary" />
@@ -99,15 +98,15 @@ export function PostHistoryDialog({
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex h-[calc(85vh-80px)]">
+                <div className="flex flex-col md:flex-row h-[calc(85vh-80px)] overflow-hidden">
                     {/* 左侧版本列表 */}
-                    <div className="w-80 border-r bg-muted/20 flex flex-col">
+                    <div className="w-full md:w-64 lg:w-80 border-b md:border-b-0 md:border-r bg-muted/20 flex flex-col shrink-0 max-h-[40vh] md:max-h-full overflow-auto">
                         <div className="p-3 border-b bg-background/50">
                             <p className="text-xs text-muted-foreground">
                                 点击版本查看与下一版本的对比
                             </p>
                         </div>
-                        <ScrollArea className="flex-1">
+                        <div className="flex-1 overflow-auto">
                             <div className="p-2 space-y-1">
                                 {loading ? (
                                     <div className="flex items-center justify-center py-8">
@@ -163,11 +162,13 @@ export function PostHistoryDialog({
                                     ))
                                 )}
                             </div>
-                        </ScrollArea>
+
+                        </div>
                     </div>
 
+
                     {/* 右侧 Diff 视图 */}
-                    <div className="flex-1 flex flex-col bg-background">
+                    <div className="flex-1 flex flex-col bg-background min-h-0 min-w-0 overflow-hidden">
                         {loadingDiff ? (
                             <div className="flex items-center justify-center h-full">
                                 <div className="text-center">
@@ -190,14 +191,14 @@ export function PostHistoryDialog({
                                         </Badge>
                                     </div>
                                 </div>
-                                <ScrollArea className="flex-1 p-4">
+                                <div className="flex-1 p-4 overflow-auto">
                                     <DiffViewer
                                         oldContent={diffData.old.content}
                                         newContent={diffData.new.content}
                                         oldTitle={diffData.old.title}
                                         newTitle={diffData.new.title}
                                     />
-                                </ScrollArea>
+                                </div>
                             </>
                         ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -210,6 +211,6 @@ export function PostHistoryDialog({
                     </div>
                 </div>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }
