@@ -20,7 +20,6 @@ import {
     Strikethrough,
 } from "lucide-react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-// @ts-ignore
 
 // 使用 TipTap 核心库创建轻量级编辑器
 import Link from "@tiptap/extension-link";
