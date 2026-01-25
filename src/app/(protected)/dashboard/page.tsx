@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import {
+    AiFeatureCard,
+    AnnouncementCard,
+    FeedTabs,
+    FriendsList,
+    MainNav,
+    PostFeed,
+    QuickPostButton,
+    TagCloud,
+    type FeedFilter
+} from "@/components/dashboard";
 import { NotificationCenter } from "@/components/notifications";
-import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,25 +22,19 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
 import {
-    MainNav,
-    FriendsList,
-    FeedTabs,
-    PostFeed,
-    AnnouncementCard,
-    AiFeatureCard,
-    TagCloud,
-    QuickPostButton,
-    type FeedFilter
-} from "@/components/dashboard";
-import {
-    Menu,
-    X,
     LogOut,
-    User,
+    Menu,
+    Search,
     Settings,
-    Search
+    User,
+    X
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 // 动画变体
 const containerVariants = {
@@ -330,7 +330,7 @@ export default function DashboardPage() {
                             variants={slideInRight}
                             initial="hidden"
                             animate="visible"
-                            className="sticky top-24 space-y-6"
+                            className="sticky top-24 space-y-6 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 scrollbar-hidden"
                         >
                             {/* 快速发帖 */}
                             <motion.div variants={itemVariants}>
