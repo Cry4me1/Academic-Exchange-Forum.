@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+    getPostRevisions,
+    getRevisionDiff,
+    PostRevisionListItem,
+} from "@/app/(protected)/posts/[id]/history-actions";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import {
-    getPostRevisions,
-    getRevisionDiff,
-    PostRevisionListItem,
-} from "@/app/(protected)/posts/[id]/history-actions";
+import { FileText, History, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { DiffViewer } from "./DiffViewer";
-import { History, Loader2, FileText } from "lucide-react";
 
 interface PostHistoryDialogProps {
     open: boolean;
@@ -85,8 +85,8 @@ export function PostHistoryDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-w-[95vw] max-h-[85vh] p-0 gap-0 overflow-hidden">
-                <DialogHeader className="px-6 py-4 border-b">
+            <DialogContent className="w-[100vw] max-w-[100vw] h-[100vh] max-h-[100vh] p-0 gap-0 overflow-hidden rounded-none border-0 sm:rounded-none">
+                <DialogHeader className="px-6 py-4 border-b shrink-0">
                     <DialogTitle className="flex items-center gap-2">
                         <History className="h-5 w-5 text-primary" />
                         修订历史
@@ -98,7 +98,7 @@ export function PostHistoryDialog({
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex flex-col md:flex-row h-[calc(85vh-80px)] overflow-hidden">
+                <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
                     {/* 左侧版本列表 */}
                     <div className="w-full md:w-64 lg:w-80 border-b md:border-b-0 md:border-r bg-muted/20 flex flex-col shrink-0 max-h-[40vh] md:max-h-full overflow-auto">
                         <div className="p-3 border-b bg-background/50">
@@ -191,7 +191,7 @@ export function PostHistoryDialog({
                                         </Badge>
                                     </div>
                                 </div>
-                                <div className="flex-1 p-4 overflow-auto">
+                                <div className="flex-1 p-4 overflow-hidden">
                                     <DiffViewer
                                         oldContent={diffData.old.content}
                                         newContent={diffData.new.content}

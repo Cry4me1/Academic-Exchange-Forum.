@@ -1,4 +1,4 @@
-import { deleteFromR2, uploadToR2 } from "@/lib/r2";
+import { deleteFromR2, isR2Configured, uploadToR2 } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -124,14 +124,38 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 生成唯一文件名
+        // 生成唯一文件名 (使用 msg_ 前缀区分私信文件)
         const fileExt = file.name.split(".").pop() || "bin";
-        const uniqueFileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+        const uniqueFileName = `msg_${user.id}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
 
-        // 上传到 R2 (使用 Uint8Array 代替 Buffer 以兼容 Edge Runtime)
-        const arrayBuffer = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const publicUrl = await uploadToR2(uint8Array, uniqueFileName, file.type);
+        let publicUrl: string;
+
+        // 检查是否配置了 R2，如果没有则降级到 Supabase Storage
+        if (isR2Configured()) {
+            // 上传到 R2 (使用 Uint8Array 代替 Buffer 以兼容 Edge Runtime)
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            publicUrl = await uploadToR2(uint8Array, uniqueFileName, file.type);
+        } else {
+            // 降级：使用 Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from("message-files")
+                .upload(uniqueFileName, file, {
+                    cacheControl: "3600",
+                    upsert: false,
+                });
+
+            if (uploadError) {
+                console.error("Supabase Storage 上传失败:", uploadError);
+                throw new Error("文件上传失败");
+            }
+
+            const { data: { publicUrl: supabaseUrl } } = supabase.storage
+                .from("message-files")
+                .getPublicUrl(uniqueFileName);
+
+            publicUrl = supabaseUrl;
+        }
 
         // 计算过期时间（7天后）
         const expiresAt = new Date();

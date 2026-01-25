@@ -1,45 +1,14 @@
 "use client";
 
-import { useState, useCallback, useTransition, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TableOfContents, type HeadingItem, PostHistoryDialog, ShareCardDialog } from "@/components/posts";
+import { CommentData, CommentInput, CommentItem } from "@/components/comments";
 import { CreateDuelDialog } from "@/components/duel/CreateDuelDialog";
-import NovelViewer from "@/components/editor/NovelViewer";
-import { CommentItem, CommentInput, CommentData } from "@/components/comments";
-import { ReportDialog } from "@/components/ReportDialog";
-import { formatDate } from "@/lib/utils";
-import { toast } from "sonner";
 import { ReputationBadgeCompact } from "@/components/duel/ReputationBadge";
-import {
-    toggleLikePost,
-    toggleBookmarkPost,
-    createShareRecord,
-    createComment,
-    deletePost,
-} from "./actions";
-import {
-    ArrowLeft,
-    Heart,
-    MessageCircle,
-    Bookmark,
-    Share2,
-    MoreHorizontal,
-    Calendar,
-    Eye,
-    Flag,
-    Trash2,
-    CheckCircle2,
-    HelpCircle,
-    History,
-    Pencil,
-    Code2,
-    Swords,
-} from "lucide-react";
+import NovelViewer from "@/components/editor/NovelViewer";
+import { ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
+import { ReportDialog } from "@/components/ReportDialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -47,6 +16,37 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatDate } from "@/lib/utils";
+import { motion } from "framer-motion";
+import {
+    ArrowLeft,
+    Bookmark,
+    Calendar,
+    CheckCircle2,
+    Code2,
+    Eye,
+    Flag,
+    Heart,
+    HelpCircle,
+    History,
+    MessageCircle,
+    MoreHorizontal,
+    Pencil,
+    Share2,
+    Swords,
+    Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
+import {
+    createComment,
+    createShareRecord,
+    deletePost,
+    toggleBookmarkPost,
+    toggleLikePost,
+} from "./actions";
 
 interface PostDetailClientProps {
     post: {
@@ -156,7 +156,6 @@ export default function PostDetailClient({
     const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
     const [isPending, startTransition] = useTransition();
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
-    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
     const [duelDialogOpen, setDuelDialogOpen] = useState(false);
 
@@ -402,11 +401,11 @@ export default function PostDetailClient({
                                                 <DropdownMenuSeparator className="sm:hidden" />
                                             </>
                                         )}
-                                        <DropdownMenuItem
-                                            onClick={() => setHistoryDialogOpen(true)}
-                                        >
-                                            <History className="mr-2 h-4 w-4" />
-                                            查看历史
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/posts/${post.id}/history`}>
+                                                <History className="mr-2 h-4 w-4" />
+                                                查看历史
+                                            </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onClick={() => setReportDialogOpen(true)}
@@ -654,14 +653,6 @@ export default function PostDetailClient({
                 type="post"
                 targetId={post.id}
                 targetTitle={post.title}
-            />
-
-            {/* 历史版本对话框 */}
-            <PostHistoryDialog
-                open={historyDialogOpen}
-                onOpenChange={setHistoryDialogOpen}
-                postId={post.id}
-                currentTitle={post.title}
             />
 
             {/* 分享卡片对话框 */}

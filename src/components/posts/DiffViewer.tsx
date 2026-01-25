@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
-import * as jsondiffpatch from "jsondiffpatch";
+import NovelViewer from "@/components/editor/NovelViewer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, GitCompare } from "lucide-react";
+import { type JSONContent } from "novel";
+import { useMemo, useState } from "react";
 
 interface DiffViewerProps {
     oldContent: object;
@@ -144,6 +147,8 @@ export function DiffViewer({
     oldTitle,
     newTitle,
 }: DiffViewerProps) {
+    const [viewMode, setViewMode] = useState<"diff" | "preview">("diff");
+
     const diffLines = useMemo(() => {
         const oldText = extractTextFromTiptap(oldContent);
         const newText = extractTextFromTiptap(newContent);
@@ -153,10 +158,10 @@ export function DiffViewer({
     const hasChanges = diffLines.some((line) => line.type !== "same");
 
     return (
-        <div className="space-y-4">
+        <div className="h-full flex flex-col">
             {/* 标题变化 */}
             {oldTitle !== newTitle && (
-                <div className="p-4 bg-muted/50 rounded-lg border">
+                <div className="p-4 bg-muted/50 rounded-lg border mb-4 shrink-0">
                     <h4 className="text-sm font-medium mb-3 text-muted-foreground">
                         标题变化
                     </h4>
@@ -177,39 +182,100 @@ export function DiffViewer({
                 </div>
             )}
 
-            {/* 内容 Diff */}
-            <div className="p-4 bg-muted/30 rounded-lg border">
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground">
-                    内容变化
-                </h4>
+            {/* 视图模式切换 */}
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "diff" | "preview")} className="flex-1 flex flex-col min-h-0">
+                <TabsList className="shrink-0 mb-4 self-start">
+                    <TabsTrigger value="diff" className="gap-2">
+                        <GitCompare className="h-4 w-4" />
+                        差异对比
+                    </TabsTrigger>
+                    <TabsTrigger value="preview" className="gap-2">
+                        <Eye className="h-4 w-4" />
+                        富文本预览
+                    </TabsTrigger>
+                </TabsList>
 
-                {!hasChanges ? (
-                    <p className="text-muted-foreground text-sm">内容无变化</p>
-                ) : (
-                    <div className="font-mono text-sm space-y-0.5 overflow-x-auto">
-                        {diffLines.map((line, index) => (
-                            <div
-                                key={index}
-                                className={`px-3 py-1 rounded-sm ${line.type === "remove"
-                                        ? "bg-red-500/10 text-red-700 dark:text-red-400"
-                                        : line.type === "add"
-                                            ? "bg-green-500/10 text-green-700 dark:text-green-400"
-                                            : "text-foreground/80"
-                                    }`}
-                            >
-                                <span className="inline-block w-5 text-center mr-2 opacity-60">
-                                    {line.type === "remove"
-                                        ? "-"
-                                        : line.type === "add"
-                                            ? "+"
-                                            : " "}
-                                </span>
-                                {line.content || " "}
+                {/* 差异对比视图 */}
+                <TabsContent value="diff" className="flex-1 overflow-auto m-0 mt-0">
+                    <div className="p-4 bg-muted/30 rounded-lg border h-full">
+                        <h4 className="text-sm font-medium mb-3 text-muted-foreground">
+                            内容变化
+                        </h4>
+
+                        {!hasChanges ? (
+                            <p className="text-muted-foreground text-sm">内容无变化</p>
+                        ) : (
+                            <div className="font-mono text-sm space-y-0.5 overflow-x-auto">
+                                {diffLines.map((line, index) => (
+                                    <div
+                                        key={index}
+                                        className={`px-3 py-1 rounded-sm ${line.type === "remove"
+                                            ? "bg-red-500/10 text-red-700 dark:text-red-400"
+                                            : line.type === "add"
+                                                ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                                                : "text-foreground/80"
+                                            }`}
+                                    >
+                                        <span className="inline-block w-5 text-center mr-2 opacity-60">
+                                            {line.type === "remove"
+                                                ? "-"
+                                                : line.type === "add"
+                                                    ? "+"
+                                                    : " "}
+                                        </span>
+                                        {line.content || " "}
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        )}
                     </div>
-                )}
-            </div>
+                </TabsContent>
+
+                {/* 富文本预览视图 - 并排显示 */}
+                <TabsContent value="preview" className="flex-1 overflow-hidden m-0 mt-0">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+                        {/* 旧版本 */}
+                        <div className="flex flex-col border rounded-lg overflow-hidden bg-background">
+                            <div className="px-4 py-3 border-b bg-red-500/5 shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                                    <span className="font-medium text-sm text-red-700 dark:text-red-400">
+                                        旧版本
+                                    </span>
+                                </div>
+                                {oldTitle && (
+                                    <p className="text-sm text-muted-foreground mt-1 truncate">
+                                        {oldTitle}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex-1 overflow-auto p-4">
+                                <NovelViewer initialValue={oldContent as JSONContent} />
+                            </div>
+                        </div>
+
+                        {/* 新版本 */}
+                        <div className="flex flex-col border rounded-lg overflow-hidden bg-background">
+                            <div className="px-4 py-3 border-b bg-green-500/5 shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                                    <span className="font-medium text-sm text-green-700 dark:text-green-400">
+                                        新版本
+                                    </span>
+                                </div>
+                                {newTitle && (
+                                    <p className="text-sm text-muted-foreground mt-1 truncate">
+                                        {newTitle}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex-1 overflow-auto p-4">
+                                <NovelViewer initialValue={newContent as JSONContent} />
+                            </div>
+                        </div>
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
