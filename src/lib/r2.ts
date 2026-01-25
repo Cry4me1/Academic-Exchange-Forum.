@@ -36,13 +36,13 @@ const createR2Client = () => {
 
 /**
  * 上传文件到 Cloudflare R2
- * @param file 文件 Buffer
+ * @param file 文件 Buffer 或 Uint8Array
  * @param fileName 文件名
  * @param contentType 文件 MIME 类型
  * @returns 公开访问 URL
  */
 export async function uploadToR2(
-    file: Buffer,
+    file: Uint8Array | Buffer,
     fileName: string,
     contentType: string
 ): Promise<string> {

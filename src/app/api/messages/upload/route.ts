@@ -2,6 +2,8 @@ import { deleteFromR2, uploadToR2 } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = 'edge';
+
 // 文件大小限制：10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -126,9 +128,10 @@ export async function POST(request: NextRequest) {
         const fileExt = file.name.split(".").pop() || "bin";
         const uniqueFileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
 
-        // 上传到 R2
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const publicUrl = await uploadToR2(buffer, uniqueFileName, file.type);
+        // 上传到 R2 (使用 Uint8Array 代替 Buffer 以兼容 Edge Runtime)
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const publicUrl = await uploadToR2(uint8Array, uniqueFileName, file.type);
 
         // 计算过期时间（7天后）
         const expiresAt = new Date();

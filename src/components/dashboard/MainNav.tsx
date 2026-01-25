@@ -1,18 +1,19 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-    Home,
-    Flame,
     Bookmark,
-    User,
-    Settings,
+    Flame,
+    Home,
     MessageSquare,
+    Settings,
+    Swords,
+    User,
     Users,
-    Swords
+    Zap
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navItems = [
     { href: "/dashboard", label: "首页", icon: Home },
@@ -21,6 +22,7 @@ const navItems = [
     { href: "/messages", label: "私信", icon: MessageSquare },
     { href: "/friends", label: "好友", icon: Users },
     { href: "/favorites", label: "我的收藏", icon: Bookmark },
+    { href: "/updates", label: "更新日志", icon: Zap },
     { href: "/profile", label: "个人中心", icon: User },
 ];
 

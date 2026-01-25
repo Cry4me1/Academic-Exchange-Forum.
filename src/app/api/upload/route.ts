@@ -2,6 +2,8 @@ import { deleteFromR2, isR2Configured, isR2Url, uploadToR2 } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = 'edge';
+
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
@@ -50,9 +52,10 @@ export async function POST(request: NextRequest) {
 
         // 检查是否配置了 R2，如果没有则降级到 Supabase
         if (isR2Configured()) {
-            // 使用 R2 上传
-            const buffer = Buffer.from(await file.arrayBuffer());
-            const publicUrl = await uploadToR2(buffer, fileName, file.type);
+            // 使用 R2 上传 (使用 Uint8Array 代替 Buffer 以兼容 Edge Runtime)
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const publicUrl = await uploadToR2(uint8Array, fileName, file.type);
 
             return NextResponse.json({ url: publicUrl });
         } else {

@@ -1,8 +1,8 @@
-
 import { getFileStream } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { Readable } from "stream";
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -45,11 +45,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "文件读取失败" }, { status: 500 });
         }
 
-        // 4. 返回流式响应
-        // @ts-ignore - ReadableStream/Node Stream compatibility
-        const stream = Readable.fromWeb(fileStream.transformToWebStream());
+        // 4. 返回流式响应 (使用 Web Streams API)
+        const webStream = fileStream.transformToWebStream();
 
-        return new NextResponse(stream as any, {
+        return new NextResponse(webStream, {
             headers: {
                 "Content-Disposition": `attachment; filename="${encodeURIComponent(attachment.file_name)}"`,
                 "Content-Type": attachment.file_type || "application/octet-stream",

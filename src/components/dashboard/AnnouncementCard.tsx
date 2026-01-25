@@ -1,19 +1,29 @@
 "use client";
 
-import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, ChevronRight, Sparkles, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
+import { Bell, BookOpen, ChevronRight, Sparkles, Zap } from "lucide-react";
+import Link from "next/link";
 
 // 公告数据列表
 const announcements = [
+    {
+        id: "update-v0-8-0",
+        href: "/updates",
+        title: "⚡ v0.8.0: R2 存储与私信升级",
+        content: "底层存储迁移至 Cloudflare R2，私信支持文件发送与撤回功能。体验飞一般的速度！",
+        date: "2026-01-25",
+        isNew: true,
+        icon: Zap,
+        iconBg: "from-amber-400 to-orange-500",
+    },
     {
         id: "launch-2026",
         href: "/announcements/launch-2026",
         title: "Scholarly 学术论坛上线啦！",
         content: "欢迎来到 Scholarly！这是一个专为学术交流设计的平台，支持 LaTeX 公式、代码高亮、实时协作等功能。",
         date: "2026-01-02",
-        isNew: true,
+        isNew: false,
         icon: Sparkles,
         iconBg: "from-primary to-purple-500",
     },
@@ -23,7 +33,7 @@ const announcements = [
         title: "📚 新手教程指南",
         content: "快速了解 Scholarly 的使用方法，包括编辑器教程、平台功能介绍等，助你快速上手！",
         date: "2026-01-03",
-        isNew: true,
+        isNew: false,
         icon: BookOpen,
         iconBg: "from-emerald-500 to-teal-500",
     },

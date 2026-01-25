@@ -2,6 +2,8 @@ import { deleteObjectsFromR2 } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = 'edge';
+
 // 撤回时间限制：2分钟
 const REVOKE_TIME_LIMIT_MS = 2 * 60 * 1000;
 

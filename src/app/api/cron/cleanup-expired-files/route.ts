@@ -2,6 +2,8 @@ import { deleteObjectsFromR2 } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = 'edge';
+
 // 用于 Vercel Cron 或手动触发的过期文件清理 API
 // 在 vercel.json 中配置 cron 任务每天运行一次
 
