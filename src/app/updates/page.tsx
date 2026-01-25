@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Cloud, FileText, MessageSquare, ShieldCheck, Zap } from "lucide-react";
+import { Activity, ArrowLeft, BookOpen, Cloud, FileText, GitMerge, Layers, MessageSquare, PenTool, ShieldCheck, Users, Zap } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
 
@@ -114,15 +114,109 @@ export default function UpdatesPage() {
                 </div>
 
                 {/* Previous Update (Placeholder/Example) */}
-                <div className="relative pl-8 md:pl-12 opacity-60 hover:opacity-100 transition-opacity">
-                    <div className="absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full bg-muted-foreground/30 ring-4 ring-background" />
-                    <div className="flex flex-col gap-1 mb-2">
-                        <time className="text-sm text-muted-foreground font-mono">2026-01-18</time>
-                        <h2 className="text-xl font-semibold">v0.7.5 - 学术编辑器优化</h2>
+                {/* v0.7.0 - Deep Academic Reading */}
+                <div className="relative pl-8 md:pl-12 opacity-90">
+                    <div className="absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full bg-muted-foreground/40 ring-4 ring-background" />
+
+                    <div className="flex flex-col gap-2 mb-4">
+                        <time className="text-sm text-muted-foreground font-mono">2026-01-10</time>
+                        <h2 className="text-xl font-bold tracking-tight">v0.7.0 - 深度学术阅读体验</h2>
                     </div>
-                    <p className="text-muted-foreground text-sm">
-                        优化 LaTeX 公式渲染性能，修复了部分移动端排版问题。
-                    </p>
+
+                    <Card className="border-border/40 bg-card/30">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <BookOpen className="w-5 h-5 text-emerald-500" />
+                                沉浸式阅读与公式引擎
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                        <Activity className="w-4 h-4 text-primary" />
+                                        KaTeX 公式引擎
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        全面引入 KaTeX 渲染引擎，支持复杂的数学与化学方程式实时预览，渲染速度提升 300%。
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                        <Layers className="w-4 h-4 text-primary" />
+                                        智能沉浸模式
+                                    </h4>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* v0.6.0 - Collaboration */}
+                <div className="relative pl-8 md:pl-12 opacity-80 hover:opacity-100 transition-opacity">
+                    <div className="absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full bg-muted-foreground/30 ring-4 ring-background" />
+
+                    <div className="flex flex-col gap-2 mb-4">
+                        <time className="text-sm text-muted-foreground font-mono">2026-01-05</time>
+                        <h2 className="text-xl font-bold tracking-tight">v0.6.0 - 深度协作</h2>
+                    </div>
+
+                    <Card className="border-border/40 bg-card/30">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <GitMerge className="w-5 h-5 text-blue-500" />
+                                团队协作系统
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <ul className="space-y-2 text-sm text-muted-foreground">
+                                <li className="flex gap-2">
+                                    <span className="bg-primary/10 text-primary rounded-full p-1 h-fit mt-0.5">
+                                        <Users className="w-3 h-3" />
+                                    </span>
+                                    <span>
+                                        <strong className="text-foreground">问题提出系统：</strong>
+                                        支持帖主采纳回答
+                                    </span>
+                                </li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* v0.5.0 - Foundation */}
+                <div className="relative pl-8 md:pl-12 opacity-70 hover:opacity-100 transition-opacity">
+                    <div className="absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full bg-muted-foreground/20 ring-4 ring-background" />
+
+                    <div className="flex flex-col gap-2 mb-4">
+                        <time className="text-sm text-muted-foreground font-mono">2026-01-03</time>
+                        <h2 className="text-xl font-bold tracking-tight">v0.5.0 - 社区基石</h2>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1 bg-muted p-2 rounded-md">
+                                <Users className="w-5 h-5 text-orange-500" />
+                            </div>
+                            <div>
+                                <h3 className="font-medium text-foreground">学者身份体系上线</h3>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    集成了 ORCID 认证登陆，建立了基于贡献质量的动态声望算法。
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1 bg-muted p-2 rounded-md">
+                                <PenTool className="w-5 h-5 text-pink-500" />
+                            </div>
+                            <div>
+                                <h3 className="font-medium text-foreground">Markdown 增强版编辑器</h3>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    完整支持 Mermaid 流程图、甘特图以及学术表格扩展。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

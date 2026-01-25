@@ -887,3 +887,59 @@
   margin: 0;
   padding: 0;
 }
+
+/* ============================================
+   Update Notification Animation
+   ============================================ */
+
+@keyframes update-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(234, 179, 8, 0);
+  }
+}
+
+@keyframes update-shake {
+  0%, 100% { 
+    transform: translateX(0); 
+  }
+  10%, 30%, 50%, 70%, 90% { 
+    transform: translateX(-2px); 
+  }
+  20%, 40%, 60%, 80% { 
+    transform: translateX(2px); 
+  }
+}
+
+@keyframes update-glow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.update-highlight {
+  animation: update-pulse 2s ease-in-out infinite, update-shake 0.6s ease-in-out;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(251, 191, 36, 0.08) 50%, rgba(234, 179, 8, 0.12) 100%) !important;
+  background-size: 200% 200%;
+  border: 1px solid rgba(234, 179, 8, 0.35) !important;
+  border-radius: 0.5rem;
+}
+
+.update-highlight:hover {
+  animation: none;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(251, 191, 36, 0.12) 100%) !important;
+}
+
+.dark .update-highlight {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(251, 191, 36, 0.1) 50%, rgba(234, 179, 8, 0.15) 100%) !important;
+  border: 1px solid rgba(234, 179, 8, 0.4) !important;
+}
+
+.dark .update-highlight:hover {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(251, 191, 36, 0.15) 100%) !important;
+}
