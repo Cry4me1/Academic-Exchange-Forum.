@@ -11,4 +11,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Keep Alive Endpoint
+        run: |
           curl -I "https://academic-exchange-forum.pages.dev/api/keep-alive"
