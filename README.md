@@ -5,7 +5,7 @@ Scholarly 是一个专为学术讨论设计的现代化论坛平台。它结合�
 ## ✨ 核心特性
 
 - **专业级内容创作**:
-  -集成 `Novel` 和 `Tiptap` 编辑器，完美支持 **LaTeX 数学公式**、**代码语法高亮**和图表渲染。
+  -集成 `Novel` 和 `Tiptap` 编辑器，完美支持 **LaTeX 数学公式**、**代码语法高亮**渲染。
   - 支持帖子**修订历史**与**版本差异对比**，保障学术内容的严谨性。
 - **现代化社交体验**:
   - **即时通讯**: 基于 Supabase Realtime 的私信系统，支持文件传输与消息撤回。
@@ -34,10 +34,6 @@ Scholarly 是一个专为学术讨论设计的现代化论坛平台。它结合�
 
 ### 1. 克隆项目
 
-```bash
-git clone https://github.com/your-username/academic-forum.git
-cd academic-forum
-```
 
 ### 2. 安装依赖
 
