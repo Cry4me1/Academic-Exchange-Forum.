@@ -1,0 +1,14 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # 每 3 天的中午 12:00 (UTC) 运行一次
+    - cron: '0 12 */3 * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Keep Alive Endpoint
+          curl -I "https://academic-exchange-forum.pages.dev/api/keep-alive"
