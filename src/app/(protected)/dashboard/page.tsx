@@ -5,7 +5,9 @@ import {
     AnnouncementCard,
     FeedTabs,
     FriendsList,
+    LunarDateDisplay,
     MainNav,
+    NewYearPopup,
     PostFeed,
     QuickPostButton,
     TagCloud,
@@ -168,14 +170,19 @@ export default function DashboardPage() {
                 <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
-                        <Link href="/dashboard" className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                                <span className="text-primary-foreground font-bold text-lg">S</span>
-                            </div>
-                            <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                                Scholarly
-                            </span>
-                        </Link>
+                        <div className="flex items-center gap-4">
+                            <Link href="/dashboard" className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                                    <span className="text-primary-foreground font-bold text-lg">S</span>
+                                </div>
+                                <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                                    Scholarly
+                                </span>
+                            </Link>
+
+                            {/* Lunar Date Display */}
+                            <LunarDateDisplay className="hidden sm:flex" />
+                        </div>
 
                         {/* 桌面端搜索栏 */}
                         <div className="hidden md:flex flex-1 max-w-md mx-8">
@@ -255,6 +262,9 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* New Year Popup */}
+                <NewYearPopup />
             </motion.header>
 
             {/* 主内容区域 */}

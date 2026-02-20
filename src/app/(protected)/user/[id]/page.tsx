@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { ReputationBadge } from "@/components/duel/ReputationBadge";
+import { BannerSelector, bannerGradients } from "@/components/profile/banner-selector";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowLeft, UserPlus, MessageCircle, Calendar, MapPin, Globe, Heart, Bookmark, Swords, Code2, Sparkles } from "lucide-react";
 import { useFriends } from "@/hooks/useFriends";
+import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { ReputationBadge } from "@/components/duel/ReputationBadge";
+import { ArrowLeft, Bookmark, Calendar, Code2, Globe, Heart, Loader2, MapPin, MessageCircle, Sparkles, Swords, UserPlus } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface UserProfile {
     id: string;
@@ -30,6 +31,7 @@ interface UserProfile {
     duel_losses: number | null;
     is_developer: boolean | null;
     developer_title: string | null;
+    banner_style: string | null;
 }
 
 interface Post {
@@ -95,6 +97,7 @@ export default function UserProfilePage() {
     const [isFriend, setIsFriend] = useState(false);
     const [friendRequestSent, setFriendRequestSent] = useState(false);
     const [activeTab, setActiveTab] = useState("posts");
+    const [bannerStyle, setBannerStyle] = useState("default");
 
     const supabase = createClient();
     const { sendFriendRequest } = useFriends(currentUserId);
@@ -118,6 +121,9 @@ export default function UserProfilePage() {
                 console.error("Failed to load profile:", profileError);
             } else {
                 setProfile(profileData);
+                if (profileData.banner_style) {
+                    setBannerStyle(profileData.banner_style);
+                }
             }
 
             // 获取该用户的帖子
@@ -275,27 +281,34 @@ export default function UserProfilePage() {
         </Card>
     );
 
+    const currentGradient = bannerGradients.find(g => g.id === bannerStyle)?.class || bannerGradients[0].class;
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-            {/* 顶部浅色渐变横幅 */}
-            <div className="h-40 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent" />
-                <div className="absolute inset-0 opacity-30">
-                    <div className="absolute top-4 left-1/4 w-32 h-32 bg-blue-200 rounded-full blur-3xl" />
-                    <div className="absolute top-8 right-1/3 w-24 h-24 bg-purple-200 rounded-full blur-3xl" />
-                </div>
+        <div className={`min-h-screen ${currentGradient} transition-colors duration-500 relative`}>
+            {/* 全局背景装饰 */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/20 rounded-full blur-[100px]" />
+                <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[80px]" />
+                <div className="absolute bottom-[-10%] left-[20%] w-[30%] h-[30%] bg-white/10 rounded-full blur-[80px]" />
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* 顶部导航区 */}
+            <div className="relative z-20 px-6 py-6 flex justify-between items-center max-w-7xl mx-auto">
                 {/* 返回按钮 */}
                 <Link
                     href="/dashboard"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mt-4 mb-6 transition-colors"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground bg-white/30 hover:bg-white/50 backdrop-blur-md px-4 py-2 rounded-full transition-all shadow-sm hover:shadow-md"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     返回
                 </Link>
 
+                {isOwnProfile && (
+                    <BannerSelector currentStyle={bannerStyle} onStyleChange={setBannerStyle} />
+                )}
+            </div>
+
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 relative z-10 pt-4">
                 {/* 用户信息卡片 */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

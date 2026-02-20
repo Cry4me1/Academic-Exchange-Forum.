@@ -81,8 +81,36 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
+  /* 边框 - 浅灰 */
   --sidebar-border: oklch(0.922 0 0);
+  /* 环形 - 浅紫 */
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* ============================================
+   CNY Theme - Spring Festival Special
+   ============================================ */
+:root[data-theme="cny"] {
+  /* 丹红 (Cinnabar) - 象征喜庆与庄重 */
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* 流金 (Muted Gold) - 象征智慧与成就 */
+  --secondary: oklch(0.85 0.15 85);
+  --secondary-foreground: oklch(0.25 0.10 25);
+
+  /* 强调色 - 淡金背景 */
+  --accent: oklch(0.95 0.05 85);
+  --accent-foreground: oklch(0.25 0.10 25);
+
+  /* 边框 - 带有一点暖色调 */
+  --border: oklch(0.9 0.02 25);
+  --input: oklch(0.9 0.02 25);
+  --ring: oklch(0.55 0.22 25);
+
+  /* 侧边栏调整 */
+  --sidebar-primary: oklch(0.55 0.22 25);
+  --sidebar-accent: oklch(0.95 0.05 85);
 }
 
 .dark {
@@ -115,8 +143,35 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
+  /* 边框 - 深灰 */
   --sidebar-border: oklch(1 0 0 / 10%);
+  /* 环形 - 深紫 */
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* CNY Theme - Dark Mode */
+.dark:root[data-theme="cny"],
+.dark[data-theme="cny"] {
+  /* 亮丹红 */
+  --primary: oklch(0.65 0.20 25);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* 暗金 */
+  --secondary: oklch(0.35 0.10 85);
+  --secondary-foreground: oklch(0.985 0 0);
+
+  /* 强调色 - 深红背景 */
+  --accent: oklch(0.25 0.05 25);
+  --accent-foreground: oklch(0.985 0 0);
+  
+  --muted: oklch(0.2 0.02 25);
+  
+  --border: oklch(0.3 0.05 25);
+  --input: oklch(0.3 0.05 25);
+  --ring: oklch(0.65 0.20 25);
+
+  --sidebar-primary: oklch(0.65 0.20 25);
+  --sidebar-accent: oklch(0.25 0.05 25);
 }
 
 @layer base {

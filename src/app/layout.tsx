@@ -1,7 +1,9 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { CNYDecorations } from "@/components/theme/cny-decorations";
+import { CNYProvider } from "@/components/theme/cny-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "katex/dist/katex.min.css";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 export const runtime = "edge";
@@ -32,8 +34,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        {children}
-        <Toaster />
+        <CNYProvider>
+          <CNYDecorations />
+          {children}
+          <Toaster />
+        </CNYProvider>
       </body>
     </html>
   );
