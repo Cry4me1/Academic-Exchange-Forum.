@@ -45,10 +45,8 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "文件读取失败" }, { status: 500 });
         }
 
-        // 4. 返回流式响应 (使用 Web Streams API)
-        const webStream = fileStream.transformToWebStream();
-
-        return new NextResponse(webStream, {
+        // 4. 返回流式响应 (getFileStream 已返回 Web ReadableStream)
+        return new NextResponse(fileStream, {
             headers: {
                 "Content-Disposition": `attachment; filename="${encodeURIComponent(attachment.file_name)}"`,
                 "Content-Type": attachment.file_type || "application/octet-stream",

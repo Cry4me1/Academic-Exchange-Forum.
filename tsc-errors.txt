@@ -1,0 +1,16 @@
+﻿src/lib/r2.ts(32,56): error TS2345: Argument of type 'Uint8Array<ArrayBufferLike>' is not assignable to parameter of type 'BufferSource'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+src/lib/r2.ts(81,9): error TS2345: Argument of type 'Uint8Array<ArrayBuffer>' is not assignable to parameter of type 'CryptoKey | ArrayBuffer'.
+  Type 'Uint8Array<ArrayBuffer>' is missing the following properties from type 'ArrayBuffer': maxByteLength, resizable, resize, detached, and 2 more.
+src/lib/r2.ts(115,60): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type 'Uint8Array<ArrayBufferLike> | Buffer<ArrayBufferLike>' is not assignable to type 'BodyInit | null | undefined'.
+      Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BodyInit | null | undefined'.
+        Type 'Uint8Array<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type 'Uint8Array<ArrayBufferLike> | Buffer<ArrayBufferLike>' is not assignable to type 'BodyInit | null | undefined'.
+      Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BodyInit | null | undefined'.
+        Type 'Uint8Array<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.

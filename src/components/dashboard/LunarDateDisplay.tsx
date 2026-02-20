@@ -1,8 +1,23 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Lunar } from "lunar-javascript";
 import { useEffect, useState } from "react";
+
+// 使用浏览器内置 Intl API 获取农历日期（无需外部依赖）
+function getLunarDate(date: Date): string {
+    try {
+        const fmt = new Intl.DateTimeFormat("zh-CN-u-ca-chinese", {
+            month: "long",
+            day: "numeric",
+        });
+        const parts = fmt.formatToParts(date);
+        const month = parts.find((p) => p.type === "month")?.value ?? "";
+        const day = parts.find((p) => p.type === "day")?.value ?? "";
+        return month && day ? `${month}${day}` : "";
+    } catch {
+        return "";
+    }
+}
 
 export function LunarDateDisplay({ className }: { className?: string }) {
     const [lunarDate, setLunarDate] = useState<string>("");
@@ -10,19 +25,13 @@ export function LunarDateDisplay({ className }: { className?: string }) {
 
     useEffect(() => {
         const now = new Date();
-        const lunar = Lunar.fromDate(now);
+        setLunarDate(getLunarDate(now));
 
-        // 获取农历日期字符串，例如 "正月初一"
-        const monthStr = lunar.getMonthInChinese();
-        const dayStr = lunar.getDayInChinese();
-        const dateStr = `${monthStr}月${dayStr}`;
-
-        setLunarDate(dateStr);
-
-        // Check if it's new year (Month 1, Day 1)
-        if (lunar.getMonth() === 1 && lunar.getDay() === 1 || true) { // FORCE TESTING
-            setIsNewYear(true);
-        }
+        // 春节期间（公历2月17日-3月31日）显示高亮
+        const year = now.getFullYear();
+        setIsNewYear(
+            now >= new Date(year, 1, 17) && now <= new Date(year, 2, 31, 23, 59, 59)
+        );
     }, []);
 
     if (!lunarDate) return null;
