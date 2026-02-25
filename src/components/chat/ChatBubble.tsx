@@ -11,10 +11,12 @@ import type { Message } from "@/hooks/useMessages";
 import { cn } from "@/lib/utils";
 import { ExternalLink, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChatContentViewer, ChatTextMathViewer } from "./ChatEditor";
 import { FilePreview } from "./FilePreview";
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface ChatBubbleProps {
     message: Message;
@@ -238,6 +240,26 @@ export function ChatMessages({
     canRevoke,
     onRevoke,
 }: ChatMessagesProps) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const prevMessagesLength = useRef(messages.length);
+
+    useIsomorphicLayoutEffect(() => {
+        if (scrollRef.current) {
+            const isInitialLoad = prevMessagesLength.current === 0;
+            const targetScrollTop = scrollRef.current.scrollHeight;
+
+            if (isInitialLoad) {
+                // Initial load: instant scroll
+                scrollRef.current.scrollTo({ top: targetScrollTop, behavior: "auto" });
+            } else if (messages.length > prevMessagesLength.current) {
+                // New messages added: smooth scroll
+                scrollRef.current.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+            }
+        }
+        prevMessagesLength.current = messages.length;
+    }, [messages]);
+
     // 按日期分组消息
     const groupedMessages = messages.reduce<
         { date: string; messages: Message[] }[]
@@ -259,7 +281,7 @@ export function ChatMessages({
     }, []);
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {groupedMessages.map((group) => (
                 <div key={group.date} className="space-y-4">
                     {/* 日期分隔符 */}
@@ -300,6 +322,8 @@ export function ChatMessages({
                     <p className="text-xs mt-1">发送第一条消息开始聊天吧</p>
                 </div>
             )}
+
+            <div ref={messagesEndRef} className="h-1" />
         </div>
     );
 }

@@ -51,6 +51,8 @@ interface UseMessagesReturn {
     messages: Message[];
     conversations: Conversation[];
     loading: boolean;
+    messagesLoading: boolean;
+    conversationsLoading: boolean;
     error: string | null;
     sendMessage: (
         receiverId: string,
@@ -73,7 +75,8 @@ export function useMessages(
 ): UseMessagesReturn {
     const [messages, setMessages] = useState<Message[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [messagesLoading, setMessagesLoading] = useState(true);
+    const [conversationsLoading, setConversationsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
     const [offset, setOffset] = useState(0);
@@ -84,11 +87,11 @@ export function useMessages(
     // 获取会话列表
     const fetchConversations = useCallback(async () => {
         if (!currentUserId) {
-            setLoading(false);
+            setConversationsLoading(false);
             return;
         }
 
-        setLoading(true);
+        setConversationsLoading(true);
         try {
             // 获取所有消息，按对话伙伴分组
             const { data: allMessages, error: messagesError } = await supabase
@@ -158,7 +161,7 @@ export function useMessages(
         } catch (err) {
             console.error("获取会话列表失败:", err);
         } finally {
-            setLoading(false);
+            setConversationsLoading(false);
         }
     }, [currentUserId, supabase]);
 
@@ -166,7 +169,7 @@ export function useMessages(
     const fetchMessages = useCallback(async (reset = false) => {
         if (!currentUserId || !conversationPartnerId) return;
 
-        setLoading(true);
+        setMessagesLoading(true);
         setError(null);
 
         try {
@@ -201,7 +204,7 @@ export function useMessages(
         } catch (err) {
             setError(err instanceof Error ? err.message : "获取消息失败");
         } finally {
-            setLoading(false);
+            setMessagesLoading(false);
         }
     }, [currentUserId, conversationPartnerId, offset, supabase]);
 
@@ -287,9 +290,9 @@ export function useMessages(
 
     // 加载更多消息
     const loadMoreMessages = useCallback(async () => {
-        if (!hasMore || loading) return;
+        if (!hasMore || messagesLoading) return;
         await fetchMessages(false);
-    }, [hasMore, loading, fetchMessages]);
+    }, [hasMore, messagesLoading, fetchMessages]);
 
     // 初始加载
     useEffect(() => {
@@ -473,7 +476,9 @@ export function useMessages(
     return {
         messages,
         conversations,
-        loading,
+        loading: messagesLoading,
+        messagesLoading,
+        conversationsLoading,
         error,
         sendMessage,
         revokeMessage,

@@ -58,7 +58,7 @@ async function buildSigV4Headers(
     const dateStamp = amzDate.slice(0, 8);
     const region = "auto";
     const service = "s3";
-    const host = `${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    const host = `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
     const payloadHash = body ? await sha256Hex(body) : await sha256Hex("");
 
@@ -73,7 +73,9 @@ async function buildSigV4Headers(
     const sortedHeaderKeys = Object.keys(headers).sort();
     const canonicalHeaders = sortedHeaderKeys.map((k) => `${k}:${headers[k]}\n`).join("");
     const signedHeaders = sortedHeaderKeys.join(";");
-    const canonicalUri = `/${encodeURIComponent(key).replace(/%2F/g, "/")}`;
+
+    // Path-style: URL path is /<bucket_name>/<key>
+    const canonicalUri = `/${R2_BUCKET_NAME}/${encodeURIComponent(key).replace(/%2F/g, "/")}`;
     const canonicalRequest = [method, canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
 
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;

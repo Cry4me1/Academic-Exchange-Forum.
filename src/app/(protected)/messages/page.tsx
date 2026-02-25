@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { ChatList } from "@/components/chat/ChatList";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Search, Loader2 } from "lucide-react";
-import { useMessages } from "@/hooks/useMessages";
+import { PresenceProvider } from "@/contexts/PresenceContext";
 import { useFriends } from "@/hooks/useFriends";
+import { useMessages } from "@/hooks/useMessages";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { PresenceProvider } from "@/contexts/PresenceContext";
+import { Loader2, MessageSquare, Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function MessagesPage() {
     const searchParams = useSearchParams();
@@ -88,7 +88,7 @@ export default function MessagesPage() {
 
     if (!currentUserId) {
         return (
-            <div className="flex items-center justify-center h-screen">
+            <div className="flex items-center justify-center h-[100dvh]">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
         );
@@ -96,7 +96,7 @@ export default function MessagesPage() {
 
     return (
         <PresenceProvider currentUserId={currentUserId}>
-            <div className="flex h-screen bg-background">
+            <div className="flex h-[100dvh] bg-background">
                 {/* 左侧对话列表 */}
                 <div
                     className={cn(
