@@ -1,6 +1,7 @@
 "use client";
 
 import { ReputationBadge } from "@/components/duel/ReputationBadge";
+import { VipBadge } from "@/components/payments/VipBadge";
 import { BannerSelector, bannerGradients } from "@/components/profile/banner-selector";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -98,6 +99,7 @@ export default function UserProfilePage() {
     const [friendRequestSent, setFriendRequestSent] = useState(false);
     const [activeTab, setActiveTab] = useState("posts");
     const [bannerStyle, setBannerStyle] = useState("default");
+    const [userTotalSpent, setUserTotalSpent] = useState(0);
 
     const supabase = createClient();
     const { sendFriendRequest } = useFriends(currentUserId);
@@ -124,6 +126,16 @@ export default function UserProfilePage() {
                 if (profileData.banner_style) {
                     setBannerStyle(profileData.banner_style);
                 }
+            }
+
+            // 获取该用户的积分消费数据（用于 VIP 等级）
+            const { data: creditData } = await supabase
+                .from("user_credits")
+                .select("total_spent")
+                .eq("user_id", userId)
+                .single();
+            if (creditData) {
+                setUserTotalSpent(creditData.total_spent);
             }
 
             // 获取该用户的帖子
@@ -340,6 +352,8 @@ export default function UserProfilePage() {
                                                 <Sparkles className="h-4 w-4 text-yellow-200 animate-pulse" />
                                             </div>
                                         )}
+                                        {/* VIP 等级徽章 */}
+                                        <VipBadge totalSpent={userTotalSpent} size="md" showTitle />
                                         {profile.reputation_score !== null && (
                                             <ReputationBadge
                                                 score={profile.reputation_score}

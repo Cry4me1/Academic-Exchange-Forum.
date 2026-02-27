@@ -325,7 +325,7 @@ export function ChatWindow({
                                             分享帖子
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent>
+                                    <DialogContent aria-describedby={undefined}>
                                         <DialogHeader>
                                             <DialogTitle>分享帖子</DialogTitle>
                                         </DialogHeader>
@@ -395,7 +395,7 @@ export function ChatWindow({
                                     <LinkIcon className="h-5 w-5 text-muted-foreground" />
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent aria-describedby={undefined}>
                                 <DialogHeader>
                                     <DialogTitle>分享帖子</DialogTitle>
                                 </DialogHeader>

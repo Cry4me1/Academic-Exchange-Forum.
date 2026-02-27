@@ -117,7 +117,7 @@ export function FilePreview({ attachment, className }: FilePreviewProps) {
 
                 {/* 图片预览对话框 */}
                 <Dialog open={showPreview} onOpenChange={setShowPreview}>
-                    <DialogContent className="max-w-4xl p-0 overflow-hidden">
+                    <DialogContent className="max-w-4xl p-0 overflow-hidden" aria-describedby={undefined}>
                         <DialogHeader className="absolute top-2 right-2 z-10">
                             <DialogTitle className="sr-only">{attachment.fileName}</DialogTitle>
                             <Button
@@ -182,7 +182,7 @@ export function FilePreview({ attachment, className }: FilePreviewProps) {
 
                 {/* 视频预览对话框 */}
                 <Dialog open={showPreview} onOpenChange={setShowPreview}>
-                    <DialogContent className="max-w-4xl p-0 overflow-hidden">
+                    <DialogContent className="max-w-4xl p-0 overflow-hidden" aria-describedby={undefined}>
                         <DialogHeader className="p-4 pb-0">
                             <DialogTitle className="truncate">{attachment.fileName}</DialogTitle>
                         </DialogHeader>

@@ -1,14 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { bannerGradients } from "@/components/profile/banner-selector";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Select,
     SelectContent,
@@ -16,9 +13,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Loader2, Camera, ArrowLeft, Save } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { createClient } from "@/lib/supabase/client";
+import { ArrowLeft, Camera, Loader2, Save } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface ProfileData {
     id: string;
@@ -31,6 +32,7 @@ interface ProfileData {
     country: string | null;
     language: string | null;
     timezone: string | null;
+    banner_style: string | null;
 }
 
 export default function ProfileSettingsPage() {
@@ -180,26 +182,28 @@ export default function ProfileSettingsPage() {
 
     const initials = (formData.full_name || formData.username || profile?.email || "U").charAt(0).toUpperCase();
 
+    const currentGradient = bannerGradients.find(g => g.id === profile?.banner_style)?.class || bannerGradients[0].class;
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-            {/* 顶部浅色渐变横幅 */}
-            <div className="h-32 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent" />
-                <div className="absolute inset-0 opacity-30">
-                    <div className="absolute top-2 left-1/4 w-24 h-24 bg-blue-200 rounded-full blur-3xl" />
-                    <div className="absolute top-4 right-1/3 w-20 h-20 bg-purple-200 rounded-full blur-3xl" />
-                </div>
+        <div className={`min-h-screen ${currentGradient} transition-colors duration-500 relative pb-20`}>
+            {/* 全局背景装饰 */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/20 rounded-full blur-[100px]" />
+                <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[80px]" />
+                <div className="absolute bottom-[-10%] left-[20%] w-[30%] h-[30%] bg-white/10 rounded-full blur-[80px]" />
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
                 {/* 返回按钮 */}
-                <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    返回仪表盘
-                </Link>
+                <div className="mb-6 flex">
+                    <Link
+                        href="/dashboard"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground bg-white/30 hover:bg-white/50 backdrop-blur-md px-4 py-2 rounded-full transition-all shadow-sm hover:shadow-md w-fit"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        返回仪表盘
+                    </Link>
+                </div>
 
                 <Card className="shadow-lg border-border/30 bg-white/80 backdrop-blur-sm">
                     <CardHeader className="pb-4">

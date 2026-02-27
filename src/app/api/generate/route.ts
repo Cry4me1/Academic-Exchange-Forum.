@@ -1,4 +1,5 @@
 import { createDeepSeek } from "@ai-sdk/deepseek";
+import { createServerClient } from "@supabase/ssr";
 import { streamText } from "ai";
 
 export const runtime = "edge";
@@ -8,19 +9,107 @@ const deepseek = createDeepSeek({
     apiKey: process.env.DEEPSEEK_API_KEY,
 });
 
+// AI 调用扣费积分数
+const AI_CREDIT_COST = 5;
+
+// Edge 兼容的 Supabase Client（从 request cookies 读取）
+function createSupabaseEdgeClient(req: Request) {
+    return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    const cookieHeader = req.headers.get("cookie") || "";
+                    return cookieHeader.split(";").map((c) => {
+                        const [name, ...rest] = c.trim().split("=");
+                        return { name, value: rest.join("=") };
+                    }).filter((c) => c.name);
+                },
+                setAll() {
+                    // Edge 函数中不设置 cookie
+                },
+            },
+        }
+    );
+}
+
 export async function POST(req: Request): Promise<Response> {
     console.log("[API Generate] 开始处理请求");
 
     // 检查 API Key 是否配置
     const apiKey = process.env.DEEPSEEK_API_KEY;
     console.log("[API Generate] DEEPSEEK_API_KEY 存在:", !!apiKey);
-    console.log("[API Generate] DEEPSEEK_API_KEY 长度:", apiKey?.length || 0);
 
     if (!apiKey || apiKey === "") {
         console.log("[API Generate] 错误: 缺少 DEEPSEEK_API_KEY");
         return new Response("缺少 DEEPSEEK_API_KEY - 请在 .env.local 中添加。", {
             status: 400,
         });
+    }
+
+    // ====== 积分扣费流程 ======
+    const supabase = createSupabaseEdgeClient(req);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return new Response("请先登录", { status: 401 });
+    }
+
+    // 调用原子扣费 RPC
+    const { data: deductResult, error: deductError } = await supabase.rpc(
+        "deduct_user_credits",
+        {
+            p_user_id: user.id,
+            p_amount: AI_CREDIT_COST,
+            p_description: "Ask AI 调用",
+        }
+    );
+
+    if (deductError) {
+        console.error("[API Generate] 扣费 RPC 错误:", deductError);
+        return new Response("积分系统错误", { status: 500 });
+    }
+
+    const result = deductResult as { success: boolean; error?: string; balance?: number };
+
+    if (!result.success) {
+        if (result.error === "INSUFFICIENT_CREDITS") {
+            return new Response(
+                JSON.stringify({ error: "INSUFFICIENT_CREDITS", balance: result.balance }),
+                { status: 402, headers: { "Content-Type": "application/json" } }
+            );
+        }
+        if (result.error === "NO_CREDIT_RECORD") {
+            // 老用户首次使用：自动补发注册奖励 100 积分
+            console.log("[API Generate] 老用户无积分记录，自动补发注册奖励");
+            await supabase.rpc("add_user_credits", {
+                p_user_id: user.id,
+                p_amount: 100,
+                p_type: "signup_bonus",
+                p_description: "老用户积分系统初始化奖励",
+            });
+
+            // 重试扣费
+            const { data: retryResult } = await supabase.rpc("deduct_user_credits", {
+                p_user_id: user.id,
+                p_amount: AI_CREDIT_COST,
+                p_description: "Ask AI 调用",
+            });
+
+            const retry = retryResult as { success: boolean; error?: string; balance?: number; new_balance?: number };
+            if (!retry?.success) {
+                return new Response(
+                    JSON.stringify({ error: retry?.error || "DEDUCT_FAILED" }),
+                    { status: 402, headers: { "Content-Type": "application/json" } }
+                );
+            }
+            console.log("[API Generate] 重试扣费成功, 剩余:", retry.new_balance);
+        } else {
+            return new Response("积分扣费失败", { status: 500 });
+        }
+    } else {
+        console.log("[API Generate] 积分扣费成功, 剩余:", (deductResult as { new_balance: number }).new_balance);
     }
 
     try {

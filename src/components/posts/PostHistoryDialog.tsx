@@ -85,7 +85,7 @@ export function PostHistoryDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[100vw] max-w-[100vw] h-[100vh] max-h-[100vh] p-0 gap-0 overflow-hidden rounded-none border-0 sm:rounded-none">
+            <DialogContent className="w-[100vw] max-w-[100vw] h-[100vh] max-h-[100vh] p-0 gap-0 overflow-hidden rounded-none border-0 sm:rounded-none" aria-describedby={undefined}>
                 <DialogHeader className="px-6 py-4 border-b shrink-0">
                     <DialogTitle className="flex items-center gap-2">
                         <History className="h-5 w-5 text-primary" />

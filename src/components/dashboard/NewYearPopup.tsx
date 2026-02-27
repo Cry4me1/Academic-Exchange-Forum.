@@ -44,6 +44,7 @@ export function NewYearPopup() {
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
                 showCloseButton={false}
+                aria-describedby={undefined}
                 className="sm:max-w-2xl p-0 overflow-visible flex flex-col items-center justify-center min-h-[600px] bg-transparent border-none shadow-none outline-none ring-0"
             >
                 <DialogTitle className="sr-only">新年快乐</DialogTitle>

@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { BookOpen, Lightbulb, MessageSquare, Sigma } from "lucide-react";
 import { motion } from "framer-motion";
+import { BookOpen, Lightbulb, MessageSquare, Sigma } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 const features = [
     {
@@ -56,7 +57,8 @@ export default function AuthLayout({
                 {/* 内容 */}
                 <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 w-full max-w-2xl mx-auto">
                     {/* Logo */}
-                    <Link href="/" className="inline-block mb-8">
+                    <Link href="/" className="inline-flex items-center gap-3 mb-8">
+                        <Image src="/logo.png" alt="Scholarly Logo" width={48} height={48} className="rounded-xl shadow-lg shadow-purple-500/20" />
                         <span className="text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
                             Scholarly
                         </span>
@@ -115,7 +117,8 @@ export default function AuthLayout({
                 >
                     {/* 移动端 Logo */}
                     <div className="lg:hidden text-center mb-8">
-                        <Link href="/" className="inline-block">
+                        <Link href="/" className="inline-flex items-center justify-center gap-2">
+                            <Image src="/logo.png" alt="Scholarly Logo" width={32} height={32} className="rounded-lg shadow-md" />
                             <span className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
                                 Scholarly
                             </span>

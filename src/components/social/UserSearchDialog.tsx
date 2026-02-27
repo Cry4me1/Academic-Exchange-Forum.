@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, UserPlus, Loader2, Check, Clock } from "lucide-react";
 import { useFriends, type Profile } from "@/hooks/useFriends";
+import { Check, Clock, Loader2, Search, UserPlus } from "lucide-react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 interface UserSearchDialogProps {
@@ -70,7 +70,7 @@ export function UserSearchDialog({ currentUserId, trigger }: UserSearchDialogPro
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>搜索用户</DialogTitle>
                 </DialogHeader>

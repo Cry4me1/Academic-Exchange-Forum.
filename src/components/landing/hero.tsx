@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
-import Link from "next/link";
 import { motion } from "framer-motion";
+import { ArrowRight, Sparkles } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 export function Hero() {
     const containerVariants = {
@@ -87,14 +88,17 @@ export function Hero() {
                 </motion.div>
 
                 {/* 主标题 */}
-                <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-                    <span className="bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
-                        Scholarly
-                    </span>
-                    <br />
-                    <span className="text-3xl md:text-5xl font-medium text-white/90">
-                        学术论坛
-                    </span>
+                <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight flex flex-col items-center justify-center gap-6">
+                    <Image src="/logo.png" alt="Scholarly Logo" width={80} height={80} className="rounded-2xl shadow-2xl shadow-purple-500/20" />
+                    <div>
+                        <span className="bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
+                            Scholarly
+                        </span>
+                        <br />
+                        <span className="text-3xl md:text-5xl font-medium text-white/90">
+                            学术论坛
+                        </span>
+                    </div>
                 </motion.h1>
 
                 {/* 副标题 */}

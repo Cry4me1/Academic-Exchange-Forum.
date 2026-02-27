@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Download, Copy, Check, Loader2, Moon, Sun, GraduationCap } from "lucide-react";
-import { toast } from "sonner";
+import { Check, Copy, Download, GraduationCap, Loader2, Moon, Sun } from "lucide-react";
 import NextImage from "next/image";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 type ThemeType = "dark" | "light" | "academic";
 
@@ -107,7 +107,7 @@ export function ShareCardDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px]">
+            <DialogContent className="sm:max-w-[700px]" aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle className="text-xl">生成分享卡片</DialogTitle>
                 </DialogHeader>

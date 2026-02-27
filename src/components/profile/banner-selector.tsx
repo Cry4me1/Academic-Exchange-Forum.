@@ -91,7 +91,7 @@ export function BannerSelector({ currentStyle, onStyleChange }: BannerSelectorPr
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-6 right-6 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-md border border-white/20 shadow-sm transition-all"
+                    className="bg-white/30 hover:bg-white/50 backdrop-blur-md border border-white/20 shadow-sm transition-all"
                 >
                     <Palette className="h-4 w-4 mr-2" />
                     更换背景
@@ -107,7 +107,7 @@ export function BannerSelector({ currentStyle, onStyleChange }: BannerSelectorPr
                                 disabled={loading}
                                 onClick={() => handleSelect(gradient.id)}
                                 className={cn(
-                                    "relative h-16 rounded-md overflow-hidden border border-border/50 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50",
+                                    "relative h-16 rounded-md overflow-hidden border border-border/50 transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                                     gradient.preview,
                                     currentStyle === gradient.id && "ring-2 ring-primary ring-offset-2"
                                 )}

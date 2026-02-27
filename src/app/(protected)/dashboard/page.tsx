@@ -1,10 +1,13 @@
 "use client";
 
+import { getMyCredits } from "@/app/(protected)/credits/actions";
 import {
     AiFeatureCard,
     AnnouncementCard,
+    CreditRechargeDialog,
     FeedTabs,
     FriendsList,
+    GlobalSearch,
     LunarDateDisplay,
     MainNav,
     NewYearPopup,
@@ -27,13 +30,14 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import {
+    Coins,
     LogOut,
     Menu,
-    Search,
     Settings,
     User,
     X
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -101,6 +105,8 @@ const fadeInUp = {
 export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState<FeedFilter>("latest");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isRechargeOpen, setIsRechargeOpen] = useState(false);
+    const [creditBalance, setCreditBalance] = useState<number | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [currentUser, setCurrentUser] = useState<{
         username: string | null;
@@ -153,10 +159,30 @@ export default function DashboardPage() {
                         console.error("Failed to auto-create profile:", insertError);
                     }
                 }
+
+                // 获取积分余额
+                const credits = await getMyCredits();
+                setCreditBalance(credits.balance);
             }
         };
         getUser();
     }, [supabase]);
+
+    // 充值弹窗关闭时刷新余额
+    const handleRechargeOpenChange = async (open: boolean) => {
+        setIsRechargeOpen(open);
+        if (!open) {
+            const credits = await getMyCredits();
+            setCreditBalance(credits.balance);
+        }
+    };
+
+    // 全局事件: AI 积分不足时打开充值弹窗
+    useEffect(() => {
+        const handler = () => setIsRechargeOpen(true);
+        window.addEventListener("open-recharge-dialog", handler);
+        return () => window.removeEventListener("open-recharge-dialog", handler);
+    }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -172,9 +198,7 @@ export default function DashboardPage() {
                         {/* Logo */}
                         <div className="flex items-center gap-4">
                             <Link href="/dashboard" className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                                    <span className="text-primary-foreground font-bold text-lg">S</span>
-                                </div>
+                                <Image src="/logo.png" alt="Scholarly Logo" width={32} height={32} className="rounded-lg object-cover" />
                                 <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                                     Scholarly
                                 </span>
@@ -186,14 +210,7 @@ export default function DashboardPage() {
 
                         {/* 桌面端搜索栏 */}
                         <div className="hidden md:flex flex-1 max-w-md mx-8">
-                            <div className="relative w-full">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    placeholder="搜索帖子、话题或用户..."
-                                    className="w-full h-10 pl-10 pr-4 rounded-full bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
-                                />
-                            </div>
+                            <GlobalSearch className="w-full" />
                         </div>
 
                         {/* 右侧操作区 */}
@@ -259,12 +276,24 @@ export default function DashboardPage() {
                                     <Menu className="h-5 w-5" />
                                 )}
                             </Button>
+                            {/* 积分余额胶囊按钮 */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="hidden md:flex items-center gap-1.5 h-9 px-3 rounded-full border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15 hover:border-amber-500/60 transition-all duration-300 shadow-sm hover:shadow-amber-500/10"
+                                onClick={() => setIsRechargeOpen(true)}
+                            >
+                                <Coins className="h-4 w-4" />
+                                <span className="font-semibold tabular-nums">{creditBalance !== null ? creditBalance.toLocaleString() : '...'}</span>
+                                <span className="text-xs opacity-60">积分</span>
+                            </Button>
                         </div>
                     </div>
                 </div>
 
                 {/* New Year Popup */}
                 <NewYearPopup />
+                <CreditRechargeDialog isOpen={isRechargeOpen} onOpenChange={handleRechargeOpenChange} />
             </motion.header>
 
             {/* 主内容区域 */}
@@ -306,14 +335,7 @@ export default function DashboardPage() {
                     >
                         {/* 移动端搜索栏 */}
                         <div className="md:hidden mb-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    placeholder="搜索..."
-                                    className="w-full h-10 pl-10 pr-4 rounded-full bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                />
-                            </div>
+                            <GlobalSearch />
                         </div>
 
                         {/* Mobile/Tablet only: Right sidebar content */}
