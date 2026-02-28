@@ -2,7 +2,7 @@ import { Color } from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import { Mathematics } from "@tiptap/extension-mathematics";
 import { TextStyle } from "@tiptap/extension-text-style";
-import { common, createLowlight } from "lowlight";
+import { all, createLowlight } from "lowlight";
 import {
     CodeBlockLowlight,
     HorizontalRule,
@@ -12,9 +12,10 @@ import {
     TiptapLink,
 } from "novel";
 import { CustomImage } from "./extensions/custom-image";
+import { MermaidBlock } from "./extensions/mermaid-block";
 
 // Explicitly create lowlight instance
-const lowlight = createLowlight(common);
+const lowlight = createLowlight(all);
 
 const codeBlockLowlight = CodeBlockLowlight.configure({
     lowlight,
@@ -76,6 +77,8 @@ export const viewerExtensions: any[] = [
     codeBlockLowlight,
     // Math extension (v2)
     mathExtension,
+    // Mermaid flowchart block
+    MermaidBlock,
     // Text styling extensions for color
     TextStyle,
     Color,

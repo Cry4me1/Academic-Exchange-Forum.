@@ -330,6 +330,75 @@ export async function getCommentLikeStatus(commentIds: string[]) {
     return likedComments;
 }
 
+// 评论排序类型
+export type CommentSortType = "hot" | "newest" | "oldest";
+
+// 根据排序方式获取评论
+export async function getCommentsSorted(
+    postId: string,
+    sortBy: CommentSortType = "hot"
+) {
+    const supabase = await createClient();
+
+    let orderColumn: string;
+    let ascending: boolean;
+
+    switch (sortBy) {
+        case "hot":
+            orderColumn = "like_count";
+            ascending = false;
+            break;
+        case "newest":
+            orderColumn = "created_at";
+            ascending = false;
+            break;
+        case "oldest":
+            orderColumn = "created_at";
+            ascending = true;
+            break;
+    }
+
+    // 获取顶级评论 (按排序方式)
+    const { data: topLevelComments } = await supabase
+        .from("comments")
+        .select(`
+            *,
+            author:profiles!author_id (
+                id, username, full_name, avatar_url
+            )
+        `)
+        .eq("post_id", postId)
+        .is("parent_id", null)
+        .order(orderColumn, { ascending });
+
+    // 获取所有回复 (回复始终按时间升序)
+    const { data: replies } = await supabase
+        .from("comments")
+        .select(`
+            *,
+            author:profiles!author_id (
+                id, username, full_name, avatar_url
+            )
+        `)
+        .eq("post_id", postId)
+        .not("parent_id", "is", null)
+        .order("created_at", { ascending: true });
+
+    // 构建嵌套结构
+    const commentMap = new Map();
+    topLevelComments?.forEach(comment => {
+        commentMap.set(comment.id, { ...comment, replies: [] });
+    });
+    replies?.forEach(reply => {
+        const parent = commentMap.get(reply.parent_id);
+        if (parent) {
+            parent.replies.push({ ...reply, replies: [] });
+        }
+    });
+
+    return Array.from(commentMap.values());
+}
+
 // 删除帖子（仅作者可删除）
 export async function deletePost(postId: string) {
     const supabase = await createClient();

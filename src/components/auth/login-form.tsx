@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Loader2, CheckCircle, Lock, KeyRound } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle, KeyRound, Loader2, Mail } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 
-import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -165,7 +165,7 @@ export function LoginForm() {
                                 <Label htmlFor="password">密码</Label>
                                 <Link
                                     href="/forgot-password"
-                                    className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                                    className="text-xs text-muted-foreground hover:text-orange-500 dark:hover:text-amber-400 hover:underline transition-colors"
                                 >
                                     忘记密码？
                                 </Link>
@@ -201,7 +201,7 @@ export function LoginForm() {
                     {/* 提交按钮 */}
                     <Button
                         type="submit"
-                        className="w-full h-11 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white mt-2"
+                        className="w-full h-11 mt-2 text-white font-semibold border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/25 dark:from-amber-500 dark:to-orange-500 dark:hover:from-amber-400 dark:hover:to-orange-400 dark:text-slate-950 dark:shadow-amber-500/25"
                         disabled={isLoading}
                     >
                         {isLoading ? (
@@ -221,7 +221,7 @@ export function LoginForm() {
                 还没有账号？{" "}
                 <Link
                     href="/register"
-                    className="text-primary hover:underline font-medium"
+                    className="text-orange-500 dark:text-amber-400 hover:text-orange-600 dark:hover:text-amber-300 hover:underline font-medium transition-colors"
                 >
                     立即注册
                 </Link>

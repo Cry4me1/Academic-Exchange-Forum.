@@ -54,7 +54,7 @@ export default function MessagesPage() {
         getUser();
     }, [supabase]);
 
-    const { conversations, loading: conversationsLoading } = useMessages(currentUserId);
+    const { conversations, conversationsLoading } = useMessages(currentUserId);
     const { friends } = useFriends(currentUserId);
 
     // 选择对话时获取对方信息

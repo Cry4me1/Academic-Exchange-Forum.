@@ -1,11 +1,12 @@
 'use client'
 
-import { getVipLevel } from '@/lib/vip-utils'
+import { getVipLevelByNumber } from '@/lib/vip-utils'
 import { motion } from 'framer-motion'
 import { VipIconV1, VipIconV2, VipIconV3, VipIconV4, VipIconV5, VipIconV6 } from './VipIcons'
 
 interface VipBadgeProps {
-    totalSpent: number
+    /** VIP 等级数字 (1-6)，直接从数据库 profiles.vip_level 读取 */
+    vipLevel: number
     size?: 'sm' | 'md' | 'lg'
     showTitle?: boolean
     className?: string
@@ -29,8 +30,8 @@ const sizeConfig = {
     },
 }
 
-export function VipBadge({ totalSpent, size = 'sm', showTitle = false, className = '' }: VipBadgeProps) {
-    const level = getVipLevel(totalSpent)
+export function VipBadge({ vipLevel, size = 'sm', showTitle = false, className = '' }: VipBadgeProps) {
+    const level = getVipLevelByNumber(vipLevel)
     const config = sizeConfig[size]
 
     // 选择对应的 VIP 图标组件

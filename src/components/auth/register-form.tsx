@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, User, Loader2, CheckCircle, KeyRound, Lock } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle, KeyRound, Loader2, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 export function RegisterForm() {
@@ -186,7 +186,7 @@ export function RegisterForm() {
             {/* 提交按钮 */}
             <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
+                className="w-full h-11 text-white font-semibold border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/25 dark:from-amber-500 dark:to-orange-500 dark:hover:from-amber-400 dark:hover:to-orange-400 dark:text-slate-950 dark:shadow-amber-500/25"
                 disabled={isLoading}
             >
                 {isLoading ? (
@@ -202,11 +202,11 @@ export function RegisterForm() {
             {/* 服务条款 */}
             <p className="text-center text-xs text-muted-foreground">
                 注册即表示您同意我们的{" "}
-                <Link href="#" className="text-primary hover:underline">
+                <Link href="#" className="text-orange-500 dark:text-amber-400 hover:underline hover:text-orange-600 dark:hover:text-amber-300 transition-colors">
                     服务条款
                 </Link>
                 {" "}和{" "}
-                <Link href="#" className="text-primary hover:underline">
+                <Link href="#" className="text-orange-500 dark:text-amber-400 hover:underline hover:text-orange-600 dark:hover:text-amber-300 transition-colors">
                     隐私政策
                 </Link>
             </p>
@@ -216,7 +216,7 @@ export function RegisterForm() {
                 已有账号？{" "}
                 <Link
                     href="/login"
-                    className="text-primary hover:underline font-medium"
+                    className="text-orange-500 dark:text-amber-400 hover:text-orange-600 dark:hover:text-amber-300 hover:underline font-medium transition-colors"
                 >
                     立即登录
                 </Link>

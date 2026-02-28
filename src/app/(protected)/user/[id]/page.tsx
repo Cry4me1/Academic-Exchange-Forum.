@@ -33,6 +33,7 @@ interface UserProfile {
     is_developer: boolean | null;
     developer_title: string | null;
     banner_style: string | null;
+    vip_level: number | null;
 }
 
 interface Post {
@@ -99,7 +100,6 @@ export default function UserProfilePage() {
     const [friendRequestSent, setFriendRequestSent] = useState(false);
     const [activeTab, setActiveTab] = useState("posts");
     const [bannerStyle, setBannerStyle] = useState("default");
-    const [userTotalSpent, setUserTotalSpent] = useState(0);
 
     const supabase = createClient();
     const { sendFriendRequest } = useFriends(currentUserId);
@@ -126,16 +126,6 @@ export default function UserProfilePage() {
                 if (profileData.banner_style) {
                     setBannerStyle(profileData.banner_style);
                 }
-            }
-
-            // 获取该用户的积分消费数据（用于 VIP 等级）
-            const { data: creditData } = await supabase
-                .from("user_credits")
-                .select("total_spent")
-                .eq("user_id", userId)
-                .single();
-            if (creditData) {
-                setUserTotalSpent(creditData.total_spent);
             }
 
             // 获取该用户的帖子
@@ -353,7 +343,7 @@ export default function UserProfilePage() {
                                             </div>
                                         )}
                                         {/* VIP 等级徽章 */}
-                                        <VipBadge totalSpent={userTotalSpent} size="md" showTitle />
+                                        <VipBadge vipLevel={profile.vip_level || 1} size="md" showTitle />
                                         {profile.reputation_score !== null && (
                                             <ReputationBadge
                                                 score={profile.reputation_score}

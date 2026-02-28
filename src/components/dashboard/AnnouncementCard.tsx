@@ -2,20 +2,20 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Bell, BookOpen, ChevronRight, Sparkles, Zap } from "lucide-react";
+import { Bell, BookOpen, ChevronRight, Rocket, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 // 公告数据列表
 const announcements = [
     {
-        id: "update-v0-8-0",
+        id: "update-v1-0-0",
         href: "/updates",
-        title: "⚡ v0.8.0: R2 存储与私信升级",
-        content: "底层存储迁移至 Cloudflare R2，私信支持文件发送与撤回功能。体验飞一般的速度！",
-        date: "2026-01-25",
+        title: "🚀 v1.0.0: 正式版发布！",
+        content: "Dashboard 卡片升级、沉浸式阅读体验、VIP 会员系统、个人主页颜色自定义，四大核心功能全面上线！",
+        date: "2026-02-28",
         isNew: true,
-        icon: Zap,
-        iconBg: "from-amber-400 to-orange-500",
+        icon: Rocket,
+        iconBg: "from-primary to-violet-500",
     },
     {
         id: "launch-2026",

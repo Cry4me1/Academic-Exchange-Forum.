@@ -208,7 +208,7 @@ export default function VipPage() {
                                     <div className="flex-1 text-center md:text-left">
                                         <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                                             <h1 className="text-3xl font-bold text-white">{level.title}</h1>
-                                            <VipBadge totalSpent={totalSpent} size="md" />
+                                            <VipBadge vipLevel={level.level} size="md" />
                                         </div>
                                         <p className="text-zinc-400 mb-6">
                                             累计消费 <span className="text-white font-semibold">{totalSpent.toLocaleString()}</span> 积分

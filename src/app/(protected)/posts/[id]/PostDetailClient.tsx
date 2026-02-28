@@ -1,10 +1,10 @@
 "use client";
 
-import { CommentData, CommentInput, CommentItem } from "@/components/comments";
+import { CollapsibleReplies, CommentData, CommentInput, CommentItem, CommentSortTabs, type CommentSortType } from "@/components/comments";
 import { CreateDuelDialog } from "@/components/duel/CreateDuelDialog";
 import { ReputationBadgeCompact } from "@/components/duel/ReputationBadge";
 import NovelViewer from "@/components/editor/NovelViewer";
-import { ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
+import { ImmersiveToolbar, ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +16,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDate } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { useImmersiveMode } from "@/hooks/useImmersiveMode";
+import { useReadingProgress } from "@/hooks/useReadingProgress";
+import { cn, formatDate } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import {
     ArrowLeft,
     Bookmark,
@@ -29,6 +31,8 @@ import {
     Heart,
     HelpCircle,
     History,
+    Loader2,
+    Maximize2,
     MessageCircle,
     MoreHorizontal,
     Pencil,
@@ -44,6 +48,7 @@ import {
     createComment,
     createShareRecord,
     deletePost,
+    getCommentsSorted,
     toggleBookmarkPost,
     toggleLikePost,
 } from "./actions";
@@ -159,26 +164,84 @@ export default function PostDetailClient({
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
     const [duelDialogOpen, setDuelDialogOpen] = useState(false);
 
+    // 评论排序状态
+    const [commentSort, setCommentSort] = useState<CommentSortType>("newest");
+    const [isSortLoading, setIsSortLoading] = useState(false);
+
+    // 沉浸式阅读模式
+    const { isImmersive, toggle: toggleImmersive, exit: exitImmersive } = useImmersiveMode();
+    const readingProgress = useReadingProgress();
+
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
     const authorDisplayName = post.author.full_name || post.author.username;
 
-    // Extract headings from content directly
+    // 从 DOM 中提取 heading 并注入 id 属性
     useEffect(() => {
-        if (post.content && typeof post.content === 'object' && 'content' in post.content) {
+        const extractHeadingsFromDOM = () => {
+            const articleEl = document.querySelector('.novel-viewer-container');
+            if (!articleEl) return;
+
+            const hElements = articleEl.querySelectorAll('h1, h2, h3, h4');
+            if (hElements.length === 0) return;
+
             const extractedHeadings: HeadingItem[] = [];
-            // @ts-ignore
-            post.content.content?.forEach((node: any) => {
-                if (node.type === "heading") {
-                    extractedHeadings.push({
-                        level: node.attrs?.level || 1,
-                        text: node.content?.[0]?.text || "Untitled",
-                        id: node.content?.[0]?.text?.toLowerCase().replace(/\s+/g, "-") || `heading-${Math.random()}`
-                    });
+            const usedIds = new Set<string>();
+
+            hElements.forEach((el, index) => {
+                const text = el.textContent?.trim() || `heading-${index}`;
+                const level = parseInt(el.tagName.charAt(1), 10);
+                // 生成唯一 id
+                let baseId = text
+                    .toLowerCase()
+                    .replace(/[^\w\u4e00-\u9fff]+/g, "-")
+                    .replace(/^-+|-+$/g, "");
+                let id = baseId || `heading-${index}`;
+                let counter = 1;
+                while (usedIds.has(id)) {
+                    id = `${baseId}-${counter++}`;
                 }
+                usedIds.add(id);
+
+                // 注入 id 到 DOM 元素
+                el.setAttribute("id", id);
+
+                extractedHeadings.push({ level, text, id });
             });
+
             setHeadings(extractedHeadings);
+        };
+
+        // 等待 Novel 编辑器渲染完成（延迟 + MutationObserver）
+        const timer = setTimeout(extractHeadingsFromDOM, 500);
+
+        const container = document.querySelector('.novel-viewer-container');
+        let observer: MutationObserver | null = null;
+        if (container) {
+            observer = new MutationObserver(() => {
+                extractHeadingsFromDOM();
+            });
+            observer.observe(container, { childList: true, subtree: true });
         }
+
+        return () => {
+            clearTimeout(timer);
+            observer?.disconnect();
+        };
     }, [post.content]);
+
+    // 评论锚点跳转: URL 中 hash 指向 #comment-xxx 时自动滚动
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith("#comment-")) {
+            const timer = setTimeout(() => {
+                const el = document.querySelector(hash);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            }, 800); // 等待评论渲染完成
+            return () => clearTimeout(timer);
+        }
+    }, []);
 
     const handleLike = () => {
         if (!currentUser) {
@@ -237,13 +300,9 @@ export default function PostDetailClient({
     const handleAccept = useCallback((commentId: string) => {
         setComments(currentComments =>
             currentComments.map(c => {
-                // 如果是目标评论，切换状态
                 if (c.id === commentId) {
                     return { ...c, is_accepted: !c.is_accepted };
                 }
-                // 如果是其他评论且当前是采纳操作（假设之前只有一个采纳），取消其他的
-                // 但这里我们简单点，让数据库保证互斥，前端乐观更新只关心被点击的
-                // 为了更好的体验，如果我们采纳了新的，应该把旧的取消
                 if (c.is_accepted) {
                     return { ...c, is_accepted: false };
                 }
@@ -251,6 +310,23 @@ export default function PostDetailClient({
             })
         );
     }, []);
+
+    // 评论排序切换
+    const handleSortChange = async (sort: CommentSortType) => {
+        if (sort === commentSort) return;
+        setCommentSort(sort);
+        setIsSortLoading(true);
+
+        try {
+            const sorted = await getCommentsSorted(post.id, sort);
+            setComments(sorted);
+        } catch (error) {
+            console.error("排序加载失败:", error);
+            toast.error("加载评论失败");
+        } finally {
+            setIsSortLoading(false);
+        }
+    };
 
     const handleSubmitComment = async (content: object, parentId?: string | null) => {
         if (!currentUser) {
@@ -307,12 +383,41 @@ export default function PostDetailClient({
                 variants={pageVariants}
                 initial="hidden"
                 animate="visible"
-                className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20"
+                className={cn(
+                    "min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative",
+                    isImmersive && "immersive-content"
+                )}
             >
-                {/* 顶部导航 */}
-                <motion.header
-                    variants={itemVariants}
-                    className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
+                {/* 沉浸模式: 背景光晕 */}
+                <AnimatePresence>
+                    {isImmersive && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.6 }}
+                            className="immersive-glow"
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* 沉浸模式: 极简浮动工具条 */}
+                <AnimatePresence>
+                    {isImmersive && (
+                        <ImmersiveToolbar
+                            progress={readingProgress}
+                            onExit={exitImmersive}
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* 顶部导航 - 始终在 DOM，沉浸模式下 CSS 隐藏 */}
+                <header
+                    className={cn(
+                        "sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50",
+                        "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]",
+                        isImmersive && "opacity-0 -translate-y-full pointer-events-none"
+                    )}
                 >
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
@@ -324,6 +429,17 @@ export default function PostDetailClient({
                             </Link>
 
                             <div className="flex items-center gap-2">
+                                {/* 沉浸式阅读模式按钮 */}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={toggleImmersive}
+                                    title="专注阅读 (Ctrl+Shift+F)"
+                                    aria-label="切换专注阅读模式"
+                                    className="text-muted-foreground hover:text-foreground"
+                                >
+                                    <Maximize2 className="h-5 w-5" />
+                                </Button>
                                 <Button variant="ghost" size="icon" onClick={handleShare}>
                                     <Share2 className="h-5 w-5" />
                                 </Button>
@@ -419,10 +535,23 @@ export default function PostDetailClient({
                             </div>
                         </div>
                     </div>
-                </motion.header>
+                </header>
 
-                {/* 主内容区域 */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* 沉浸模式: 浮动目录 (桌面端) */}
+                {isImmersive && headings.length > 0 && (
+                    <div className="hidden lg:block">
+                        <TableOfContents headings={headings} mode="floating" />
+                    </div>
+                )}
+
+                <div
+                    className="mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10"
+                    style={{
+                        maxWidth: isImmersive ? "56rem" : "80rem",
+                        paddingTop: isImmersive ? "4.5rem" : undefined,
+                        transition: "max-width 0.5s cubic-bezier(0.22, 1, 0.36, 1), padding-top 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
+                    }}
+                >
                     <div className="flex gap-8">
                         {/* 左侧主内容 */}
                         <main className="flex-1 min-w-0">
@@ -547,10 +676,13 @@ export default function PostDetailClient({
                             </motion.div>
 
                             {/* 评论区 */}
-                            <motion.section variants={itemVariants} className="mt-12" id="comments">
-                                <h2 className="text-xl font-semibold text-foreground mb-6">
-                                    评论 ({comments.length})
-                                </h2>
+                            <motion.section variants={itemVariants} className="mt-12" id="comments" aria-label="评论区">
+                                {/* 排序切换 Tab */}
+                                <CommentSortTabs
+                                    activeSort={commentSort}
+                                    onSortChange={handleSortChange}
+                                    commentCount={comments.length}
+                                />
 
                                 {/* 评论输入框 */}
                                 <div className="mb-8">
@@ -561,14 +693,23 @@ export default function PostDetailClient({
                                     />
                                 </div>
 
+                                {/* 排序加载指示器 */}
+                                {isSortLoading && (
+                                    <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        <span className="ml-2 text-sm text-muted-foreground">加载中...</span>
+                                    </div>
+                                )}
+
                                 {/* 评论列表 */}
-                                {comments.length > 0 ? (
-                                    <div className="divide-y divide-border/50">
+                                {!isSortLoading && comments.length > 0 ? (
+                                    <div className="divide-y divide-border/30">
                                         {comments.map((comment) => (
-                                            <div key={comment.id}>
+                                            <div key={comment.id} className="py-1">
                                                 <CommentItem
                                                     comment={comment}
                                                     postId={post.id}
+                                                    postAuthorId={post.author.id}
                                                     currentUserId={currentUser?.id}
                                                     maxDepth={2}
                                                     onReply={handleReply}
@@ -579,6 +720,27 @@ export default function PostDetailClient({
                                                     isPostAuthor={currentUser?.id === post.author.id}
                                                     onAccept={handleAccept}
                                                 />
+
+                                                {/* 可折叠回复 */}
+                                                {comment.replies && comment.replies.length > 0 && (
+                                                    <CollapsibleReplies
+                                                        replies={comment.replies}
+                                                        postId={post.id}
+                                                        postAuthorId={post.author.id}
+                                                        currentUserId={currentUser?.id}
+                                                        isPostAuthor={currentUser?.id === post.author.id}
+                                                        onReply={handleReply}
+                                                        onDelete={(commentId) => {
+                                                            setComments(prev => prev.map(c => ({
+                                                                ...c,
+                                                                replies: c.replies?.filter(r => r.id !== commentId) || []
+                                                            })));
+                                                        }}
+                                                        onAccept={handleAccept}
+                                                        commentLikeStatus={commentLikeStatus}
+                                                        collapseThreshold={3}
+                                                    />
+                                                )}
 
                                                 {/* 回复输入框 */}
                                                 {replyingTo === comment.id && (
@@ -596,27 +758,26 @@ export default function PostDetailClient({
                                             </div>
                                         ))}
                                     </div>
-                                ) : (
-                                    <div className="bg-muted/30 rounded-xl p-8 text-center">
+                                ) : !isSortLoading ? (
+                                    <div className="bg-muted/30 rounded-xl p-8 text-center" role="status">
+                                        <MessageCircle className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" aria-hidden="true" />
                                         <p className="text-muted-foreground">暂无评论，快来发表第一条评论吧！</p>
                                     </div>
-                                )}
+                                ) : null}
                             </motion.section>
                         </main>
 
-                        {/* 右侧侧边栏（桌面端显示） */}
-                        <aside className="hidden lg:block w-72 flex-shrink-0">
-                            <div className="sticky top-24 space-y-6">
-                                {/* 目录 */}
-                                {headings.length > 0 && (
-                                    <motion.div
-                                        variants={itemVariants}
-                                        className="bg-card border border-border/50 rounded-xl p-4"
-                                    >
-                                        <TableOfContents headings={headings} />
-                                    </motion.div>
-                                )}
-
+                        {/* 右侧侧边栏（桌面端显示，沉浸模式收起） */}
+                        <aside
+                            className={cn(
+                                "hidden lg:block flex-shrink-0 overflow-hidden",
+                                "transition-[width,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                                isImmersive
+                                    ? "w-0 opacity-0 pointer-events-none"
+                                    : "w-72 opacity-100"
+                            )}
+                        >
+                            <div className="sticky top-24 space-y-6 w-72">
                                 {/* 作者其他文章 */}
                                 {authorOtherPosts.length > 0 && (
                                     <motion.div
@@ -640,6 +801,7 @@ export default function PostDetailClient({
                                         </ul>
                                     </motion.div>
                                 )}
+
                             </div>
                         </aside>
                     </div>

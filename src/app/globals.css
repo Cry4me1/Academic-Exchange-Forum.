@@ -163,9 +163,9 @@
   /* 强调色 - 深红背景 */
   --accent: oklch(0.25 0.05 25);
   --accent-foreground: oklch(0.985 0 0);
-  
+
   --muted: oklch(0.2 0.02 25);
-  
+
   --border: oklch(0.3 0.05 25);
   --input: oklch(0.3 0.05 25);
   --ring: oklch(0.65 0.20 25);
@@ -177,6 +177,10 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
@@ -258,6 +262,57 @@
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;
   /* Chrome, Safari and Opera */
+}
+
+/* ============================================
+   GPU Acceleration Utilities (Phase 4)
+   ============================================ */
+
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* ============================================
+   Particle Animation Keyframes (Phase 3)
+   ============================================ */
+
+@keyframes particle-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes star-burst {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.particle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  animation: particle-burst 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.star-particle {
+  position: absolute;
+  pointer-events: none;
+  animation: star-burst 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ============================================
@@ -765,28 +820,65 @@
 }
 
 /* ============================================
-   Table of Contents Styles
+   Table of Contents Styles (Enhanced)
    ============================================ */
 
-.toc-item {
-  transition: all 0.2s ease;
+/* 浮动 TOC 滚动条隐藏 */
+.toc-floating-panel {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.toc-item:hover {
-  color: var(--primary);
+.toc-floating-panel::-webkit-scrollbar {
+  display: none;
 }
 
-.toc-item.active {
-  color: var(--primary);
-  font-weight: 600;
+/* TOC 跳转目标的金光高亮（box-shadow 无布局偏移） */
+@keyframes toc-flash-glow {
+  0% {
+    box-shadow: inset 3px 0 0 rgba(234, 179, 8, 0.9),
+      0 0 20px rgba(234, 179, 8, 0.12);
+    background-color: rgba(234, 179, 8, 0.08);
+  }
+
+  40% {
+    box-shadow: inset 3px 0 0 rgba(234, 179, 8, 0.5),
+      0 0 8px rgba(234, 179, 8, 0.04);
+    background-color: rgba(234, 179, 8, 0.04);
+  }
+
+  100% {
+    box-shadow: none;
+    background-color: transparent;
+  }
 }
 
-.toc-item.level-1 {
-  padding-left: 0;
+.toc-heading-flash {
+  animation: toc-flash-glow 2s ease-out forwards;
+  border-radius: 0 0.25rem 0.25rem 0;
 }
 
-.toc-item.level-2 {
-  padding-left: 1rem;
+.dark .toc-heading-flash {
+  animation: toc-flash-glow-dark 2s ease-out forwards;
+}
+
+@keyframes toc-flash-glow-dark {
+  0% {
+    box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.9),
+      0 0 24px rgba(250, 204, 21, 0.1);
+    background-color: rgba(250, 204, 21, 0.06);
+  }
+
+  40% {
+    box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.4),
+      0 0 8px rgba(250, 204, 21, 0.03);
+    background-color: rgba(250, 204, 21, 0.03);
+  }
+
+  100% {
+    box-shadow: none;
+    background-color: transparent;
+  }
 }
 
 
@@ -948,30 +1040,47 @@
    ============================================ */
 
 @keyframes update-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.5);
   }
+
   50% {
     box-shadow: 0 0 0 8px rgba(234, 179, 8, 0);
   }
 }
 
 @keyframes update-shake {
-  0%, 100% { 
-    transform: translateX(0); 
+
+  0%,
+  100% {
+    transform: translateX(0);
   }
-  10%, 30%, 50%, 70%, 90% { 
-    transform: translateX(-2px); 
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-2px);
   }
-  20%, 40%, 60%, 80% { 
-    transform: translateX(2px); 
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(2px);
   }
 }
 
 @keyframes update-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
@@ -997,4 +1106,235 @@
 
 .dark .update-highlight:hover {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(251, 191, 36, 0.15) 100%) !important;
+}
+
+/* ============================================
+   Immersive Reading Mode (Phase 1)
+   ============================================ */
+
+/* 背景柔和光晕 */
+.immersive-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% -5%,
+      rgba(100, 120, 220, 0.06),
+      transparent 70%),
+    radial-gradient(ellipse 40% 50% at 85% 100%,
+      rgba(80, 140, 200, 0.05),
+      transparent 60%),
+    radial-gradient(ellipse 30% 30% at 10% 60%,
+      rgba(150, 100, 200, 0.04),
+      transparent 50%);
+  animation: immersive-pulse 8s ease-in-out infinite alternate;
+}
+
+.dark .immersive-glow {
+  background:
+    radial-gradient(ellipse 60% 40% at 50% -5%,
+      rgba(80, 100, 200, 0.08),
+      transparent 70%),
+    radial-gradient(ellipse 40% 50% at 85% 100%,
+      rgba(60, 120, 180, 0.06),
+      transparent 60%),
+    radial-gradient(ellipse 30% 30% at 10% 60%,
+      rgba(120, 80, 180, 0.05),
+      transparent 50%);
+}
+
+@keyframes immersive-pulse {
+  0% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 沉浸模式下的文章字体增强 */
+.immersive-content .novel-viewer-container .prose,
+.immersive-content .rich-text-content .ProseMirror {
+  font-size: 1.25rem;
+  line-height: 1.9;
+  letter-spacing: 0.015em;
+  transition: font-size 0.4s ease, line-height 0.4s ease;
+}
+
+.immersive-content .rich-text-content h1 {
+  font-size: 2.5rem;
+}
+
+.immersive-content .rich-text-content h2 {
+  font-size: 1.875rem;
+}
+
+.immersive-content .rich-text-content h3 {
+  font-size: 1.5rem;
+}
+
+.immersive-content .rich-text-content p {
+  line-height: 2;
+}
+
+/* 沉浸模式下的代码块微调 */
+.immersive-content .rich-text-content pre {
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+/* 沉浸模式过渡 - 已改用 inline style，保留此 class 备用 */
+.immersive-transition {
+  transition: max-width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============================================
+   Mermaid Block Styles
+   ============================================ */
+
+.mermaid-block-wrapper {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.mermaid-block-wrapper .mermaid-editor-section textarea {
+  tab-size: 4;
+}
+
+.mermaid-preview-area {
+  background: oklch(0.98 0 0);
+}
+
+.dark .mermaid-preview-area {
+  background: oklch(0.18 0 0);
+}
+
+.mermaid-preview-area svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 只读模式下的 mermaid 块 */
+.rich-text-content .mermaid-block-wrapper,
+.novel-viewer-container .mermaid-block-wrapper {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+/* ============================================
+   Comment Section Enhanced Styles (Phase 3+5)
+   ============================================ */
+
+/* 评论区内的富文本渲染 - 字号缩小以区分主文章 */
+#comments .novel-viewer-container .prose,
+#comments .rich-text-content .ProseMirror {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+#comments .rich-text-content h1 {
+  font-size: 1.25rem;
+}
+
+#comments .rich-text-content h2 {
+  font-size: 1.125rem;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+#comments .rich-text-content h3 {
+  font-size: 1rem;
+}
+
+#comments .rich-text-content p {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+#comments .rich-text-content blockquote {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+#comments .rich-text-content pre {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+#comments .rich-text-content img {
+  margin: 0.75rem auto;
+  border-radius: 0.5rem;
+  max-height: 300px;
+  object-fit: contain;
+}
+
+#comments .rich-text-content ul,
+#comments .rich-text-content ol {
+  padding-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* 评论跳转锚点高亮 */
+@keyframes comment-anchor-flash {
+  0% {
+    background-color: hsl(var(--primary) / 0.12);
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.08);
+  }
+
+  70% {
+    background-color: hsl(var(--primary) / 0.05);
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.03);
+  }
+
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+[id^="comment-"]:target {
+  animation: comment-anchor-flash 2s ease-out forwards;
+  border-radius: 0.75rem;
+}
+
+/* 评论区移动端响应式适配 */
+@media (max-width: 640px) {
+
+  /* 折叠回复缩进减少 */
+  #comments .ml-8 {
+    margin-left: 1rem;
+  }
+
+  /* 评论排序 Tab 小屏幕适配 */
+  #comments [role="tablist"] {
+    gap: 0;
+  }
+
+  #comments [role="tablist"] button {
+    padding-inline: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* 评论排序标题 */
+  #comments h2 {
+    font-size: 1.125rem;
+  }
+}
+
+/* 浮动 TOC 滚动条隐藏（覆盖） */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
 }

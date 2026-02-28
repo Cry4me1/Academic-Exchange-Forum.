@@ -23,6 +23,10 @@ export async function getMyCredits() {
         return { error: "请先登录", balance: 0, totalSpent: 0, totalRecharged: 0 };
     }
 
+    // [新增] 每次获取用户积分时，触发一次“当月奖励检查”
+    // 这个操作是懒加载的，RPC 内部会判断如果当月已领取就不再操作
+    await supabase.rpc("claim_monthly_bonus", { p_user_id: user.id });
+
     const { data, error } = await supabase
         .from("user_credits")
         .select("balance, total_spent, total_recharged")

@@ -160,7 +160,7 @@ export async function deletePost(postId: string) {
 
 // 获取帖子列表
 export async function getPosts(options: {
-    filter?: "latest" | "trending" | "following";
+    filter?: "latest" | "trending" | "following" | "solved" | "help";
     page?: number;
     limit?: number;
 } = {}) {
@@ -182,9 +182,6 @@ export async function getPosts(options: {
             comment_count,
             bookmark_count,
             share_count,
-            comment_count,
-            bookmark_count,
-            share_count,
             is_solved,
             is_help_wanted,
             created_at,
@@ -192,15 +189,20 @@ export async function getPosts(options: {
                 id,
                 username,
                 full_name,
-                avatar_url
+                avatar_url,
+                vip_level
             )
         `)
         .eq("is_published", true)
         .range(offset, offset + limit - 1);
 
-    // 根据筛选条件排序
+    // 根据筛选条件过滤 & 排序
     if (filter === "trending") {
         query = query.order("like_count", { ascending: false });
+    } else if (filter === "solved") {
+        query = query.eq("is_solved", true).order("created_at", { ascending: false });
+    } else if (filter === "help") {
+        query = query.eq("is_help_wanted", true).eq("is_solved", false).order("created_at", { ascending: false });
     } else {
         query = query.order("created_at", { ascending: false });
     }
@@ -236,11 +238,12 @@ export async function getPosts(options: {
         userBookmarks = (bookmarksResult.data || []).map((b) => b.post_id);
     }
 
-    // 为每个帖子添加用户互动状态
+    // 为每个帖子添加用户互动状态 + 作者VIP等级
     const postsWithStatus = (posts || []).map((post) => ({
         ...post,
         isLiked: userLikes.includes(post.id),
         isBookmarked: userBookmarks.includes(post.id),
+        authorVipLevel: (post as any).author?.vip_level || 1,
     }));
 
     return { posts: postsWithStatus };

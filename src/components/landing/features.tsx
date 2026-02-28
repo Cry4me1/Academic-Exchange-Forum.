@@ -1,14 +1,14 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
     BookOpen,
     Code2,
+    Lightbulb,
     MessageSquare,
-    Users,
     Sigma,
-    Lightbulb
+    Users
 } from "lucide-react";
-import { motion } from "framer-motion";
 
 const features = [
     {
@@ -73,7 +73,7 @@ const itemVariants = {
 
 export function Features() {
     return (
-        <section className="py-24 px-6 bg-gradient-to-b from-slate-900 to-slate-950">
+        <section className="py-24 px-6 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 transition-colors duration-500">
             <div className="max-w-6xl mx-auto">
                 {/* 标题 */}
                 <motion.div
@@ -83,10 +83,10 @@ export function Features() {
                     transition={{ duration: 0.6 }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4 transition-colors">
                         为学术而生的功能
                     </h2>
-                    <p className="text-lg text-white/60 max-w-2xl mx-auto">
+                    <p className="text-lg text-slate-600 dark:text-white/60 max-w-2xl mx-auto transition-colors">
                         Scholarly 提供一系列专为学术交流设计的特性，助力知识传播与创新
                     </p>
                 </motion.div>
@@ -103,25 +103,25 @@ export function Features() {
                         <motion.div
                             key={feature.title}
                             variants={itemVariants}
-                            className="group relative p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
+                            className="group relative p-6 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
                         >
                             {/* 图标 */}
-                            <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.gradient} mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                            <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.gradient} mb-4 shadow-md dark:shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                                 <feature.icon className="w-6 h-6 text-white" />
                             </div>
 
                             {/* 标题 */}
-                            <h3 className="text-xl font-semibold text-white mb-2">
+                            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2 transition-colors">
                                 {feature.title}
                             </h3>
 
                             {/* 描述 */}
-                            <p className="text-white/60 leading-relaxed">
+                            <p className="text-slate-600 dark:text-white/60 leading-relaxed transition-colors">
                                 {feature.description}
                             </p>
 
                             {/* 悬停装饰 */}
-                            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+                            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-[0.03] dark:group-hover:opacity-5 transition-opacity duration-300 pointer-events-none`} />
                         </motion.div>
                     ))}
                 </motion.div>

@@ -1,6 +1,6 @@
-import { Heading1, List, ImageIcon, Code, Sigma, TextQuote, CheckSquare, ListOrdered, Heading2, Heading3, Sparkles, MessageSquarePlus } from "lucide-react";
-import { CommandItemProps } from "./extensions/slash-command-extension";
 import { onUpload } from "@/lib/image-upload";
+import { CheckSquare, Code, Heading1, Heading2, Heading3, ImageIcon, List, ListOrdered, MessageSquarePlus, Sigma, Sparkles, TextQuote, Workflow } from "lucide-react";
+import { CommandItemProps } from "./extensions/slash-command-extension";
 
 export const suggestionItems: CommandItemProps[] = [
     {
@@ -119,6 +119,25 @@ export const suggestionItems: CommandItemProps[] = [
         icon: <Code size={18} />,
         command: ({ editor, range }) => {
             editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+        },
+    },
+    {
+        title: "流程图",
+        description: "插入 Mermaid 流程图 / 时序图 / 类图",
+        searchTerms: ["flowchart", "mermaid", "diagram", "sequence", "流程图", "时序图"],
+        icon: <Workflow size={18} />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "mermaidBlock",
+                    attrs: {
+                        content: "graph TD\n    A[开始] --> B{判断}\n    B -->|是| C[执行]\n    B -->|否| D[结束]",
+                    },
+                })
+                .run();
         },
     },
     {

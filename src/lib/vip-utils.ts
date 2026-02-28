@@ -83,7 +83,16 @@ export const VIP_LEVELS: VipLevelInfo[] = [
 ]
 
 /**
+ * 根据等级数字 (1-6) 直接获取 VIP 等级信息
+ * 这是推荐的方式：直接从数据库中读取 vip_level 字段来获取等级
+ */
+export function getVipLevelByNumber(level: number): VipLevelInfo {
+    return VIP_LEVELS.find((l) => l.level === level) || VIP_LEVELS[0]
+}
+
+/**
  * 根据累计消费积分获取 VIP 等级信息
+ * @deprecated 建议使用 getVipLevelByNumber，直接从数据库读取等级
  */
 export function getVipLevel(totalSpent: number): VipLevelInfo {
     let result = VIP_LEVELS[0]
@@ -96,7 +105,31 @@ export function getVipLevel(totalSpent: number): VipLevelInfo {
 }
 
 /**
+ * 根据等级数字获取到下一个等级的进度
+ */
+export function getNextLevelProgressByLevel(currentLevel: number, totalSpent: number): {
+    current: VipLevelInfo
+    next: VipLevelInfo | null
+    progress: number // 0-100
+    remaining: number
+} {
+    const current = getVipLevelByNumber(currentLevel)
+    const nextIndex = VIP_LEVELS.findIndex((l) => l.level === current.level) + 1
+    const next = nextIndex < VIP_LEVELS.length ? VIP_LEVELS[nextIndex] : null
+
+    if (!next) {
+        return { current, next: null, progress: 100, remaining: 0 }
+    }
+
+    const range = next.minSpent - current.minSpent
+    const done = totalSpent - current.minSpent
+    const progress = Math.min(100, Math.round((done / range) * 100))
+    return { current, next, progress, remaining: next.minSpent - totalSpent }
+}
+
+/**
  * 获取到下一个等级还需要多少积分
+ * @deprecated 建议使用 getNextLevelProgressByLevel
  */
 export function getNextLevelProgress(totalSpent: number): {
     current: VipLevelInfo

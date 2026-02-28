@@ -2,7 +2,7 @@ import { Color } from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import { Mathematics } from "@tiptap/extension-mathematics";
 import { TextStyle } from "@tiptap/extension-text-style";
-import { common, createLowlight } from "lowlight";
+import { all, createLowlight } from "lowlight";
 import {
     CodeBlockLowlight,
     HorizontalRule,
@@ -15,11 +15,12 @@ import {
 import AutoJoiner from "tiptap-extension-auto-joiner";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { CustomImage } from "./extensions/custom-image";
+import { MermaidBlock } from "./extensions/mermaid-block";
 import { Command, renderItems } from "./extensions/slash-command-extension";
 import { suggestionItems } from "./slash-command";
 
 // Explicitly create lowlight instance
-const lowlight = createLowlight(common);
+const lowlight = createLowlight(all);
 
 const codeBlockLowlight = CodeBlockLowlight.configure({
     lowlight,
@@ -105,6 +106,8 @@ export const defaultExtensions: any[] = [
     AutoJoiner.configure({
         elementsToJoin: ["bulletList", "orderedList"],
     }),
+    // Mermaid flowchart block
+    MermaidBlock,
     // Text styling extensions for color
     TextStyle,
     Color,

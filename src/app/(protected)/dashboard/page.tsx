@@ -8,12 +8,13 @@ import {
     FeedTabs,
     FriendsList,
     GlobalSearch,
-    LunarDateDisplay,
     MainNav,
-    NewYearPopup,
+    MobileTabBar,
     PostFeed,
     QuickPostButton,
+    StoryBanner,
     TagCloud,
+    WelcomeModal,
     type FeedFilter
 } from "@/components/dashboard";
 import { NotificationCenter } from "@/components/notifications";
@@ -32,10 +33,8 @@ import { motion } from "framer-motion";
 import {
     Coins,
     LogOut,
-    Menu,
     Settings,
-    User,
-    X
+    User
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -104,7 +103,6 @@ const fadeInUp = {
 
 export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState<FeedFilter>("latest");
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isRechargeOpen, setIsRechargeOpen] = useState(false);
     const [creditBalance, setCreditBalance] = useState<number | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -113,6 +111,7 @@ export default function DashboardPage() {
         email: string | null;
         avatar_url: string | null;
     } | null>(null);
+    const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
 
     const supabase = createClient();
     const router = useRouter();
@@ -129,6 +128,7 @@ export default function DashboardPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setCurrentUserId(user.id);
+                setUserCreatedAt(user.created_at);
 
                 // 尝试获取用户 profile
                 const { data: profile, error } = await supabase
@@ -203,9 +203,6 @@ export default function DashboardPage() {
                                     Scholarly
                                 </span>
                             </Link>
-
-                            {/* Lunar Date Display */}
-                            <LunarDateDisplay className="hidden sm:flex" />
                         </div>
 
                         {/* 桌面端搜索栏 */}
@@ -263,19 +260,7 @@ export default function DashboardPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
-                            {/* 移动端菜单按钮 */}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="lg:hidden"
-                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            >
-                                {mobileMenuOpen ? (
-                                    <X className="h-5 w-5" />
-                                ) : (
-                                    <Menu className="h-5 w-5" />
-                                )}
-                            </Button>
+                            {/* 移动端无菜单按钮，改用底部 Tab Bar */}
                             {/* 积分余额胶囊按钮 */}
                             <Button
                                 variant="outline"
@@ -292,7 +277,6 @@ export default function DashboardPage() {
                 </div>
 
                 {/* New Year Popup */}
-                <NewYearPopup />
                 <CreditRechargeDialog isOpen={isRechargeOpen} onOpenChange={handleRechargeOpenChange} />
             </motion.header>
 
@@ -345,8 +329,13 @@ export default function DashboardPage() {
                             <TagCloud />
                         </div>
 
-                        {/* Tabs 筛选器 */}
+                        {/* 动态横幅 StoryBanner */}
                         <motion.div variants={fadeInUp} className="mb-6">
+                            <StoryBanner />
+                        </motion.div>
+
+                        {/* Tabs 筛选器 */}
+                        <motion.div variants={fadeInUp} className="mb-6 sticky top-20 z-30 bg-background/80 backdrop-blur-md pb-2">
                             <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
                         </motion.div>
 
@@ -357,7 +346,7 @@ export default function DashboardPage() {
                     </motion.div>
 
                     {/* 右侧栏 - 桌面端显示 */}
-                    <aside className="hidden xl:block w-[420px] shrink-0">
+                    <aside className="hidden xl:block w-[340px] shrink-0">
                         <motion.div
                             variants={slideInRight}
                             initial="hidden"
@@ -388,33 +377,11 @@ export default function DashboardPage() {
                 </div>
             </main>
 
-            {/* 移动端侧边栏 */}
-            {mobileMenuOpen && (
-                <div className="fixed inset-0 z-40 lg:hidden">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-background/80 backdrop-blur-sm"
-                        onClick={() => setMobileMenuOpen(false)}
-                    />
-                    <motion.div
-                        initial={{ x: -300 }}
-                        animate={{ x: 0 }}
-                        exit={{ x: -300 }}
-                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed inset-y-0 left-0 w-72 bg-card border-r border-border p-6 overflow-y-auto"
-                    >
-                        <MainNav />
-                        <div className="mt-6 pt-6 border-t border-border">
-                            <QuickPostButton />
-                        </div>
-                        <div className="mt-6">
-                            <FriendsList currentUserId={currentUserId} />
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+            {/* 移动端底部 Tab Bar (替代汉堡菜单) */}
+            <MobileTabBar currentUserId={currentUserId} />
+
+            {/* 欢迎弹窗 / 正式版通知 */}
+            <WelcomeModal userCreatedAt={userCreatedAt} />
         </div>
     );
 }
