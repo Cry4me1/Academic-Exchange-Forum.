@@ -269,7 +269,7 @@ export function Hero() {
                                     <span className="ml-2 text-xs font-mono text-slate-500 dark:text-white/30">公式编辑器</span>
                                 </div>
                                 <div className="p-5">
-                                    <div className="text-xs mb-3 font-mono text-slate-400 dark:text-white/40">// 薛定谔方程</div>
+                                    <div className="text-xs mb-3 font-mono text-slate-400 dark:text-white/40">{/* 薛定谔方程 */}{'// 薛定谔方程'}</div>
                                     <div className="text-center py-4 px-3 rounded-xl border bg-indigo-50/50 border-indigo-100 dark:bg-gradient-to-br dark:from-indigo-500/10 dark:to-purple-500/10 dark:border-indigo-400/10">
                                         <span className="text-lg font-serif italic tracking-wide text-indigo-700 dark:text-indigo-200">
                                             iℏ ∂Ψ/∂t = ĤΨ

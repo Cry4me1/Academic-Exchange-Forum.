@@ -191,7 +191,7 @@ export default function PostDetailClient({
                 const text = el.textContent?.trim() || `heading-${index}`;
                 const level = parseInt(el.tagName.charAt(1), 10);
                 // 生成唯一 id
-                let baseId = text
+                const baseId = text
                     .toLowerCase()
                     .replace(/[^\w\u4e00-\u9fff]+/g, "-")
                     .replace(/^-+|-+$/g, "");
