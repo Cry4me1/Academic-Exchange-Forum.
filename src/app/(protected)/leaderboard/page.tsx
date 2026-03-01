@@ -564,7 +564,8 @@ export default function LeaderboardPage() {
 
     // 初始加载
     useEffect(() => {
-        const timer = setTimeout(() => setShowContent(true), 600);
+        // 大幅延长过渡界面停留时间至 3500ms，确保史诗级动画每一幕完整展现
+        const timer = setTimeout(() => setShowContent(true), 3500);
         fetchTab("likes");
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -599,51 +600,107 @@ export default function LeaderboardPage() {
     const currentTabConfig = tabConfig.find((t) => t.key === activeTab)!;
 
     return (
-        <div className="relative min-h-screen">
+        <div className="relative min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
             {/* 火焰背景 */}
-            <FlameBackground />
+            <motion.div
+                className="absolute inset-0 z-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: showContent ? 1 : 0 }}
+                transition={{ duration: 1.5, ease: "easeInOut" }}
+            >
+                <FlameBackground />
+            </motion.div>
 
-            {/* 入场过渡 */}
+            {/* 入场过渡 — 史诗感光影流转 */}
             <AnimatePresence>
                 {!showContent && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0f]"
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-background"
+                        exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+                        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                     >
+                        {/* 沉浸式变暗层：缓缓下沉入黑暗 (0s - 1.2s) */}
                         <motion.div
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 1.5, opacity: 0 }}
-                            transition={{ duration: 0.6 }}
-                            className="flex flex-col items-center"
+                            className="absolute inset-0 bg-[#0a0a0f]"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 1.2, ease: "easeInOut" }}
+                        />
+
+                        {/* 光网汇聚：大面积琥珀色光晕在黑暗中亮起 (0.8s - 3s) */}
+                        <motion.div
+                            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: [0, 0.6, 1, 0.4], scale: [0.5, 1, 1.2, 1.5] }}
+                            transition={{ duration: 3.5, delay: 0.5, ease: "easeOut" }}
                         >
-                            <motion.div
-                                animate={{
-                                    y: [0, -12, 0],
-                                    scale: [1, 1.1, 1],
-                                    filter: [
-                                        "drop-shadow(0 0 20px rgba(249,115,22,0.3))",
-                                        "drop-shadow(0 0 40px rgba(249,115,22,0.6))",
-                                        "drop-shadow(0 0 20px rgba(249,115,22,0.3))",
-                                    ],
-                                }}
-                                transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                }}
-                            >
-                                <Flame className="h-20 w-20 text-orange-500" />
-                            </motion.div>
-                            <motion.h1
-                                className="mt-4 text-3xl font-black bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent"
-                                animate={{ opacity: [0.5, 1, 0.5] }}
-                                transition={{ duration: 1.5, repeat: Infinity }}
-                            >
-                                排行榜
-                            </motion.h1>
+                            <div className="w-[100vw] h-[100vw] max-w-[1000px] max-h-[1000px] rounded-full blur-[100px]"
+                                style={{ background: "radial-gradient(circle, rgba(249,115,22,0.2) 0%, rgba(180,83,9,0.08) 50%, transparent 80%)" }}
+                            />
                         </motion.div>
+
+                        {/* 核心降临：图标与文字阶段性渐显 */}
+                        <div className="relative flex flex-col items-center">
+                            {/* 第一阶段：火焰标志点燃 (1.2s开始) */}
+                            <motion.div
+                                initial={{ scale: 0.5, opacity: 0, filter: "brightness(0) blur(10px)" }}
+                                animate={{ scale: 1, opacity: 1, filter: "brightness(1) blur(0px)" }}
+                                transition={{ duration: 1.5, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                            >
+                                <motion.div
+                                    animate={{
+                                        y: [0, -15, 0],
+                                        scale: [1, 1.05, 1],
+                                        filter: [
+                                            "drop-shadow(0 0 20px rgba(249,115,22,0.4))",
+                                            "drop-shadow(0 0 60px rgba(249,115,22,1))",
+                                            "drop-shadow(0 0 20px rgba(249,115,22,0.4))"
+                                        ]
+                                    }}
+                                    transition={{
+                                        duration: 3,
+                                        repeat: Infinity,
+                                        ease: "easeInOut",
+                                    }}
+                                >
+                                    <Flame className="h-28 w-28 text-orange-500" />
+                                </motion.div>
+                            </motion.div>
+
+                            {/* 第二阶段：排行榜大字浮现 (2.0s开始) */}
+                            <div className="overflow-hidden mt-8">
+                                <motion.h1
+                                    className="text-5xl sm:text-6xl font-black tracking-widest bg-gradient-to-r from-orange-400 via-amber-300 to-orange-400 bg-clip-text text-transparent pb-2"
+                                    initial={{ y: "150%", opacity: 0, scale: 0.9 }}
+                                    animate={{ y: 0, opacity: 1, scale: 1 }}
+                                    transition={{ duration: 1.2, delay: 2.0, ease: [0.16, 1, 0.3, 1] }}
+                                >
+                                    排行榜
+                                </motion.h1>
+                            </div>
+
+                            {/* 第三阶段：副标题光刃展开 (2.6s开始) */}
+                            <motion.div
+                                className="mt-4 flex items-center gap-6"
+                                initial={{ opacity: 0, scale: 0.8, filter: "blur(5px)" }}
+                                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                                transition={{ duration: 1, delay: 2.6, ease: "easeOut" }}
+                            >
+                                <motion.div className="h-[2px] w-16 bg-gradient-to-r from-transparent via-amber-500 to-amber-300"
+                                    initial={{ width: 0, opacity: 0 }}
+                                    animate={{ width: 64, opacity: 1 }}
+                                    transition={{ duration: 1, delay: 2.6, ease: "easeOut" }}
+                                />
+                                <p className="text-base font-bold tracking-[0.3em] text-amber-400 uppercase drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
+                                    荣耀加冕时刻
+                                </p>
+                                <motion.div className="h-[2px] w-16 bg-gradient-to-l from-transparent via-amber-500 to-amber-300"
+                                    initial={{ width: 0, opacity: 0 }}
+                                    animate={{ width: 64, opacity: 1 }}
+                                    transition={{ duration: 1, delay: 2.6, ease: "easeOut" }}
+                                />
+                            </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
