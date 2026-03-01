@@ -53,6 +53,9 @@ const EMBER_PARTICLES = Array.from({ length: 20 }).map((_, i) => {
 // 火焰背景组件
 // ============================================================
 function FlameBackground() {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
     return (
         <div className="fixed inset-0 z-0 overflow-hidden bg-[#0a0a0f]">
             {/* 基础暗色渐变 */}
@@ -64,23 +67,24 @@ function FlameBackground() {
             {/* 火焰渐变层2 - 侧面光效 */}
             <div className="absolute bottom-0 left-1/4 w-1/2 h-[70%] bg-gradient-to-t from-amber-800/20 via-red-900/5 to-transparent animate-flame-sway blur-3xl" />
 
-            {/* 粒子火星（确定性预计算） */}
-            {EMBER_PARTICLES.map((p, i) => (
-                <div
-                    key={i}
-                    className="absolute rounded-full animate-ember-rise"
-                    style={{
-                        width: `${p.width}px`,
-                        height: `${p.height}px`,
-                        left: `${p.left}%`,
-                        bottom: `${p.bottom}%`,
-                        background: `radial-gradient(circle, ${p.color}, transparent)`,
-                        animationDelay: `${p.delay}s`,
-                        animationDuration: `${p.duration}s`,
-                        opacity: p.opacity,
-                    }}
-                />
-            ))}
+            {/* 粒子火星（仅客户端渲染，避免 SSR 水合不匹配） */}
+            {mounted &&
+                EMBER_PARTICLES.map((p, i) => (
+                    <div
+                        key={i}
+                        className="absolute rounded-full animate-ember-rise"
+                        style={{
+                            width: `${p.width}px`,
+                            height: `${p.height}px`,
+                            left: `${p.left}%`,
+                            bottom: `${p.bottom}%`,
+                            background: `radial-gradient(circle, ${p.color}, transparent)`,
+                            animationDelay: `${p.delay}s`,
+                            animationDuration: `${p.duration}s`,
+                            opacity: p.opacity,
+                        }}
+                    />
+                ))}
 
             {/* 顶部暗化遮罩 */}
             <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-transparent to-transparent opacity-60" />
