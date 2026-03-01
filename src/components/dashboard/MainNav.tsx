@@ -10,6 +10,7 @@ import {
     MessageSquare,
     Settings,
     Swords,
+    Trophy,
     User,
     Users,
     Zap
@@ -20,6 +21,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
     { href: "/dashboard", label: "首页", icon: Home },
     { href: "/trending", label: "热门学术", icon: Flame },
+    { href: "/leaderboard", label: "排行榜", icon: Trophy },
     { href: "/duels", label: "决斗场", icon: Swords },
     { href: "/messages", label: "私信", icon: MessageSquare },
     { href: "/friends", label: "好友", icon: Users },

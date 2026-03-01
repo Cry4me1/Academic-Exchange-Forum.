@@ -1338,3 +1338,100 @@
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;
 }
+
+/* ============================================
+   Leaderboard Page Animations
+   ============================================ */
+
+/* 火焰脉冲 - 底部光晕呼吸 */
+@keyframes flame-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scaleY(1.05);
+  }
+}
+
+.animate-flame-pulse {
+  animation: flame-pulse 4s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* 火焰摇曳 */
+@keyframes flame-sway {
+  0%, 100% {
+    transform: translateX(0) scaleX(1);
+    opacity: 0.2;
+  }
+  33% {
+    transform: translateX(-5%) scaleX(1.05);
+    opacity: 0.3;
+  }
+  66% {
+    transform: translateX(5%) scaleX(0.95);
+    opacity: 0.25;
+  }
+}
+
+.animate-flame-sway {
+  animation: flame-sway 6s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* 火星上升 */
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-60vh) scale(0);
+    opacity: 0;
+  }
+}
+
+.animate-ember-rise {
+  animation: ember-rise 5s ease-out infinite;
+}
+
+/* 王者光环脉冲 */
+@keyframes champion-glow {
+  0%, 100% {
+    opacity: 0.4;
+    filter: blur(20px);
+  }
+  50% {
+    opacity: 0.7;
+    filter: blur(30px);
+  }
+}
+
+.animate-champion-glow {
+  animation: champion-glow 3s ease-in-out infinite;
+}
+
+/* 金色闪光条 */
+@keyframes shimmer-bar {
+  0% {
+    opacity: 0.3;
+    transform: scaleX(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scaleX(0.5);
+  }
+}
+
+.animate-shimmer-bar {
+  animation: shimmer-bar 3s ease-in-out infinite;
+}
