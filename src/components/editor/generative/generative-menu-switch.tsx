@@ -1,10 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { EditorBubble, useEditor } from "novel";
 import { Fragment, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
-import Magic from "./icons/magic";
 import { AISelector } from "./ai-selector";
+import Magic from "./icons/magic";
 
 interface GenerativeMenuSwitchProps {
     children: ReactNode;
@@ -18,10 +18,33 @@ const GenerativeMenuSwitch = ({ children, open, onOpenChange }: GenerativeMenuSw
     return (
         <EditorBubble
             tippyOptions={{
-                placement: open ? "bottom-start" : "top",
+                placement: open ? "top-start" : "top",
+                appendTo: () => document.body,
                 onHidden: () => {
                     onOpenChange(false);
                 },
+                popperOptions: {
+                    strategy: "fixed",
+                    modifiers: [
+                        {
+                            name: "flip",
+                            options: {
+                                fallbackPlacements: ["bottom-start", "bottom", "top"],
+                                padding: 16,
+                            },
+                        },
+                        {
+                            name: "preventOverflow",
+                            options: {
+                                boundary: "viewport",
+                                padding: 8,
+                                altAxis: true,
+                                tether: false,
+                            },
+                        },
+                    ],
+                },
+                maxWidth: "90vw",
             }}
             className="flex w-fit max-w-[90vw] overflow-hidden rounded-md border border-muted bg-background shadow-xl"
         >

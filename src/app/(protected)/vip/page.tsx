@@ -47,6 +47,14 @@ interface Transaction {
     amount: number;
     type: string;
     description: string | null;
+    metadata: {
+        option?: string;
+        option_label?: string;
+        input_tokens?: number;
+        output_tokens?: number;
+        total_tokens?: number;
+        credit_cost?: number;
+    } | null;
     created_at: string;
 }
 
@@ -367,6 +375,11 @@ export default function VipPage() {
                                                     <p className="text-xs text-zinc-500 mt-0.5">
                                                         {meta.label} · {new Date(tx.created_at).toLocaleDateString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                                     </p>
+                                                    {tx.type === "ask_ai_usage" && tx.metadata?.total_tokens && (
+                                                        <p className="text-[10px] text-zinc-600 mt-0.5">
+                                                            {tx.metadata.total_tokens} tokens
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 <div className={`text-sm font-bold tabular-nums ${isPositive ? "text-emerald-400" : "text-zinc-400"}`}>
                                                     {isPositive ? "+" : ""}{tx.amount}

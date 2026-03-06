@@ -9,8 +9,30 @@ const deepseek = createDeepSeek({
     apiKey: process.env.DEEPSEEK_API_KEY,
 });
 
-// AI 调用扣费积分数
-const AI_CREDIT_COST = 5;
+// ====== Token-Based 积分计费 ======
+// 最低消费 8 积分，每 40 tokens ≈ 1 积分
+const MIN_CREDIT_COST = 8;
+const TOKENS_PER_CREDIT = 40;
+
+function calculateCreditCost(totalTokens: number): number {
+    return Math.max(MIN_CREDIT_COST, Math.ceil(totalTokens / TOKENS_PER_CREDIT));
+}
+
+// AI 功能中文名映射
+const AI_OPTION_LABELS: Record<string, string> = {
+    continue: "继续写作",
+    improve: "改进写作",
+    fix: "修复语法",
+    shorter: "缩短文本",
+    longer: "扩展文本",
+    simplify: "简化文本",
+    emojify: "添加表情",
+    complete_sentence: "补全句子",
+    summarize: "总结",
+    translate: "翻译",
+    adjust_tone: "更改语气",
+    zap: "自定义指令",
+};
 
 // Edge 兼容的 Supabase Client（从 request cookies 读取）
 function createSupabaseEdgeClient(req: Request) {
@@ -48,7 +70,7 @@ export async function POST(req: Request): Promise<Response> {
         });
     }
 
-    // ====== 积分扣费流程 ======
+    // ====== 余额预检流程 ======
     const supabase = createSupabaseEdgeClient(req);
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -56,60 +78,27 @@ export async function POST(req: Request): Promise<Response> {
         return new Response("请先登录", { status: 401 });
     }
 
-    // 调用原子扣费 RPC
-    const { data: deductResult, error: deductError } = await supabase.rpc(
-        "deduct_user_credits",
-        {
+    // 预检余额：至少需要最低消费积分
+    const { data: creditData } = await supabase
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", user.id)
+        .single();
+
+    if (!creditData) {
+        // 老用户首次使用：自动补发注册奖励 100 积分
+        console.log("[API Generate] 老用户无积分记录，自动补发注册奖励");
+        await supabase.rpc("add_user_credits", {
             p_user_id: user.id,
-            p_amount: AI_CREDIT_COST,
-            p_description: "Ask AI 调用",
-        }
-    );
-
-    if (deductError) {
-        console.error("[API Generate] 扣费 RPC 错误:", deductError);
-        return new Response("积分系统错误", { status: 500 });
-    }
-
-    const result = deductResult as { success: boolean; error?: string; balance?: number };
-
-    if (!result.success) {
-        if (result.error === "INSUFFICIENT_CREDITS") {
-            return new Response(
-                JSON.stringify({ error: "INSUFFICIENT_CREDITS", balance: result.balance }),
-                { status: 402, headers: { "Content-Type": "application/json" } }
-            );
-        }
-        if (result.error === "NO_CREDIT_RECORD") {
-            // 老用户首次使用：自动补发注册奖励 100 积分
-            console.log("[API Generate] 老用户无积分记录，自动补发注册奖励");
-            await supabase.rpc("add_user_credits", {
-                p_user_id: user.id,
-                p_amount: 100,
-                p_type: "signup_bonus",
-                p_description: "老用户积分系统初始化奖励",
-            });
-
-            // 重试扣费
-            const { data: retryResult } = await supabase.rpc("deduct_user_credits", {
-                p_user_id: user.id,
-                p_amount: AI_CREDIT_COST,
-                p_description: "Ask AI 调用",
-            });
-
-            const retry = retryResult as { success: boolean; error?: string; balance?: number; new_balance?: number };
-            if (!retry?.success) {
-                return new Response(
-                    JSON.stringify({ error: retry?.error || "DEDUCT_FAILED" }),
-                    { status: 402, headers: { "Content-Type": "application/json" } }
-                );
-            }
-            console.log("[API Generate] 重试扣费成功, 剩余:", retry.new_balance);
-        } else {
-            return new Response("积分扣费失败", { status: 500 });
-        }
-    } else {
-        console.log("[API Generate] 积分扣费成功, 剩余:", (deductResult as { new_balance: number }).new_balance);
+            p_amount: 100,
+            p_type: "signup_bonus",
+            p_description: "老用户积分系统初始化奖励",
+        });
+    } else if (creditData.balance < MIN_CREDIT_COST) {
+        return new Response(
+            JSON.stringify({ error: "INSUFFICIENT_CREDITS", balance: creditData.balance }),
+            { status: 402, headers: { "Content-Type": "application/json" } }
+        );
     }
 
     try {
@@ -312,10 +301,53 @@ export async function POST(req: Request): Promise<Response> {
 
         console.log("[API Generate] 准备调用 DeepSeek API，messages:", JSON.stringify(messages));
 
+        const optionLabel = AI_OPTION_LABELS[option] || option;
+        const userId = user.id;
+
         const result = streamText({
             model: deepseek("deepseek-chat"),
             messages,
             temperature: 0.7,
+            onFinish: async ({ usage }) => {
+                // 流完成后根据实际 token 用量扣费
+                const totalTokens = usage?.totalTokens || ((usage?.inputTokens || 0) + (usage?.outputTokens || 0));
+                const creditCost = calculateCreditCost(totalTokens);
+
+                console.log(`[API Generate] Token 用量: input=${usage?.inputTokens}, output=${usage?.outputTokens}, total=${totalTokens}`);
+                console.log(`[API Generate] 积分消耗: ${creditCost} (功能: ${optionLabel})`);
+
+                try {
+                    const { data: deductResult, error: deductError } = await supabase.rpc(
+                        "deduct_user_credits",
+                        {
+                            p_user_id: userId,
+                            p_amount: creditCost,
+                            p_description: `Ask AI · ${optionLabel}`,
+                            p_metadata: {
+                                option,
+                                option_label: optionLabel,
+                                input_tokens: usage?.inputTokens || 0,
+                                output_tokens: usage?.outputTokens || 0,
+                                total_tokens: totalTokens,
+                                credit_cost: creditCost,
+                            },
+                        }
+                    );
+
+                    if (deductError) {
+                        console.error("[API Generate] 后置扣费 RPC 错误:", deductError);
+                    } else {
+                        const res = deductResult as { success: boolean; new_balance?: number; error?: string };
+                        if (res.success) {
+                            console.log("[API Generate] 后置扣费成功, 剩余:", res.new_balance);
+                        } else {
+                            console.error("[API Generate] 后置扣费失败:", res.error);
+                        }
+                    }
+                } catch (err) {
+                    console.error("[API Generate] 后置扣费异常:", err);
+                }
+            },
         });
 
         console.log("[API Generate] streamText 调用成功，返回流响应");
@@ -327,4 +359,3 @@ export async function POST(req: Request): Promise<Response> {
         return new Response("处理请求时发生错误: " + (error instanceof Error ? error.message : String(error)), { status: 500 });
     }
 }
-

@@ -16,7 +16,7 @@ import AISelectorCommands from "./ai-selector-commands";
 import CrazySpinner from "./icons/crazy-spinner";
 import Magic from "./icons/magic";
 
-const AI_COST_PER_CALL = 5;
+const MIN_CREDIT_COST = 8;
 
 interface AISelectorProps {
     open: boolean;
@@ -36,6 +36,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
     const [inputValue, setInputValue] = useState("");
     const [creditBalance, setCreditBalance] = useState<number | null>(null);
     const [showDeduction, setShowDeduction] = useState(false);
+    const [deductedAmount, setDeductedAmount] = useState<number>(0);
     const prevBalanceRef = useRef<number | null>(null);
 
     // 加载积分余额
@@ -44,6 +45,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
         const newBalance = result.balance;
         // 检测是否发生了扣费（余额减少了）
         if (prevBalanceRef.current !== null && newBalance < prevBalanceRef.current) {
+            setDeductedAmount(prevBalanceRef.current - newBalance);
             setShowDeduction(true);
             setTimeout(() => setShowDeduction(false), 1800);
         }
@@ -65,7 +67,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
         onError: (err: Error) => {
             // 拦截 402 积分不足错误
             if (err.message.includes("402") || err.message.includes("INSUFFICIENT_CREDITS") || err.message.includes("NO_CREDIT_RECORD")) {
-                toast.error("积分不足，请先充值！每次 AI 调用消耗 5 积分。", {
+                toast.error("积分不足，请先充值！AI 调用最低消耗 8 积分。", {
                     action: {
                         label: "去充值",
                         onClick: () => {
@@ -130,7 +132,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
         }
     };
 
-    const insufficientCredits = creditBalance !== null && creditBalance < AI_COST_PER_CALL;
+    const insufficientCredits = creditBalance !== null && creditBalance < MIN_CREDIT_COST;
 
     return (
         <Command className="w-[350px]">
@@ -138,9 +140,9 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
             <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/30">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Zap className="h-3 w-3 text-purple-500" />
-                    <span>单次消耗</span>
-                    <span className="font-semibold text-purple-500">{AI_COST_PER_CALL}</span>
-                    <span>积分</span>
+                    <span>按用量计费</span>
+                    <span className="text-purple-500/70">·</span>
+                    <span>最低 <span className="font-semibold text-purple-500">{MIN_CREDIT_COST}</span> 积分</span>
                 </div>
                 <div className="flex items-center gap-1 relative">
                     <Coins className="h-3 w-3 text-amber-500" />
@@ -168,7 +170,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                                 transition={{ duration: 1.5, ease: "easeOut" }}
                                 className="absolute -top-1 right-0 text-[10px] font-bold text-red-400 pointer-events-none whitespace-nowrap"
                             >
-                                -{AI_COST_PER_CALL}
+                                -{deductedAmount}
                             </motion.span>
                         )}
                     </AnimatePresence>

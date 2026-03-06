@@ -128,54 +128,90 @@ export function PostFeed({ filter }: PostFeedProps) {
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(1);
     const [isPending, startTransition] = useTransition();
-    const loadMoreRef = useRef<HTMLDivElement>(null);
+    // 使用 ref 持有最新的可变状态，避免 IntersectionObserver 闭包陷阱
+    const pageRef = useRef(page);
+    const hasMoreRef = useRef(hasMore);
+    const isLoadingMoreRef = useRef(false);
+    const filterRef = useRef(filter);
+    const observerRef = useRef<IntersectionObserver | null>(null);
+
+    pageRef.current = page;
+    hasMoreRef.current = hasMore;
+    filterRef.current = filter;
 
     // 初始加载 & filter 变化时重新加载
     useEffect(() => {
         setIsLoading(true);
         setPage(1);
         setHasMore(true);
+        pageRef.current = 1;
+        hasMoreRef.current = true;
+        isLoadingMoreRef.current = false;
 
         startTransition(async () => {
             const result = await getPosts({ filter, limit: PAGE_SIZE, page: 1 });
             const newPosts = result.posts as PostData[];
             setPosts(newPosts);
-            setHasMore(newPosts.length >= PAGE_SIZE);
+            const more = newPosts.length >= PAGE_SIZE;
+            setHasMore(more);
+            hasMoreRef.current = more;
             setIsLoading(false);
         });
     }, [filter]);
 
-    // 加载更多
+    // 加载更多 — 通过 ref 读取最新状态，避免 stale closure
     const loadMore = useCallback(async () => {
-        if (isLoadingMore || !hasMore) return;
+        if (isLoadingMoreRef.current || !hasMoreRef.current) return;
+        isLoadingMoreRef.current = true;
         setIsLoadingMore(true);
-        const nextPage = page + 1;
 
-        const result = await getPosts({ filter, limit: PAGE_SIZE, page: nextPage });
+        const nextPage = pageRef.current + 1;
+
+        const result = await getPosts({ filter: filterRef.current, limit: PAGE_SIZE, page: nextPage });
         const newPosts = result.posts as PostData[];
 
         setPosts((prev) => [...prev, ...newPosts]);
         setPage(nextPage);
-        setHasMore(newPosts.length >= PAGE_SIZE);
+        pageRef.current = nextPage;
+
+        const more = newPosts.length >= PAGE_SIZE;
+        setHasMore(more);
+        hasMoreRef.current = more;
+
         setIsLoadingMore(false);
-    }, [filter, page, isLoadingMore, hasMore]);
+        isLoadingMoreRef.current = false;
+    }, []); // 无依赖，函数引用稳定
 
-    // Intersection Observer 无限滚动
+    // 清理 observer
     useEffect(() => {
-        if (!loadMoreRef.current) return;
+        return () => {
+            observerRef.current?.disconnect();
+        };
+    }, []);
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
-                    loadMore();
-                }
-            },
-            { rootMargin: "200px" }
-        );
+    // 使用 callback ref 绑定 IntersectionObserver
+    // 当 DOM 元素挂载/卸载时自动触发，不受 Framer Motion 动画时序影响
+    const loadMoreRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            // 断开旧的 observer
+            observerRef.current?.disconnect();
 
-        observer.observe(loadMoreRef.current);
-        return () => observer.disconnect();
-    }, [loadMore, hasMore, isLoadingMore, isLoading]);
+            if (!node) return;
+
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting && hasMoreRef.current && !isLoadingMoreRef.current) {
+                        loadMore();
+                    }
+                },
+                { rootMargin: "200px" }
+            );
+
+            observer.observe(node);
+            observerRef.current = observer;
+        },
+        [loadMore]
+    );
 
     // ---- 加载态 ----
     if (isLoading || isPending) {

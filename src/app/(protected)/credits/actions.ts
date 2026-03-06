@@ -58,7 +58,7 @@ export async function getMyTransactions(limit = 20, offset = 0) {
 
     const { data, error } = await supabase
         .from("credit_transactions")
-        .select("id, amount, type, description, created_at")
+        .select("id, amount, type, description, metadata, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);

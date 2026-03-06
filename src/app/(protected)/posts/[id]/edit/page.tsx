@@ -309,7 +309,7 @@ export default function EditPostPage() {
                         <div className="relative group">
                             {/* 渐变边框效果 */}
                             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 via-primary/25 to-primary/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
-                            <div className="relative min-h-[500px] bg-background rounded-lg border border-border/50 shadow-lg overflow-hidden">
+                            <div className="relative min-h-[500px] bg-background rounded-lg border border-border/50 shadow-lg flex flex-col">
                                 {/* 顶部装饰条 */}
                                 <div className="h-10 bg-muted/30 border-b border-border/50 flex items-center px-4 gap-2">
                                     <div className="flex gap-1.5">
