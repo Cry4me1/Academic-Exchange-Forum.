@@ -3,8 +3,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { usePresenceContext } from "@/contexts/PresenceContext";
 import { useFriends, type FriendWithProfile } from "@/hooks/useFriends";
-import { usePresence } from "@/hooks/usePresence";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -62,7 +62,7 @@ interface FriendsListProps {
 
 export function FriendsList({ currentUserId }: FriendsListProps) {
     const { friends, loading } = useFriends(currentUserId);
-    const { isOnline } = usePresence(currentUserId);
+    const { isOnline } = usePresenceContext();
 
     // 根据在线状态分组好友
     const onlineFriends = friends.filter((f) => isOnline(f.friend.id));

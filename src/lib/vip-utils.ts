@@ -122,9 +122,10 @@ export function getNextLevelProgressByLevel(currentLevel: number, totalSpent: nu
     }
 
     const range = next.minSpent - current.minSpent
-    const done = totalSpent - current.minSpent
+    const done = Math.max(0, totalSpent - current.minSpent)
     const progress = Math.min(100, Math.round((done / range) * 100))
-    return { current, next, progress, remaining: next.minSpent - totalSpent }
+    const remaining = Math.max(0, next.minSpent - Math.max(totalSpent, current.minSpent))
+    return { current, next, progress, remaining }
 }
 
 /**

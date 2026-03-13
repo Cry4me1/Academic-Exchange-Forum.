@@ -1,21 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Bell, Check, Loader2 } from "lucide-react";
-import { NotificationItem } from "./NotificationItem";
 import { useNotifications } from "@/hooks/useNotifications";
+import { Bell, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { NotificationItem } from "./NotificationItem";
 
 interface NotificationCenterProps {
     currentUserId: string;
@@ -98,7 +95,7 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
 
             <DropdownMenuContent
                 align="end"
-                className="w-[380px] p-0"
+                className="w-[380px] p-0 flex flex-col max-h-[500px]"
                 sideOffset={8}
             >
                 {/* Header */}
@@ -118,7 +115,7 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
                 </div>
 
                 {/* Notifications List */}
-                <ScrollArea className="max-h-[400px]">
+                <ScrollArea className="flex-1 overflow-hidden">
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -160,8 +157,7 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
 
                 {/* Footer */}
                 {notifications.length > 0 && (
-                    <>
-                        <DropdownMenuSeparator className="my-0" />
+                    <div className="flex-shrink-0 border-t">
                         <div className="p-2">
                             <Link href="/notifications" onClick={() => setOpen(false)}>
                                 <Button
@@ -172,7 +168,7 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
                                 </Button>
                             </Link>
                         </div>
-                    </>
+                    </div>
                 )}
             </DropdownMenuContent>
         </DropdownMenu>

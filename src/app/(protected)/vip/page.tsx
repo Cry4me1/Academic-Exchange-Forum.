@@ -6,7 +6,7 @@ import { VipBadge } from "@/components/payments/VipBadge";
 import { VipIconV1, VipIconV2, VipIconV3, VipIconV4, VipIconV5, VipIconV6 } from "@/components/payments/VipIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { VIP_LEVELS, getNextLevelProgress, getVipLevel } from "@/lib/vip-utils";
+import { VIP_LEVELS, getNextLevelProgressByLevel, getVipLevelByNumber } from "@/lib/vip-utils";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import {
     ArrowLeft,
@@ -62,6 +62,7 @@ export default function VipPage() {
     const [isRechargeOpen, setIsRechargeOpen] = useState(false);
     const [balance, setBalance] = useState(0);
     const [totalSpent, setTotalSpent] = useState(0);
+    const [vipLevel, setVipLevel] = useState(1);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -77,6 +78,7 @@ export default function VipPage() {
             ]);
             setBalance(credits.balance);
             setTotalSpent(credits.totalSpent);
+            setVipLevel(credits.vipLevel ?? 1);
             const txs = txResult.transactions as Transaction[];
             setTransactions(txs);
             setHasMore(txs.length >= PAGE_SIZE);
@@ -104,14 +106,15 @@ export default function VipPage() {
             ]);
             setBalance(credits.balance);
             setTotalSpent(credits.totalSpent);
+            setVipLevel(credits.vipLevel ?? 1);
             const txs = txResult.transactions as Transaction[];
             setTransactions(txs);
             setHasMore(txs.length >= PAGE_SIZE);
         }
     };
 
-    const level = getVipLevel(totalSpent);
-    const { current, next, progress, remaining } = getNextLevelProgress(totalSpent);
+    const level = getVipLevelByNumber(vipLevel);
+    const { current, next, progress, remaining } = getNextLevelProgressByLevel(vipLevel, totalSpent);
 
     // 3D 视差特效所需 variables
     const mouseX = useMotionValue(0.5);

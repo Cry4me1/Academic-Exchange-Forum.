@@ -4,6 +4,7 @@ import { CollapsibleReplies, CommentData, CommentInput, CommentItem, CommentSort
 import { CreateDuelDialog } from "@/components/duel/CreateDuelDialog";
 import { ReputationBadgeCompact } from "@/components/duel/ReputationBadge";
 import NovelViewer from "@/components/editor/NovelViewer";
+import PeerReviewPanel from "@/components/editor/peer-review-panel";
 import { ImmersiveToolbar, ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -640,6 +641,17 @@ export default function PostDetailClient({
                                     initialValue={post.content}
                                 />
                             </motion.div>
+
+                            {/* AI 同行评审面板（仅作者可见） */}
+                            {currentUser?.id === post.author.id && (
+                                <motion.div variants={itemVariants} className="mb-8">
+                                    <PeerReviewPanel
+                                        content={post.content as import("novel").JSONContent}
+                                        title={post.title}
+                                        tags={post.tags}
+                                    />
+                                </motion.div>
+                            )}
 
                             {/* 互动区域 */}
                             <motion.div

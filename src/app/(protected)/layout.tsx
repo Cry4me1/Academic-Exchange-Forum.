@@ -1,4 +1,5 @@
 import { CreditRechargeProvider } from "@/components/payments/CreditRechargeProvider";
+import { PresenceProvider } from "@/contexts/PresenceContext";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -16,8 +17,10 @@ export default async function ProtectedLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      {children}
-      <CreditRechargeProvider />
+      <PresenceProvider currentUserId={user.id}>
+        {children}
+        <CreditRechargeProvider />
+      </PresenceProvider>
     </div>
   );
 }

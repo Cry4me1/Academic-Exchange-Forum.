@@ -1,22 +1,22 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { Notification } from "@/hooks/useNotifications";
+import { cn } from "@/lib/utils";
 import {
-    Heart,
-    MessageCircle,
-    UserPlus,
-    UserCheck,
-    Mail,
     AtSign,
     Bell,
-    Trash2,
+    Heart,
+    Mail,
+    MessageCircle,
     Swords,
+    Trash2,
     Trophy,
+    UserCheck,
+    UserPlus,
     XCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface NotificationItemProps {
     notification: Notification;
@@ -158,6 +158,7 @@ export function NotificationItem({
                     variant="ghost"
                     size="icon"
                     onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         onDelete();
                     }}

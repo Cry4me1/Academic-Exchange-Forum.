@@ -1,11 +1,12 @@
 "use client";
 
 import NovelEditor from "@/components/editor/NovelEditor";
+import PeerReviewPanel from "@/components/editor/peer-review-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, HelpCircle, Plus, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -279,6 +280,24 @@ export default function NewPostPage() {
                             </div>
                         </div>
                     </motion.div>
+
+                    {/* AI 同行评审面板 */}
+                    <AnimatePresence>
+                        {title.trim() && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <PeerReviewPanel
+                                    content={contentJson}
+                                    title={title}
+                                    tags={selectedTags}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* 提示信息 */}
                     <motion.div

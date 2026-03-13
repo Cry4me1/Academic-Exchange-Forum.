@@ -20,7 +20,7 @@ export async function getMyCredits() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        return { error: "请先登录", balance: 0, totalSpent: 0, totalRecharged: 0 };
+        return { error: "请先登录", balance: 0, totalSpent: 0, totalRecharged: 0, vipLevel: 1 };
     }
 
     // [新增] 每次获取用户积分时，触发一次“当月奖励检查”
@@ -35,13 +35,23 @@ export async function getMyCredits() {
 
     if (error || !data) {
         // 如果还没有记录, 返回 0
-        return { balance: 0, totalSpent: 0, totalRecharged: 0 };
+        return { balance: 0, totalSpent: 0, totalRecharged: 0, vipLevel: 1 };
     }
+
+    // 获取 profiles 中的 vip_level
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("vip_level")
+        .eq("id", user.id)
+        .single();
+
+    console.log("DEBUG: getMyCredits profile fetch:", { profile, profileError, userId: user.id });
 
     return {
         balance: data.balance,
         totalSpent: data.total_spent,
         totalRecharged: data.total_recharged,
+        vipLevel: profile?.vip_level ?? 1,
     };
 }
 

@@ -1,28 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { FriendRequestCard, UserSearchDialog } from "@/components/social";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePresenceContext } from "@/contexts/PresenceContext";
+import { useFriends } from "@/hooks/useFriends";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import {
-    Users,
-    UserPlus,
     Clock,
-    Search,
+    Loader2,
     MessageCircle,
     Trash2,
-    Loader2,
+    UserPlus,
+    Users
 } from "lucide-react";
-import { UserSearchDialog, FriendRequestCard } from "@/components/social";
-import { useFriends } from "@/hooks/useFriends";
-import { usePresence } from "@/hooks/usePresence";
-import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function FriendsPage() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -47,7 +46,7 @@ export default function FriendsPage() {
         removeFriend,
         cancelRequest,
     } = useFriends(currentUserId);
-    const { isOnline } = usePresence(currentUserId);
+    const { isOnline } = usePresenceContext();
 
     const handleRemoveFriend = async (friendshipId: string, friendName: string) => {
         const result = await removeFriend(friendshipId);
