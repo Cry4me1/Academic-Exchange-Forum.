@@ -444,24 +444,25 @@ export default function PostDetailClient({
                                 <Button variant="ghost" size="icon" onClick={handleShare}>
                                     <Share2 className="h-5 w-5" />
                                 </Button>
-                                {(!currentUser || currentUser.id !== post.author.id) && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hidden sm:flex"
-                                        onClick={() => {
-                                            if (!currentUser) {
-                                                toast.error("请先登录后发起挑战");
-                                                router.push("/login");
-                                                return;
-                                            }
-                                            setDuelDialogOpen(true);
-                                        }}
-                                    >
-                                        <Swords className="h-4 w-4" />
-                                        发起挑战
-                                    </Button>
-                                )}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn(
+                                        "gap-2 border-primary/20 text-primary hover:bg-primary/5 sm:flex",
+                                        (currentUser && currentUser.id === post.author.id) ? "hidden" : "hidden sm:flex"
+                                    )}
+                                    onClick={() => {
+                                        if (!currentUser) {
+                                            toast.error("请先登录后发起挑战");
+                                            router.push("/login");
+                                            return;
+                                        }
+                                        setDuelDialogOpen(true);
+                                    }}
+                                >
+                                    <Swords className="h-4 w-4" />
+                                    发起挑战
+                                </Button>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon">

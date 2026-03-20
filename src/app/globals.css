@@ -890,6 +890,32 @@
 }
 
 /* ============================================
+   Custom CodeBlock NodeView Styles
+   ============================================ */
+
+/* Code block wrapper - wraps both toolbar and pre */
+.code-block-wrapper {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* Override pre styles inside the wrapper */
+.code-block-wrapper pre {
+  border-radius: 0 0 0.75rem 0.75rem !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Toolbar top corners only */
+.code-block-wrapper .code-block-toolbar {
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+
+/* ============================================
    Global Drag Handle Styles (Novel Official)
    ============================================ */
 
@@ -1217,6 +1243,27 @@
 .mermaid-preview-area svg {
   max-width: 100%;
   height: auto;
+}
+
+/*
+ * 重置 prose 对 Mermaid SVG 内部元素的影响
+ * prose-lg 会施加较大的 line-height / margin，导致 foreignObject 内文字溢出被裁剪
+ */
+.mermaid-preview-area svg foreignObject,
+.mermaid-preview-area svg foreignObject * {
+  line-height: 1.35 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+}
+
+.mermaid-preview-area svg foreignObject div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  text-align: center !important;
+  overflow: visible !important;
 }
 
 /* 只读模式下的 mermaid 块 */

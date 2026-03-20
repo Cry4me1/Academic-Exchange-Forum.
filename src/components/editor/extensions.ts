@@ -2,6 +2,7 @@ import { Color } from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import { Mathematics } from "@tiptap/extension-mathematics";
 import { TextStyle } from "@tiptap/extension-text-style";
+import { ReactNodeViewRenderer } from "@tiptap/react";
 import { all, createLowlight } from "lowlight";
 import {
     CodeBlockLowlight,
@@ -14,6 +15,7 @@ import {
 } from "novel";
 import AutoJoiner from "tiptap-extension-auto-joiner";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
+import { CodeBlockComponent } from "./extensions/code-block-component";
 import { CustomImage } from "./extensions/custom-image";
 import { MermaidBlock } from "./extensions/mermaid-block";
 import { Command, renderItems } from "./extensions/slash-command-extension";
@@ -24,6 +26,16 @@ const lowlight = createLowlight(all);
 
 const codeBlockLowlight = CodeBlockLowlight.configure({
     lowlight,
+}).extend({
+    addOptions() {
+        return {
+            ...this.parent?.(),
+            editable: true,
+        };
+    },
+    addNodeView() {
+        return ReactNodeViewRenderer(CodeBlockComponent);
+    },
 });
 
 // Configure Mathematics extension (v2 uses regex decorations)
