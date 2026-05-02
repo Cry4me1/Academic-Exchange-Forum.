@@ -5,6 +5,8 @@ import { CreateDuelDialog } from "@/components/duel/CreateDuelDialog";
 import { ReputationBadgeCompact } from "@/components/duel/ReputationBadge";
 import NovelViewer from "@/components/editor/NovelViewer";
 import PeerReviewPanel from "@/components/editor/peer-review-panel";
+import { CoAuthorBadge } from "@/components/lab/co-author/CoAuthorBadge";
+import { CoAuthorPanel, type CoAuthor } from "@/components/lab/co-author/CoAuthorPanel";
 import { ImmersiveToolbar, ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,10 +35,12 @@ import {
     HelpCircle,
     History,
     Loader2,
+    Lock,
     Maximize2,
     MessageCircle,
     MoreHorizontal,
     Pencil,
+    Pin,
     Share2,
     Swords,
     Trash2,
@@ -76,6 +80,8 @@ interface PostDetailClientProps {
         };
         is_solved?: boolean;
         is_help_wanted?: boolean;
+        is_pinned?: boolean;
+        is_locked?: boolean;
     };
     comments: CommentData[];
     authorOtherPosts: {
@@ -91,6 +97,7 @@ interface PostDetailClientProps {
     initialIsLiked?: boolean;
     initialIsBookmarked?: boolean;
     commentLikeStatus?: Record<string, boolean>;
+    coAuthors?: CoAuthor[];
 }
 
 // 标签颜色映射
@@ -152,6 +159,7 @@ export default function PostDetailClient({
     initialIsLiked = false,
     initialIsBookmarked = false,
     commentLikeStatus = {},
+    coAuthors = [],
 }: PostDetailClientProps) {
     const router = useRouter();
     const [headings, setHeadings] = useState<HeadingItem[]>([]);
@@ -464,10 +472,8 @@ export default function PostDetailClient({
                                     发起挑战
                                 </Button>
                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
-                                            <MoreHorizontal className="h-5 w-5" />
-                                        </Button>
+                                    <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground h-9 w-9 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                                        <MoreHorizontal className="h-5 w-5" />
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                         {currentUser?.id === post.author.id && (
@@ -573,11 +579,28 @@ export default function PostDetailClient({
                                 </div>
 
                                 {/* 标题 */}
-                                <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 leading-tight">
-                                    {post.title}
-                                </h1>
+                                <div className="flex items-start gap-3 mb-6">
+                                    <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight flex-1">
+                                        {post.title}
+                                    </h1>
+                                    {coAuthors.length > 0 && (
+                                        <CoAuthorBadge count={coAuthors.length} className="mt-2 flex-shrink-0" />
+                                    )}
+                                </div>
 
                                 <div className="flex items-center gap-2 mb-6">
+                                    {post.is_pinned && (
+                                        <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 pl-2">
+                                            <Pin className="h-4 w-4" />
+                                            置顶
+                                        </Badge>
+                                    )}
+                                    {post.is_locked && (
+                                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1 pl-2">
+                                            <Lock className="h-4 w-4" />
+                                            锁定
+                                        </Badge>
+                                    )}
                                     {post.is_solved && (
                                         <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20 gap-1 pl-2">
                                             <CheckCircle2 className="h-4 w-4" />
@@ -626,7 +649,7 @@ export default function PostDetailClient({
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                         <div className="flex items-center gap-1">
                                             <Calendar className="h-4 w-4" />
-                                            <span>{formatDate(post.created_at)}</span>
+                                            <span suppressHydrationWarning>{formatDate(post.created_at)}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Eye className="h-4 w-4" />
@@ -634,6 +657,12 @@ export default function PostDetailClient({
                                         </div>
                                     </div>
                                 </div>
+                                {/* 共创者面板 */}
+                                {coAuthors.length > 0 && (
+                                    <div className="mt-4">
+                                        <CoAuthorPanel coAuthors={coAuthors} />
+                                    </div>
+                                )}
                             </motion.article>
 
                             {/* 文章内容 */}
@@ -699,11 +728,19 @@ export default function PostDetailClient({
 
                                 {/* 评论输入框 */}
                                 <div className="mb-8">
-                                    <CommentInput
-                                        currentUser={currentUser}
-                                        onSubmit={handleSubmitComment}
-                                        placeholder="写下你的评论..."
-                                    />
+                                    {post.is_locked ? (
+                                        <div className="bg-muted/30 rounded-xl p-6 text-center border border-border/50">
+                                            <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                                            <p className="text-sm font-medium text-muted-foreground">该帖子的评论已被锁定</p>
+                                            <p className="text-xs text-muted-foreground mt-1">管理员已关闭此帖子的评论功能，无法发布新评论或回复。</p>
+                                        </div>
+                                    ) : (
+                                        <CommentInput
+                                            currentUser={currentUser}
+                                            onSubmit={handleSubmitComment}
+                                            placeholder="写下你的评论..."
+                                        />
+                                    )}
                                 </div>
 
                                 {/* 排序加载指示器 */}
@@ -719,14 +756,14 @@ export default function PostDetailClient({
                                     <div className="divide-y divide-border/30">
                                         {comments.map((comment) => (
                                             <div key={comment.id} className="py-1">
-                                                <CommentItem
-                                                    comment={comment}
-                                                    postId={post.id}
-                                                    postAuthorId={post.author.id}
-                                                    currentUserId={currentUser?.id}
-                                                    maxDepth={2}
-                                                    onReply={handleReply}
-                                                    onDelete={(commentId) => {
+                                                    <CommentItem
+                                                        comment={comment}
+                                                        postId={post.id}
+                                                        postAuthorId={post.author.id}
+                                                        currentUserId={currentUser?.id}
+                                                        maxDepth={2}
+                                                        onReply={post.is_locked ? undefined : handleReply}
+                                                        onDelete={(commentId) => {
                                                         setComments((prev) => prev.filter((c) => c.id !== commentId));
                                                     }}
                                                     isLiked={commentLikeStatus[comment.id]}
@@ -742,7 +779,7 @@ export default function PostDetailClient({
                                                         postAuthorId={post.author.id}
                                                         currentUserId={currentUser?.id}
                                                         isPostAuthor={currentUser?.id === post.author.id}
-                                                        onReply={handleReply}
+                                                        onReply={post.is_locked ? undefined : handleReply}
                                                         onDelete={(commentId) => {
                                                             setComments(prev => prev.map(c => ({
                                                                 ...c,
@@ -756,7 +793,7 @@ export default function PostDetailClient({
                                                 )}
 
                                                 {/* 回复输入框 */}
-                                                {replyingTo === comment.id && (
+                                                {!post.is_locked && replyingTo === comment.id && (
                                                     <div className="ml-12 mb-4">
                                                         <CommentInput
                                                             currentUser={currentUser}

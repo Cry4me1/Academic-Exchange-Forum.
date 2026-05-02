@@ -29,31 +29,102 @@ export async function submitReport(data: ReportData) {
     const reporterEmail = reporter?.email || user.email || "unknown@email.com";
     const reporterUsername = reporter?.username || "未知用户";
 
-    // 尝试发送邮件
-    const emailResult = await sendReportEmail({
-        reporterEmail,
-        reporterUsername,
+    // 构建内容快照（防止内容被删后无法审核）
+    let contentSnapshot: Record<string, unknown> = {
         targetType: data.type,
         targetId: data.targetId,
         targetTitle: data.targetTitle,
-        reason: data.reason,
-        details: data.details,
-    });
+    };
 
-    if (!emailResult.success) {
-        console.error("Email sending failed:", emailResult.error);
-        // 邮件发送失败也要记录到控制台
+    try {
+        if (data.type === "post") {
+            const { data: post } = await supabase
+                .from("posts")
+                .select("id, title, content, author_id, tags, created_at, profiles!posts_author_id_fkey(full_name, username)")
+                .eq("id", data.targetId)
+                .single();
+            if (post) {
+                contentSnapshot = {
+                    ...contentSnapshot,
+                    post_title: post.title,
+                    post_content: typeof post.content === 'string'
+                        ? post.content.substring(0, 500) // 截取前500字符
+                        : post.content,
+                    post_author_id: post.author_id,
+                    post_author: post.profiles,
+                    post_tags: post.tags,
+                    post_created_at: post.created_at,
+                };
+            }
+        } else if (data.type === "comment") {
+            const { data: comment } = await supabase
+                .from("comments")
+                .select("id, content, author_id, post_id, created_at, profiles!comments_author_id_fkey(full_name, username)")
+                .eq("id", data.targetId)
+                .single();
+            if (comment) {
+                contentSnapshot = {
+                    ...contentSnapshot,
+                    comment_content: typeof comment.content === 'string'
+                        ? comment.content.substring(0, 500)
+                        : comment.content,
+                    comment_author_id: comment.author_id,
+                    comment_author: comment.profiles,
+                    comment_post_id: comment.post_id,
+                    comment_created_at: comment.created_at,
+                };
+            }
+        } else if (data.type === "user") {
+            const { data: targetUser } = await supabase
+                .from("profiles")
+                .select("id, full_name, username, avatar_url, email")
+                .eq("id", data.targetId)
+                .single();
+            if (targetUser) {
+                contentSnapshot = {
+                    ...contentSnapshot,
+                    user_full_name: targetUser.full_name,
+                    user_username: targetUser.username,
+                    user_avatar_url: targetUser.avatar_url,
+                };
+            }
+        }
+    } catch {
+        // 快照获取失败不影响举报提交
+        console.warn("Failed to build content snapshot for report");
     }
 
-    // 记录到控制台（作为备份）
-    console.log("=== REPORT SUBMITTED ===");
-    console.log(`To: ddanthumytrang@gmail.com`);
-    console.log(`Reporter: ${reporterUsername} (${reporterEmail})`);
-    console.log(`Type: ${data.type}`);
-    console.log(`Target ID: ${data.targetId}`);
-    console.log(`Reason: ${data.reason}`);
-    console.log(`Email sent: ${emailResult.success}`);
-    console.log("========================");
+    // 1. 写入 reports 表
+    const { error: dbError } = await supabase.from("reports").insert({
+        reporter_id: user.id,
+        target_type: data.type,
+        target_id: data.targetId,
+        reason: data.reason,
+        details: data.details || null,
+        status: "pending",
+        content_snapshot: contentSnapshot,
+    });
+
+    if (dbError) {
+        console.error("Failed to insert report:", dbError);
+        return { error: "举报提交失败，请稍后重试" };
+    }
+
+    // 2. 同时发送邮件通知（失败不影响举报提交）
+    try {
+        await sendReportEmail({
+            reporterEmail,
+            reporterUsername,
+            targetType: data.type,
+            targetId: data.targetId,
+            targetTitle: data.targetTitle,
+            reason: data.reason,
+            details: data.details,
+        });
+    } catch (emailErr) {
+        console.error("Report email sending failed:", emailErr);
+        // 邮件发送失败不影响举报记录的持久化
+    }
 
     return { success: true };
 }

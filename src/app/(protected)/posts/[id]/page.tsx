@@ -28,6 +28,7 @@ async function getPost(id: string) {
         `)
         .eq("id", id)
         .eq("is_published", true)
+        .eq("is_hidden", false)
         .single();
 
     if (error || !post) {
@@ -106,11 +107,36 @@ async function getAuthorOtherPosts(authorId: string, currentPostId: string) {
         .select("id, title, created_at")
         .eq("author_id", authorId)
         .eq("is_published", true)
+        .eq("is_hidden", false)
         .neq("id", currentPostId)
         .order("created_at", { ascending: false })
         .limit(5);
 
     return posts || [];
+}
+
+// 获取帖子共创者
+async function getCoAuthors(postId: string) {
+    const supabase = await createClient();
+
+    const { data } = await supabase
+        .from("post_co_authors")
+        .select(`
+            id,
+            role,
+            contribution_summary,
+            lab_room_id,
+            user:profiles!user_id(
+                id,
+                full_name,
+                username,
+                avatar_url
+            )
+        `)
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+
+    return data || [];
 }
 
 // 增加阅读量
@@ -168,8 +194,11 @@ export default async function PostDetailPage({ params }: PageProps) {
     // 增加阅读量（非阻塞）
     incrementViewCount(id);
 
-    // 获取作者其他文章
-    const authorOtherPosts = await getAuthorOtherPosts(post.author_id, id);
+    // 获取作者其他文章和共创者
+    const [authorOtherPosts, coAuthors] = await Promise.all([
+        getAuthorOtherPosts(post.author_id, id),
+        getCoAuthors(id),
+    ]);
 
     return (
         <PostDetailClient
@@ -180,6 +209,7 @@ export default async function PostDetailPage({ params }: PageProps) {
             initialIsLiked={interactionStatus.isLiked}
             initialIsBookmarked={interactionStatus.isBookmarked}
             commentLikeStatus={commentLikeStatus}
+            coAuthors={coAuthors as any}
         />
     );
 }

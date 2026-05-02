@@ -33,6 +33,7 @@ interface PostData {
     share_count: number;
     is_solved: boolean;
     is_help_wanted: boolean;
+    is_pinned: boolean;
     created_at: string;
     author: {
         id: string;
@@ -292,6 +293,7 @@ export function PostFeed({ filter }: PostFeedProps) {
                                     isSolved={post.is_solved}
                                     isHelpWanted={post.is_help_wanted}
                                     authorVipLevel={post.authorVipLevel}
+                                    isPinned={post.is_pinned}
                                 />
                             </motion.div>
                         ))}

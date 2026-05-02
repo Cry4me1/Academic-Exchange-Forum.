@@ -6,7 +6,7 @@ import { toast } from "sonner";
 export interface Notification {
     id: string;
     user_id: string;
-    type: "like" | "comment" | "friend_request" | "friend_accepted" | "message" | "mention" | "duel_invite" | "duel_accepted" | "duel_rejected";
+    type: "like" | "comment" | "friend_request" | "friend_accepted" | "message" | "mention" | "duel_invite" | "duel_accepted" | "duel_rejected" | "system";
     title: string;
     content: string | null;
     is_read: boolean;
@@ -214,6 +214,8 @@ function getNotificationIcon(type: Notification["type"]): string {
             return "🏆";
         case "duel_rejected":
             return "❌";
+        case "system":
+            return "⚠️";
         default:
             return "🔔";
     }

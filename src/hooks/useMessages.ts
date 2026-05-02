@@ -218,6 +218,24 @@ export function useMessages(
         ) => {
             if (!currentUserId) return { success: false, error: "未登录" };
 
+            // 检查用户是否被封禁或禁言
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("is_banned, is_muted, muted_until")
+                .eq("id", currentUserId)
+                .single();
+
+            if (profile?.is_banned) {
+                return { success: false, error: "您的账号已被封禁，无法发送消息" };
+            }
+
+            if (profile?.is_muted) {
+                const muteExpiry = profile.muted_until ? new Date(profile.muted_until) : null;
+                if (!muteExpiry || muteExpiry > new Date()) {
+                    return { success: false, error: "您已被禁言，暂时无法发送消息" };
+                }
+            }
+
             const messageData: {
                 sender_id: string;
                 receiver_id: string;

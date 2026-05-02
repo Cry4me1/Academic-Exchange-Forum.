@@ -223,7 +223,7 @@ export function CommentItem({
                                 </Button>
                             )}
 
-                            {depth < maxDepth - 1 && (
+                            {depth < maxDepth - 1 && onReply && (
                                 <Button
                                     variant="ghost"
                                     size="sm"

@@ -5,6 +5,7 @@ import { useUpdateNotification } from "@/hooks/use-update-notification";
 import {
     Bookmark,
     Crown,
+    FlaskConical,
     Flame,
     Home,
     MessageSquare,
@@ -23,13 +24,14 @@ const navItems = [
     { href: "/trending", label: "热门学术", icon: Flame },
     { href: "/leaderboard", label: "排行榜", icon: Trophy },
     { href: "/duels", label: "决斗场", icon: Swords },
+    // { href: "/lab", label: "研究室", icon: FlaskConical, isLab: true }, // 功能暂未上线，隐藏入口
     { href: "/messages", label: "私信", icon: MessageSquare },
     { href: "/friends", label: "好友", icon: Users },
     { href: "/favorites", label: "我的收藏", icon: Bookmark },
     { href: "/updates", label: "更新日志", icon: Zap, isUpdateLog: true },
     { href: "/profile", label: "个人中心", icon: User },
     { href: "/vip", label: "Ask AI · VIP", icon: Crown, isVip: true },
-] as { href: string; label: string; icon: typeof Home; isUpdateLog?: boolean; isVip?: boolean }[];
+] as { href: string; label: string; icon: typeof Home; isUpdateLog?: boolean; isVip?: boolean; isLab?: boolean }[];
 
 export function MainNav() {
     const pathname = usePathname();
@@ -59,7 +61,9 @@ export function MainNav() {
                             : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             } ${showHighlight ? "update-highlight !text-yellow-600 dark:!text-yellow-400" : ""}
                             ${item.isVip && !isActive ? "!text-amber-600 dark:!text-amber-400 hover:!bg-amber-500/10" : ""}
-                            ${item.isVip && isActive ? "!bg-amber-500/15 !text-amber-600 dark:!text-amber-400" : ""}`}
+                            ${item.isVip && isActive ? "!bg-amber-500/15 !text-amber-600 dark:!text-amber-400" : ""}
+                            ${item.isLab && !isActive ? "!text-violet-600 dark:!text-violet-400 hover:!bg-violet-500/10" : ""}
+                            ${item.isLab && isActive ? "!bg-violet-500/15 !text-violet-600 dark:!text-violet-400" : ""}`}
                         onClick={() => handleNavClick(item)}
                     >
                         <Link href={item.href}>

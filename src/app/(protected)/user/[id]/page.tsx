@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFriends } from "@/hooks/useFriends";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { ArrowLeft, Bookmark, Calendar, Code2, Globe, Heart, Loader2, MapPin, MessageCircle, Sparkles, Swords, UserPlus } from "lucide-react";
+import { ArrowLeft, Ban, Bookmark, Calendar, Code2, Globe, Heart, Loader2, MapPin, MessageCircle, Sparkles, Swords, UserPlus, VolumeX } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -34,6 +34,9 @@ interface UserProfile {
     developer_title: string | null;
     banner_style: string | null;
     vip_level: number | null;
+    is_banned: boolean | null;
+    is_muted: boolean | null;
+    muted_until: string | null;
 }
 
 interface Post {
@@ -134,6 +137,7 @@ export default function UserProfilePage() {
                 .select("id, title, content, created_at, like_count, comment_count")
                 .eq("author_id", userId)
                 .eq("is_published", true)
+                .eq("is_hidden", false)
                 .order("created_at", { ascending: false })
                 .limit(20);
 
@@ -318,6 +322,24 @@ export default function UserProfilePage() {
                     transition={{ duration: 0.5 }}
                 >
                     <Card className="shadow-lg border-border/30 bg-white/80 backdrop-blur-sm">
+                        {/* 封禁/禁言状态横幅 */}
+                        {profile.is_banned && (
+                            <div className="flex items-center gap-2 px-6 py-3 bg-red-500/10 border-b border-red-500/20 text-red-600 dark:text-red-400 text-sm font-medium">
+                                <Ban className="h-4 w-4" />
+                                该用户已被封禁
+                            </div>
+                        )}
+                        {!profile.is_banned && profile.is_muted && (
+                            <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/10 border-b border-amber-500/20 text-amber-600 dark:text-amber-400 text-sm font-medium">
+                                <VolumeX className="h-4 w-4" />
+                                该用户已被禁言
+                                {profile.muted_until && (
+                                    <span className="text-xs opacity-70">
+                                        （至 {new Date(profile.muted_until).toLocaleString("zh-CN")}）
+                                    </span>
+                                )}
+                            </div>
+                        )}
                         <CardHeader className="pb-4">
                             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                                 {/* 头像 - 完整显示 */}
