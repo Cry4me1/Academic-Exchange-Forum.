@@ -91,6 +91,7 @@ function SearchResultsContent() {
                     author:profiles!author_id (id, username, avatar_url)
                 `)
                 .eq("is_published", true)
+                .eq("is_hidden", false)
                 .or(`title.ilike.%${query}%,tags.cs.{${query}}`)
                 .order("created_at", { ascending: false })
                 .limit(20);

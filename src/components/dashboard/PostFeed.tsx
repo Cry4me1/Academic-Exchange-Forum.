@@ -33,12 +33,15 @@ interface PostData {
     share_count: number;
     is_solved: boolean;
     is_help_wanted: boolean;
+    is_pinned: boolean;
     created_at: string;
     author: {
         id: string;
         username: string;
         full_name?: string;
         avatar_url?: string;
+        special_title?: string | null;
+        badges?: string[] | null;
     };
     isLiked: boolean;
     isBookmarked: boolean;
@@ -279,6 +282,8 @@ export function PostFeed({ filter }: PostFeedProps) {
                                         name: post.author.full_name || post.author.username,
                                         avatar: post.author.avatar_url,
                                         initials: (post.author.username || "?").slice(0, 2).toUpperCase(),
+                                        special_title: post.author.special_title,
+                                        badges: post.author.badges,
                                     }}
                                     title={post.title}
                                     content={extractTextFromContent(post.content)}
@@ -292,6 +297,7 @@ export function PostFeed({ filter }: PostFeedProps) {
                                     isSolved={post.is_solved}
                                     isHelpWanted={post.is_help_wanted}
                                     authorVipLevel={post.authorVipLevel}
+                                    isPinned={post.is_pinned}
                                 />
                             </motion.div>
                         ))}

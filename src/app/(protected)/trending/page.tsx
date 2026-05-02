@@ -92,6 +92,7 @@ export default function TrendingPage() {
                     author:profiles!author_id (id, username, avatar_url)
                 `)
                 .eq("is_published", true)
+                .eq("is_hidden", false)
                 .order(orderColumn, { ascending: false })
                 .order("like_count", { ascending: false })
                 .order("comment_count", { ascending: false })

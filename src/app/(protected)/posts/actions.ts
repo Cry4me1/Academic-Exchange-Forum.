@@ -25,6 +25,24 @@ export async function createPost(data: {
         return { error: "请先登录" };
     }
 
+    // 检查用户是否被封禁或禁言
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_banned, is_muted, muted_until")
+        .eq("id", user.id)
+        .single();
+
+    if (profile?.is_banned) {
+        return { error: "您的账号已被封禁，无法发布内容" };
+    }
+
+    if (profile?.is_muted) {
+        const muteExpiry = profile.muted_until ? new Date(profile.muted_until) : null;
+        if (!muteExpiry || muteExpiry > new Date()) {
+            return { error: "您已被禁言，暂时无法发布内容" };
+        }
+    }
+
     const { data: post, error } = await supabase
         .from("posts")
         .insert({
@@ -184,17 +202,24 @@ export async function getPosts(options: {
             share_count,
             is_solved,
             is_help_wanted,
+            is_pinned,
             created_at,
             author:profiles!author_id (
                 id,
                 username,
                 full_name,
                 avatar_url,
-                vip_level
+                vip_level,
+                special_title,
+                badges
             )
         `)
         .eq("is_published", true)
+        .eq("is_hidden", false)
         .range(offset, offset + limit - 1);
+
+    // 默认情况：所有查询优先考虑 is_pinned，然后才是业务排序
+    query = query.order("is_pinned", { ascending: false });
 
     // 根据筛选条件过滤 & 排序
     if (filter === "trending") {

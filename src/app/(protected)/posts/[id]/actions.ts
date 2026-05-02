@@ -198,6 +198,24 @@ export async function createComment(data: {
         return { error: "请先登录" };
     }
 
+    // 检查用户是否被封禁或禁言
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_banned, is_muted, muted_until")
+        .eq("id", user.id)
+        .single();
+
+    if (profile?.is_banned) {
+        return { error: "您的账号已被封禁，无法发表评论" };
+    }
+
+    if (profile?.is_muted) {
+        const muteExpiry = profile.muted_until ? new Date(profile.muted_until) : null;
+        if (!muteExpiry || muteExpiry > new Date()) {
+            return { error: "您已被禁言，暂时无法发表评论" };
+        }
+    }
+
     const { data: comment, error } = await supabase
         .from("comments")
         .insert({

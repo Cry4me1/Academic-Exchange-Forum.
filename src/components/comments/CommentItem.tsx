@@ -15,6 +15,8 @@ export interface CommentAuthor {
     username: string;
     avatar_url?: string;
     title?: string;
+    special_title?: string | null;
+    badges?: string[] | null;
 }
 
 export interface CommentData {
@@ -186,6 +188,11 @@ export function CommentItem({
                                     {comment.author.title}
                                 </span>
                             )}
+                            {comment.author.special_title && (
+                                <span className="text-xs font-semibold text-white bg-purple-500 shadow-sm px-2 py-0.5 rounded border-0">
+                                    {comment.author.special_title}
+                                </span>
+                            )}
                             {isAccepted && (
                                 <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
                                     <CheckCircle2 className="h-3 w-3" />
@@ -223,7 +230,7 @@ export function CommentItem({
                                 </Button>
                             )}
 
-                            {depth < maxDepth - 1 && (
+                            {depth < maxDepth - 1 && onReply && (
                                 <Button
                                     variant="ghost"
                                     size="sm"

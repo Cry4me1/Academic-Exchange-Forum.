@@ -6,7 +6,7 @@ import { VipBadge } from "@/components/payments/VipBadge";
 import { VipIconV1, VipIconV2, VipIconV3, VipIconV4, VipIconV5, VipIconV6 } from "@/components/payments/VipIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { VIP_LEVELS, getNextLevelProgressByLevel, getVipLevelByNumber } from "@/lib/vip-utils";
+import { getVipLevels, loadVipLevelsFromDB, getNextLevelProgressByLevel, getVipLevelByNumber } from "@/lib/vip-utils";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import {
     ArrowLeft,
@@ -72,6 +72,8 @@ export default function VipPage() {
     // 加载真实数据
     useEffect(() => {
         const loadData = async () => {
+            // 先从 DB 加载最新的 VIP 等级配置
+            await loadVipLevelsFromDB();
             const [credits, txResult] = await Promise.all([
                 getMyCredits(),
                 getMyTransactions(PAGE_SIZE, 0),
@@ -293,8 +295,8 @@ export default function VipPage() {
                             成长等级
                         </h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                            {VIP_LEVELS.map((lvl) => {
-                                const isCurrentOrPast = totalSpent >= lvl.minSpent;
+                            {getVipLevels().map((lvl) => {
+                                const isCurrentOrPast = lvl.level <= level.level;
                                 const isCurrent = lvl.level === level.level;
                                 const GridIcon = getIconComp(lvl.level);
 

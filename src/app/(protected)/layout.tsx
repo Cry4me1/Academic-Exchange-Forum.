@@ -15,6 +15,10 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
+  if (!user.email_confirmed_at) {
+    redirect("/pending-verification");
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <PresenceProvider currentUserId={user.id}>

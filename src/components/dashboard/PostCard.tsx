@@ -20,6 +20,7 @@ import {
     HelpCircle,
     MessageCircle,
     MoreHorizontal,
+    Pin,
     Share2,
 } from "lucide-react";
 import Image from "next/image";
@@ -54,6 +55,8 @@ export interface PostCardProps {
         name: string;
         avatar?: string;
         initials: string;
+        special_title?: string | null;
+        badges?: string[] | null;
     };
     title: string;
     content: string;
@@ -67,6 +70,7 @@ export interface PostCardProps {
     isHelpWanted?: boolean;
     coverImage?: string;
     authorVipLevel?: number;
+    isPinned?: boolean;
 }
 
 // ============================================================
@@ -105,6 +109,7 @@ export function PostCard({
     isHelpWanted = false,
     coverImage,
     authorVipLevel = 1,
+    isPinned = false,
 }: PostCardProps) {
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(likes);
@@ -214,6 +219,11 @@ export function PostCard({
                                         <p className="text-sm font-semibold text-foreground group-hover/author:text-primary transition-colors truncate">
                                             {author.name}
                                         </p>
+                                        {author.special_title && (
+                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0">
+                                                {author.special_title}
+                                            </Badge>
+                                        )}
                                         <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} />
                                     </div>
                                     <p className="text-[11px] text-muted-foreground/60" suppressHydrationWarning>
@@ -273,17 +283,22 @@ export function PostCard({
                                     blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQwIiBoZWlnaHQ9IjQyNiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTVlN2ViIi8+PC9zdmc+"
                                 />
                                 {/* 状态角标 */}
-                                {(isSolved || isHelpWanted) && (
-                                    <div className="absolute top-2.5 right-2.5">
+                                {(isPinned || isSolved || isHelpWanted) && (
+                                    <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end">
+                                        {isPinned && (
+                                            <Badge className="bg-amber-500/90 text-white border-0 gap-1 text-[10px] font-semibold shadow-lg">
+                                                <Pin className="h-3 w-3" /> 置顶
+                                            </Badge>
+                                        )}
                                         {isSolved ? (
                                             <Badge className="bg-emerald-500/90 text-white border-0 gap-1 text-[10px] font-semibold shadow-lg">
                                                 <CheckCircle2 className="h-3 w-3" /> 已解决
                                             </Badge>
-                                        ) : (
+                                        ) : isHelpWanted ? (
                                             <Badge className="bg-amber-500/90 text-white border-0 gap-1 text-[10px] font-semibold shadow-lg animate-pulse">
                                                 <HelpCircle className="h-3 w-3" /> 求助
                                             </Badge>
-                                        )}
+                                        ) : null}
                                     </div>
                                 )}
                             </div>
@@ -401,6 +416,11 @@ export function PostCard({
                                         <p className="text-sm font-semibold text-foreground group-hover/author:text-primary transition-colors truncate">
                                             {author.name}
                                         </p>
+                                        {author.special_title && (
+                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0">
+                                                {author.special_title}
+                                            </Badge>
+                                        )}
                                         <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} />
                                     </div>
                                     <p className="text-[11px] text-muted-foreground/60" suppressHydrationWarning>
@@ -448,8 +468,13 @@ export function PostCard({
                         </div>
 
                         {/* 状态标签 */}
-                        {(isSolved || (isHelpWanted && !isSolved)) && (
+                        {(isPinned || isSolved || (isHelpWanted && !isSolved)) && (
                             <div className="flex gap-2 mb-2">
+                                {isPinned && (
+                                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-0 gap-1 text-[10px] font-semibold">
+                                        <Pin className="h-3 w-3" /> 置顶
+                                    </Badge>
+                                )}
                                 {isSolved && (
                                     <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 gap-1 text-[10px] font-semibold">
                                         <CheckCircle2 className="h-3 w-3" /> 已解决

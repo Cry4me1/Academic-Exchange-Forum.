@@ -10,6 +10,7 @@ import {
     Heart,
     Mail,
     MessageCircle,
+    ShieldAlert,
     Swords,
     Trash2,
     Trophy,
@@ -35,6 +36,7 @@ const notificationIcons: Record<Notification["type"], React.ComponentType<{ clas
     duel_invite: Swords,
     duel_accepted: Trophy,
     duel_rejected: XCircle,
+    system: ShieldAlert,
 };
 
 const notificationColors: Record<Notification["type"], string> = {
@@ -47,6 +49,7 @@ const notificationColors: Record<Notification["type"], string> = {
     duel_invite: "text-orange-500 bg-orange-500/10",
     duel_accepted: "text-green-500 bg-green-500/10",
     duel_rejected: "text-red-500 bg-red-500/10",
+    system: "text-orange-600 bg-orange-600/10",
 };
 
 export function NotificationItem({
@@ -128,7 +131,10 @@ export function NotificationItem({
                             {notification.title}
                         </p>
                         {notification.content && (
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            <p className={cn(
+                                "text-xs text-muted-foreground mt-0.5",
+                                notification.type !== "system" && "line-clamp-2"
+                            )}>
                                 {notification.content}
                             </p>
                         )}

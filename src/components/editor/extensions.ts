@@ -44,86 +44,100 @@ const mathExtension = Mathematics.configure({
 });
 
 // We prefer constructing the list from what Novel exposes + our adds
-export const defaultExtensions: any[] = [
-    StarterKit.configure({
-        bulletList: {
-            HTMLAttributes: {
-                class: "list-disc list-outside leading-3 -mt-2",
+
+interface ExtensionOptions {
+    disableHistory?: boolean;
+    placeholder?: string;
+}
+
+export function createExtensions(options: ExtensionOptions = {}): any[] {
+    const { disableHistory = false, placeholder = "输入 '/' 唤起命令..." } = options;
+
+    return [
+        StarterKit.configure({
+            history: disableHistory ? false : undefined,
+            bulletList: {
+                HTMLAttributes: {
+                    class: "list-disc list-outside leading-3 -mt-2",
+                },
             },
-        },
-        orderedList: {
-            HTMLAttributes: {
-                class: "list-decimal list-outside leading-3 -mt-2",
+            orderedList: {
+                HTMLAttributes: {
+                    class: "list-decimal list-outside leading-3 -mt-2",
+                },
             },
-        },
-        listItem: {
-            HTMLAttributes: {
-                class: "leading-normal -mb-2",
+            listItem: {
+                HTMLAttributes: {
+                    class: "leading-normal -mb-2",
+                },
             },
-        },
-        blockquote: {
-            HTMLAttributes: {
-                class: "border-l-4 border-primary",
+            blockquote: {
+                HTMLAttributes: {
+                    class: "border-l-4 border-primary",
+                },
             },
-        },
-        codeBlock: false,
-        code: {
-            HTMLAttributes: {
-                class: "rounded-md bg-muted px-1.5 py-1 font-mono font-medium",
-                spellcheck: "false",
+            codeBlock: false,
+            code: {
+                HTMLAttributes: {
+                    class: "rounded-md bg-muted px-1.5 py-1 font-mono font-medium",
+                    spellcheck: "false",
+                },
             },
-        },
-        horizontalRule: false,
-        dropcursor: {
-            color: "#DBEAFE",
-            width: 4,
-        },
-        gapcursor: false,
-    }),
-    // Core extensions
-    TiptapLink.configure({
-        openOnClick: false,
-    }),
-    CustomImage,
-    TaskList,
-    TaskItem.configure({
-        nested: true,
-    }),
-    HorizontalRule,
-    Placeholder.configure({
-        placeholder: "输入 '/' 唤起命令...",
-        includeChildren: true,
-    }),
-    // Custom extensions
-    codeBlockLowlight,
-    // Math extension (v2)
-    mathExtension,
-    // Slash command extension
-    Command.configure({
-        suggestion: {
-            items: ({ query }: { query: string }) =>
-                suggestionItems.filter((item) =>
-                    item.title.toLowerCase().includes(query.toLowerCase()) ||
-                    item.searchTerms.some((term) => term.includes(query.toLowerCase()))
-                ),
-            render: renderItems,
-        },
-    }),
-    // Global drag handle - Notion-style block drag and drop
-    GlobalDragHandle.configure({
-        dragHandleWidth: 20,
-        scrollTreshold: 100,
-    }),
-    // Auto joiner - fixes list joining when dragging
-    AutoJoiner.configure({
-        elementsToJoin: ["bulletList", "orderedList"],
-    }),
-    // Mermaid flowchart block
-    MermaidBlock,
-    // Text styling extensions for color
-    TextStyle,
-    Color,
-    Highlight.configure({
-        multicolor: true,
-    }),
-];
+            horizontalRule: false,
+            dropcursor: {
+                color: "#DBEAFE",
+                width: 4,
+            },
+            gapcursor: false,
+        }),
+        // Core extensions
+        TiptapLink.configure({
+            openOnClick: false,
+        }),
+        CustomImage,
+        TaskList,
+        TaskItem.configure({
+            nested: true,
+        }),
+        HorizontalRule,
+        Placeholder.configure({
+            placeholder,
+            includeChildren: true,
+        }),
+        // Custom extensions
+        codeBlockLowlight,
+        // Math extension (v2)
+        mathExtension,
+        // Slash command extension
+        Command.configure({
+            suggestion: {
+                items: ({ query }: { query: string }) =>
+                    suggestionItems.filter((item) =>
+                        item.title.toLowerCase().includes(query.toLowerCase()) ||
+                        item.searchTerms.some((term) => term.includes(query.toLowerCase()))
+                    ),
+                render: renderItems,
+            },
+        }),
+        // Global drag handle - Notion-style block drag and drop
+        GlobalDragHandle.configure({
+            dragHandleWidth: 20,
+            scrollTreshold: 100,
+        }),
+        // Auto joiner - fixes list joining when dragging
+        AutoJoiner.configure({
+            elementsToJoin: ["bulletList", "orderedList"],
+        }),
+        // Mermaid flowchart block
+        MermaidBlock,
+        // Text styling extensions for color
+        TextStyle,
+        Color,
+        Highlight.configure({
+            multicolor: true,
+        }),
+    ];
+}
+
+export const defaultExtensions: any[] = createExtensions();
+
