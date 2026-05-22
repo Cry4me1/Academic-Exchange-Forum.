@@ -2,18 +2,22 @@
 import { Toaster } from "@/components/ui/sonner";
 import "katex/dist/katex.min.css";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 
-const geistSans = Geist({
+const geistSans = localFont({
+  src: [{ path: "./fonts/GeistVF.woff2", style: "normal" }],
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: [{ path: "./fonts/GeistMonoVF.woff2", style: "normal" }],
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
