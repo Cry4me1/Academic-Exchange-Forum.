@@ -95,12 +95,45 @@ function AnimatedCounter({ target, label, icon: Icon }: { target: string; label:
     );
 }
 
-export function Hero() {
+interface HeroProps {
+    postsCount?: number;
+    tagsCount?: number;
+    hotTopics?: Array<{
+        id: string;
+        title: string;
+        comment_count: number;
+        like_count: number;
+    }>;
+}
+
+export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    const displayTopics = hotTopics && hotTopics.length > 0 ? hotTopics.slice(0, 2) : [
+        { id: "demo-1", title: "关于量子纠缠的新理解", comment_count: 12, like_count: 42 },
+        { id: "demo-2", title: "深度学习在 NLP 中的演进", comment_count: 8, like_count: 36 }
+    ];
+
+    const formatCount = (count: number, label: string) => {
+        if (count <= 0) {
+            return label === "posts" ? "10K+" : "50+";
+        }
+        if (count >= 1000) {
+            return `${(count / 1000).toFixed(1)}K+`;
+        }
+        return `${count}`;
+    };
+
+    const gradients = [
+        "from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-500",
+        "from-emerald-400 to-cyan-500 dark:from-emerald-400 dark:to-cyan-500",
+        "from-orange-400 to-rose-500 dark:from-orange-400 dark:to-rose-500",
+        "from-pink-500 to-rose-500 dark:from-pink-500 dark:to-rose-500"
+    ];
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -251,8 +284,8 @@ export function Hero() {
                             variants={itemVariants}
                             className="mt-12 inline-flex items-center rounded-2xl transition-colors bg-white/60 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200 dark:border-white/[0.06] divide-x divide-slate-200 dark:divide-white/[0.06] shadow-sm dark:shadow-none"
                         >
-                            <AnimatedCounter target="10K+" label="学术帖子" icon={BookOpen} />
-                            <AnimatedCounter target="50+" label="学科领域" icon={FlaskConical} />
+                            <AnimatedCounter target={formatCount(postsCount, "posts")} label="学术帖子" icon={BookOpen} />
+                            <AnimatedCounter target={formatCount(tagsCount, "tags")} label="学科领域" icon={FlaskConical} />
                             <AnimatedCounter target="99.9%" label="正常运行" icon={Zap} />
                         </motion.div>
                     </motion.div>
@@ -308,20 +341,19 @@ export function Hero() {
                                     <span className="text-xs text-slate-500 dark:text-white/30">热门讨论</span>
                                 </div>
                                 <div className="p-4 space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-500 shrink-0 ring-1 ring-slate-900/5 dark:ring-white/10" />
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium text-slate-800 dark:text-white/80">关于量子纠缠的新理解</div>
-                                            <div className="text-xs mt-1 text-slate-500 dark:text-white/40">12 条回复 · 42 人赞同</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 shrink-0 ring-1 ring-slate-900/5 dark:ring-white/10" />
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium text-slate-800 dark:text-white/80">深度学习在 NLP 中的演进</div>
-                                            <div className="text-xs mt-1 text-slate-500 dark:text-white/40">8 条回复 · 36 人赞同</div>
-                                        </div>
-                                    </div>
+                                    {displayTopics.map((topic, index) => (
+                                        <Link href={`/posts/${topic.id}`} key={topic.id} className="flex items-start gap-3 hover:bg-slate-100/50 dark:hover:bg-white/5 p-1 rounded-lg transition-colors block">
+                                            <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${gradients[index % gradients.length]} shrink-0 ring-1 ring-slate-900/5 dark:ring-white/10`} />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-medium text-slate-800 dark:text-white/80 line-clamp-1 hover:text-orange-600 dark:hover:text-amber-400 transition-colors">
+                                                    {topic.title}
+                                                </div>
+                                                <div className="text-xs mt-1 text-slate-500 dark:text-white/40">
+                                                    {topic.comment_count} 条回复 · {topic.like_count} 人赞同
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))}
                                 </div>
                             </div>
                         </FloatingCard>

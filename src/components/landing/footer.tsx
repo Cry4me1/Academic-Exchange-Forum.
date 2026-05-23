@@ -50,7 +50,7 @@ export function Footer() {
                                 </a>
                             </li>
                             <li>
-                                <a href="#" className="text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                <a href="https://github.com/Cry4me1/Academic-Exchange-Forum." target="_blank" rel="noopener noreferrer" className="text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors">
                                     GitHub
                                 </a>
                             </li>

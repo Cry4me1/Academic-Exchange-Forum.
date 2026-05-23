@@ -167,3 +167,41 @@ export const getCachedFeaturedPosts = unstable_cache(
   ["featured-posts"],
   { revalidate: 600, tags: ["posts"] }
 );
+
+/**
+ * 缓存 Landing 统计数据 — 5 分钟刷新
+ */
+export const getCachedStats = unstable_cache(
+  async () => {
+    const supabase = createPublicClient();
+
+    // 1. 获取帖子总数
+    const { count: postCount } = await supabase
+      .from("posts")
+      .select("*", { count: "exact", head: true })
+      .eq("is_published", true)
+      .eq("is_hidden", false);
+
+    // 2. 获取标签总数
+    const { data: posts } = await supabase
+      .from("posts")
+      .select("tags")
+      .eq("is_published", true)
+      .eq("is_hidden", false);
+
+    const tagsSet = new Set<string>();
+    posts?.forEach((post) => {
+      if (Array.isArray(post.tags)) {
+        post.tags.forEach((tag: string) => tagsSet.add(tag));
+      }
+    });
+
+    return {
+      postsCount: postCount || 0,
+      tagsCount: tagsSet.size || 0,
+    };
+  },
+  ["landing-stats"],
+  { revalidate: 300, tags: ["stats"] }
+);
+
