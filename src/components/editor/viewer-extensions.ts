@@ -3,6 +3,7 @@ import Highlight from "@tiptap/extension-highlight";
 import { Mathematics } from "@tiptap/extension-mathematics";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import { mergeAttributes, Node } from "@tiptap/core";
 import { all, createLowlight } from "lowlight";
 import {
     CodeBlockLowlight,
@@ -37,6 +38,51 @@ const codeBlockLowlight = CodeBlockLowlight.configure({
 const mathExtension = Mathematics.configure({
     // Standard dollar sign syntax for inline math: $E=mc^2$
     regex: /\$([^\$]+)\$/gi,
+});
+
+/**
+ * Read-only WikiLink node — pure HTML, no React NodeView, no Suggestion plugin.
+ * Renders as a styled <a> tag that links to the referenced post.
+ */
+const WikiLinkViewerNode = Node.create({
+    name: "wikiLink",
+    group: "inline",
+    inline: true,
+    atom: true,
+
+    addAttributes() {
+        return {
+            postId: {
+                default: null,
+                parseHTML: (element) => element.getAttribute("data-post-id"),
+                renderHTML: (attributes) => ({
+                    "data-post-id": attributes.postId,
+                }),
+            },
+            title: {
+                default: null,
+                parseHTML: (element) => element.textContent?.trim() ?? "",
+                renderHTML: () => ({}),
+            },
+        };
+    },
+
+    parseHTML() {
+        return [{ tag: "a[data-wiki-link]" }];
+    },
+
+    renderHTML({ node, HTMLAttributes }) {
+        return [
+            "a",
+            mergeAttributes(HTMLAttributes, {
+                "data-wiki-link": "",
+                href: `/posts/${node.attrs.postId}`,
+                class: "wiki-link inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium no-underline cursor-pointer transition-colors duration-150 border border-primary/20",
+                target: "_blank",
+            }),
+            `📎 ${node.attrs.title}`,
+        ];
+    },
 });
 
 /**
@@ -97,4 +143,6 @@ export const viewerExtensions: any[] = [
     Highlight.configure({
         multicolor: true,
     }),
+    // WikiLink node — pure HTML rendering, no React NodeView
+    WikiLinkViewerNode,
 ];

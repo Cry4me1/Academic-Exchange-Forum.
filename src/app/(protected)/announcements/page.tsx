@@ -5,6 +5,8 @@ import { Bell, Rocket, Sparkles, Wrench, Megaphone, ArrowLeft, ChevronRight } fr
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-dynamic"; // ⚡ 强制动态渲染，打碎 Next.js 在公告页面的服务端静态预编译缓存
+
 const categoryStyles: Record<string, { icon: any, label: string, color: string, bg: string }> = {
   update: { icon: Rocket, label: "版本更新", color: "text-violet-500", bg: "from-primary to-violet-500" },
   activity: { icon: Sparkles, label: "活动通知", color: "text-purple-500", bg: "from-primary to-purple-500" },
@@ -44,6 +46,14 @@ export default async function AnnouncementsPage() {
             <p className="text-sm text-muted-foreground mt-1">Scholarly 平台的系统通知、活动与版本更新</p>
           </div>
         </div>
+
+        {/* 🚀 跳转至更新日志 (Updates) 的高规格便捷通道 */}
+        <Link href="/updates">
+          <Button variant="outline" size="sm" className="gap-2 border-primary/20 hover:border-primary/50 text-xs sm:text-sm shadow-sm hover:shadow transition-all duration-200">
+            <Rocket className="h-3.5 w-3.5 text-primary animate-pulse" />
+            查看完整更新日志
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-4">
@@ -60,7 +70,7 @@ export default async function AnnouncementsPage() {
             const isNew = (new Date().getTime() - new Date(announcement.start_time).getTime()) < 3 * 24 * 60 * 60 * 1000;
 
             let href = `/announcements/${announcement.id}`;
-            if (announcement.title.includes("v1.0.0")) href = "/updates";
+            if (announcement.title.includes("v1.0.0") || announcement.title.includes("v1.1.0")) href = "/updates";
             else if (announcement.title.includes("上线啦")) href = "/announcements/launch-2026";
             else if (announcement.title.includes("新手教程指南")) href = "/announcements/tutorials";
 

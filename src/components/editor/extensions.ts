@@ -19,6 +19,7 @@ import { CodeBlockComponent } from "./extensions/code-block-component";
 import { CustomImage } from "./extensions/custom-image";
 import { MermaidBlock } from "./extensions/mermaid-block";
 import { Command, renderItems } from "./extensions/slash-command-extension";
+import { WikiLink } from "./extensions/wiki-link";
 import { suggestionItems } from "./slash-command";
 
 // Explicitly create lowlight instance
@@ -136,6 +137,8 @@ export function createExtensions(options: ExtensionOptions = {}): any[] {
         Highlight.configure({
             multicolor: true,
         }),
+        // WikiLink extension - [[wiki link]] suggestion
+        WikiLink,
     ];
 }
 

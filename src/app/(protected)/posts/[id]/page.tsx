@@ -145,6 +145,31 @@ async function getCoAuthors(postId: string) {
     return data || [];
 }
 
+// 获取反向引用（哪些帖子引用了当前帖子）
+async function getBacklinks(postId: string) {
+    const supabase = await createClient();
+
+    const { data } = await supabase
+        .from("post_links")
+        .select(`
+            source_post_id,
+            source_post:posts!source_post_id(
+                id,
+                title,
+                created_at,
+                author:profiles!author_id(
+                    username,
+                    avatar_url
+                )
+            )
+        `)
+        .eq("target_post_id", postId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+    return (data || []).map((item: any) => item.source_post).filter(Boolean);
+}
+
 // 增加阅读量
 async function incrementViewCount(postId: string) {
     const supabase = await createClient();
@@ -200,10 +225,11 @@ export default async function PostDetailPage({ params }: PageProps) {
     // 增加阅读量（非阻塞）
     incrementViewCount(id);
 
-    // 获取作者其他文章和共创者
-    const [authorOtherPosts, coAuthors] = await Promise.all([
+    // 获取作者其他文章、共创者和反向引用
+    const [authorOtherPosts, coAuthors, backlinks] = await Promise.all([
         getAuthorOtherPosts(post.author_id, id),
         getCoAuthors(id),
+        getBacklinks(id),
     ]);
 
     return (
@@ -216,6 +242,7 @@ export default async function PostDetailPage({ params }: PageProps) {
             initialIsBookmarked={interactionStatus.isBookmarked}
             commentLikeStatus={commentLikeStatus}
             coAuthors={coAuthors as any}
+            backlinks={backlinks}
         />
     );
 }

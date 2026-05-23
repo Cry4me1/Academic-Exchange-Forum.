@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-dynamic"; // ⚡ 强力打碎详情页的服务端静态路由预编译缓存
+
 interface AnnouncementPageProps {
   params: Promise<{
     id: string;
@@ -93,6 +95,30 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
             paragraph.trim() ? <p key={idx}>{paragraph}</p> : <br key={idx} />
           ))}
         </div>
+        
+        {/* 如果是版本更新类型的公告，在正文下方展现高规格的 CTA 大卡片引导至 /updates */}
+        {announcement.category === "update" && (
+          <div className="mx-6 md:mx-10 mb-8 p-6 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-violet-500/5 to-transparent relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 className="font-bold text-base text-foreground flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                  查看更详尽的 v1.1.0 联合更新日志
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  内含双向链接织网、1024维语义推荐与中国地区 5 倍爆速提速底层的交互图解。
+                </p>
+              </div>
+              <Link href="/updates">
+                <Button className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white font-medium text-xs sm:text-sm rounded-xl shrink-0 group shadow-md shadow-primary/10">
+                  立即前往更新日志
+                  <Rocket className="ml-1.5 h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
         
         {/* Footer info (optional end time) */}
         {announcement.end_time && (

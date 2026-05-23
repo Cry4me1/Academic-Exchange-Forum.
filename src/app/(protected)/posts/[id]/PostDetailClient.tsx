@@ -7,7 +7,7 @@ import NovelViewer from "@/components/editor/NovelViewer";
 import PeerReviewPanel from "@/components/editor/peer-review-panel";
 import { CoAuthorBadge } from "@/components/lab/co-author/CoAuthorBadge";
 import { CoAuthorPanel, type CoAuthor } from "@/components/lab/co-author/CoAuthorPanel";
-import { ImmersiveToolbar, ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
+import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations, ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +100,7 @@ interface PostDetailClientProps {
     initialIsBookmarked?: boolean;
     commentLikeStatus?: Record<string, boolean>;
     coAuthors?: CoAuthor[];
+    backlinks?: BacklinkItem[];
 }
 
 // 标签颜色映射
@@ -162,6 +163,7 @@ export default function PostDetailClient({
     initialIsBookmarked = false,
     commentLikeStatus = {},
     coAuthors = [],
+    backlinks = [],
 }: PostDetailClientProps) {
     const router = useRouter();
     const [headings, setHeadings] = useState<HeadingItem[]>([]);
@@ -690,6 +692,13 @@ export default function PostDetailClient({
                                 </motion.div>
                             )}
 
+                            {/* 反向引用 - 知识网络 */}
+                            {backlinks.length > 0 && (
+                                <motion.div variants={itemVariants} className="mb-8">
+                                    <Backlinks backlinks={backlinks} />
+                                </motion.div>
+                            )}
+
                             {/* 互动区域 */}
                             <motion.div
                                 variants={itemVariants}
@@ -858,6 +867,9 @@ export default function PostDetailClient({
                                         </ul>
                                     </motion.div>
                                 )}
+
+                                {/* AI 语义推荐 */}
+                                <SemanticRecommendations postId={post.id} />
 
                             </div>
                         </aside>

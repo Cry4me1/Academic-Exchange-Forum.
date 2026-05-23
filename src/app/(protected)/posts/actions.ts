@@ -4,6 +4,8 @@
 
 
 import { deleteImages, extractImageUrls, findRemovedImages } from "@/lib/storage-cleanup";
+import { syncPostLinks } from "@/lib/post-links";
+import { generatePostEmbedding } from "@/lib/post-embed";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -62,6 +64,16 @@ export async function createPost(data: {
     if (error) {
         console.error("Create post error:", error);
         return { error: "创建帖子失败" };
+    }
+
+    // 同步双向链接与异步生成 Embedding (非阻塞)
+    if (post?.id) {
+        syncPostLinks(supabase, post.id, data.content).catch((err) => {
+            console.error("[createPost] 同步双向链接失败:", err);
+        });
+        generatePostEmbedding(post.id).catch((err) => {
+            console.error("[createPost] 异步生成 Embedding 向量失败:", err);
+        });
     }
 
     revalidatePath("/dashboard");
@@ -124,6 +136,18 @@ export async function updatePost(
             });
         }
     }
+
+    // 同步双向链接与更新 AI Embedding（异步执行，不阻塞响应）
+    if (data.content) {
+        syncPostLinks(supabase, postId, data.content).catch((err) => {
+            console.error("[updatePost] 同步双向链接失败:", err);
+        });
+    }
+    
+    // 只要有任何更新动作，都异步重新计算向量（非阻塞）
+    generatePostEmbedding(postId).catch((err) => {
+        console.error("[updatePost] 异步生成 Embedding 向量失败:", err);
+    });
 
     revalidatePath(`/posts/${postId}`);
     revalidatePath("/dashboard");

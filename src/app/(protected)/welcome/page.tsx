@@ -9,6 +9,7 @@ import {
     ChevronRight,
     Code2,
     Crown,
+    GitMerge,
     GraduationCap,
     LayoutDashboard,
     MessageSquare,
@@ -16,6 +17,7 @@ import {
     Palette,
     PenTool,
     Rocket,
+    ShieldCheck,
     Sparkles,
     Swords,
     Zap,
@@ -56,46 +58,48 @@ const tutorials = [
     },
 ];
 
-// ─── v1.0.0 正式版核心特性 ────────────────────────────────────
-const v1CoreFeatures = [
+// ─── v1.1.0 正式版三大支柱黄金特性 ─────────────────────────────
+const v1_1CoreFeatures = [
     {
-        icon: LayoutDashboard,
-        title: "帖子卡片全面升级",
-        desc: "全新视觉设计，丰富的元信息展示，交互动效升级",
-        color: "text-blue-500",
-        bg: "bg-blue-500/8",
+        icon: GitMerge,
+        title: "双向链接与反向引用",
+        desc: "[[WikiLink]] 精致跨帖织网，编辑器双括号实时联想与底部引用脉络",
+        color: "text-indigo-500",
+        bg: "bg-indigo-500/8",
     },
     {
-        icon: BookOpen,
-        title: "沉浸式阅读体验",
-        desc: "无干扰阅读模式、智能浮动目录、排版优化",
-        color: "text-emerald-500",
-        bg: "bg-emerald-500/8",
-    },
-    {
-        icon: Crown,
-        title: "VIP 会员系统",
-        desc: "多等级体系、专属徽章与特权、尊贵身份标识",
+        icon: Sparkles,
+        title: "AI 1024维语义相似推荐",
+        desc: "对接豆包与 Cohere 模型，提炼 #数论 #算法 共鸣概念，拒绝相似黑盒",
         color: "text-amber-500",
         bg: "bg-amber-500/8",
     },
     {
-        icon: Palette,
-        title: "个人主页颜色自定义",
-        desc: "多种精选配色方案，渐变色主题，个性化自定义",
+        icon: Zap,
+        title: "中国地区访问 5倍提速",
+        desc: "unstable_cache 云端高性能缓存，本地化 Geist 字体与流光骨架屏",
+        color: "text-emerald-500",
+        bg: "bg-emerald-500/8",
+    },
+    {
+        icon: ShieldCheck,
+        title: "高可用标签优雅降级防线",
+        desc: "API Key 异常时无感降级为 100% 离线和免费的本地标签交集相似度搜索",
         color: "text-pink-500",
         bg: "bg-pink-500/8",
     },
 ];
 
-// ─── 平台既有功能 ────────────────────────────────────────────
+// ─── 平台既有功能 (含 v1.0.0 特性合并) ─────────────────────────
 const platformFeatures = [
-    { icon: Code2, label: "LaTeX 公式支持", color: "text-indigo-500" },
-    { icon: Zap, label: "Mermaid 图表渲染", color: "text-teal-500" },
-    { icon: MessageSquare, label: "实时私信系统", color: "text-purple-500" },
-    { icon: Swords, label: "学术对决模式", color: "text-rose-500" },
-    { icon: Sparkles, label: "AI 智能助手", color: "text-cyan-500" },
-    { icon: Rocket, label: "Cloudflare R2 存储", color: "text-orange-500" },
+    { icon: LayoutDashboard, label: "帖子卡片全新升级", color: "text-blue-500" },
+    { icon: BookOpen, label: "智能 TOC 与沉浸式阅读", color: "text-emerald-500" },
+    { icon: Crown, label: "VIP 会员徽章与特权", color: "text-amber-500" },
+    { icon: Palette, label: "个人主页配色方案自定义", color: "text-pink-500" },
+    { icon: Code2, label: "LaTeX 公式方程式渲染", color: "text-indigo-500" },
+    { icon: Zap, label: "Mermaid 学术流程图图表", color: "text-teal-500" },
+    { icon: MessageSquare, label: "实时私信与 CF R2 存储", color: "text-purple-500" },
+    { icon: Swords, label: "学术决斗场竞技模式", color: "text-rose-500" },
 ];
 
 // ─── 动画变体 ─────────────────────────────────────────────────
@@ -192,19 +196,19 @@ export default function WelcomePage() {
                     <motion.div variants={fadeUp} className="text-center mb-10">
                         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-4">
                             <Rocket className="h-3.5 w-3.5" />
-                            v1.0.0 正式版
+                            v1.1.0 正式版
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                            全新功能，为你而来
+                            织网图谱 & 爆速提速，大版本震撼上线
                         </h2>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            本次正式版带来的四大核心升级
+                            v1.1.0 正式大版本带来的三大支柱黄金升级
                         </p>
                     </motion.div>
 
                     {/* Core features grid */}
                     <div className="grid sm:grid-cols-2 gap-4 mb-12">
-                        {v1CoreFeatures.map((feature) => (
+                        {v1_1CoreFeatures.map((feature) => (
                             <motion.div
                                 key={feature.title}
                                 variants={fadeUp}

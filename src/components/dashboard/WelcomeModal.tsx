@@ -7,23 +7,26 @@ import {
     ArrowRight,
     BookOpen,
     Crown,
+    GitMerge,
     LayoutDashboard,
     Palette,
     Rocket,
+    ShieldCheck,
     Sparkles,
+    Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// 正式版发布日期（UTC）
-const V1_LAUNCH_DATE = "2026-02-28T00:00:00Z";
+// 正式版发布日期（UTC）- 升级至 v1.1.0 节点以达成 seen 状态重置
+const V1_LAUNCH_DATE = "2026-05-23T00:00:00Z";
 
-// 老用户弹窗：v1.0.0 四大更新
-const v1Features = [
-    { icon: LayoutDashboard, label: "帖子卡片全面升级", color: "text-blue-500" },
-    { icon: BookOpen, label: "沉浸式阅读体验", color: "text-emerald-500" },
-    { icon: Crown, label: "VIP 会员系统", color: "text-amber-500" },
-    { icon: Palette, label: "主页颜色自定义", color: "text-pink-500" },
+// 老用户弹窗：v1.1.0 四大更新
+const v1_1Features = [
+    { icon: GitMerge, label: "双向链接与反向引用", color: "text-indigo-500" },
+    { icon: Sparkles, label: "AI 1024维语义推荐", color: "text-amber-500" },
+    { icon: Zap, label: "中国地区 5 倍爆速提速", color: "text-emerald-500" },
+    { icon: ShieldCheck, label: "高可用离线标签降级", color: "text-pink-500" },
 ];
 
 interface WelcomeModalProps {
@@ -43,8 +46,8 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
         const newUser = createdAt >= launchDate;
 
         const storageKey = newUser
-            ? "scholarly_welcome_v1_seen"
-            : "scholarly_v1_update_seen";
+            ? "scholarly_welcome_v1_1_seen"
+            : "scholarly_v1_1_update_seen";
 
         if (localStorage.getItem(storageKey)) return;
 
@@ -75,7 +78,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                 className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none outline-none ring-0"
             >
                 <DialogTitle className="sr-only">
-                    {isNewUser ? "欢迎加入 Scholarly" : "v1.0.0 正式版上线"}
+                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.0 正式版上线"}
                 </DialogTitle>
 
                 <AnimatePresence mode="wait">
@@ -185,7 +188,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.3 }}
                                     className="text-2xl font-bold tracking-tight text-foreground"
                                 >
-                                    v1.0.0 正式版已上线
+                                    v1.1.0 织网学术图谱已上线
                                 </motion.h2>
                                 <motion.p
                                     initial={{ opacity: 0, y: 10 }}
@@ -193,7 +196,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.4 }}
                                     className="mt-2 text-sm text-muted-foreground"
                                 >
-                                    感谢你在内测阶段的陪伴，正式版带来了全新体验
+                                    历经打磨，全新学术图谱与5倍爆速访问时代震撼开启
                                 </motion.p>
                             </div>
 
@@ -205,7 +208,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.45 }}
                                     className="grid grid-cols-2 gap-2.5"
                                 >
-                                    {v1Features.map((feature, i) => (
+                                    {v1_1Features.map((feature, i) => (
                                         <motion.div
                                             key={feature.label}
                                             initial={{ opacity: 0, y: 10 }}
