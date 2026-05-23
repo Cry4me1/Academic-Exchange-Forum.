@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/server";
 
 /**
  * 缓存热门帖子列表 — 5 分钟刷新
@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
  */
 export const getCachedTrendingPosts = unstable_cache(
   async (sortBy: string = "hot", limit: number = 30) => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
     const orderColumn = sortBy === "likes" ? "like_count" : "view_count";
 
@@ -57,7 +57,7 @@ export const getCachedTrendingPosts = unstable_cache(
  */
 export const getCachedLatestPosts = unstable_cache(
   async (limit: number = 20) => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
     const { data, error } = await supabase
       .from("posts")
@@ -89,7 +89,7 @@ export const getCachedLatestPosts = unstable_cache(
  */
 export const getCachedAnnouncements = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
     const { data } = await supabase
       .from("announcements")
@@ -110,7 +110,7 @@ export const getCachedAnnouncements = unstable_cache(
  */
 export const getCachedPopularTags = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
     // 从 posts 表聚合标签
     const { data: posts } = await supabase
@@ -147,7 +147,7 @@ export const getCachedPopularTags = unstable_cache(
  */
 export const getCachedFeaturedPosts = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
     const { data } = await supabase
       .from("posts")

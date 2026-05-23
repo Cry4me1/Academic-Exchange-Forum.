@@ -19,7 +19,7 @@ function getR2Endpoint() {
     return `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 }
 
-async function hmacSHA256(key: ArrayBuffer, data: string): Promise<ArrayBuffer> {
+async function hmacSHA256(key: any, data: string): Promise<ArrayBuffer> {
     const cryptoKey = await crypto.subtle.importKey(
         "raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
     );
@@ -32,7 +32,7 @@ async function hmacSHA256Key(key: CryptoKey, data: string): Promise<ArrayBuffer>
 
 async function sha256Hex(data: string | Uint8Array): Promise<string> {
     const encoded = typeof data === "string" ? new TextEncoder().encode(data) : data;
-    const hash = await crypto.subtle.digest("SHA-256", encoded.buffer as ArrayBuffer);
+    const hash = await crypto.subtle.digest("SHA-256", encoded as unknown as BufferSource);
     return toHex(hash);
 }
 
@@ -83,7 +83,7 @@ async function buildSigV4Headers(
 
     // Derive signing key
     const kDate = await hmacSHA256(
-        new TextEncoder().encode(`AWS4${R2_SECRET_ACCESS_KEY}`).buffer as ArrayBuffer,
+        new TextEncoder().encode(`AWS4${R2_SECRET_ACCESS_KEY}`),
         dateStamp
     );
     const kRegion = await hmacSHA256(kDate, region);
@@ -117,7 +117,7 @@ export async function uploadToR2(
     const headers = await buildSigV4Headers("PUT", fileName, contentType, uint8);
     const url = `${getR2Endpoint()}/${R2_BUCKET_NAME}/${encodeURIComponent(fileName).replace(/%2F/g, "/")}`;
 
-    const res = await fetch(url, { method: "PUT", headers, body: uint8.buffer as ArrayBuffer });
+    const res = await fetch(url, { method: "PUT", headers, body: uint8 as any });
     if (!res.ok) {
         const text = await res.text();
         throw new Error(`R2 上传失败 (${res.status}): ${text}`);

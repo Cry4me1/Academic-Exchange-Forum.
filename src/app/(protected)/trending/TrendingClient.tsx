@@ -206,7 +206,7 @@ export default function TrendingClient({ initialPosts }: TrendingClientProps) {
                                                     </span>
                                                     <span className="ml-auto flex items-center gap-1">
                                                         <Clock className="h-3 w-3" />
-                                                        {new Date(post.created_at).toLocaleDateString("zh-CN")}
+                                                        {post.created_at ? new Date(post.created_at).toLocaleDateString("zh-CN") : "未知时间"}
                                                     </span>
                                                 </div>
                                             </div>
