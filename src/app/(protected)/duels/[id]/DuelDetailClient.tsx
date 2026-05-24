@@ -218,6 +218,30 @@ export default function DuelDetailClient({
         return text.trim();
     };
 
+    // 内容相似度检测（Jaccard 相似度）
+    const calculateSimilarity = (text1: string, text2: string): number => {
+        const tokenize = (t: string) => new Set(t.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g, " ").split(/\s+/).filter(Boolean));
+        const words1 = tokenize(text1);
+        const words2 = tokenize(text2);
+        if (words1.size === 0 && words2.size === 0) return 1;
+        if (words1.size === 0 || words2.size === 0) return 0;
+        const intersection = new Set([...words1].filter(x => words2.has(x)));
+        const union = new Set([...words1, ...words2]);
+        return intersection.size / union.size;
+    };
+
+    // 构建之前回合的上下文数据
+    const buildPreviousRoundsContext = () => {
+        return rounds.map(r => ({
+            round: r.round_number,
+            author: r.author?.username || "未知",
+            position: r.author_id === currentDuel.challenger_id
+                ? currentDuel.challenger_position
+                : currentDuel.opponent_position,
+            content: r.content_text || extractTextFromContent(r.content),
+        }));
+    };
+
     // 提交论点
     const handleSubmit = async () => {
         if (!currentUser || !editorContent) {
@@ -234,6 +258,26 @@ export default function DuelDetailClient({
 
         try {
             const contentText = extractTextFromContent(editorContent);
+
+            // 前端重复检测：与自己之前的回合进行相似度比较
+            const myPreviousRounds = rounds.filter(r => r.author_id === currentUser.id);
+            for (const prevRound of myPreviousRounds) {
+                const prevText = prevRound.content_text || extractTextFromContent(prevRound.content);
+                const similarity = calculateSimilarity(contentText, prevText);
+                if (similarity > 0.7) {
+                    toast.error("你的论点与之前提交的内容过于相似（相似度 " + Math.round(similarity * 100) + "%），请提出新的论据和观点！");
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // 最小字数检查
+            if (contentText.length < 20) {
+                toast.error("论点内容过短，请至少输入 20 个字符");
+                setIsSubmitting(false);
+                return;
+            }
+
             const currentRoundNumber = Math.floor(rounds.length / 2) + 1;
 
             // 1. 创建回合记录
@@ -249,13 +293,22 @@ export default function DuelDetailClient({
                 .select("id")
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                // 检查是否是重复内容的数据库拦截
+                if (error.message?.includes("duplicate_content")) {
+                    toast.error("不允许提交与之前完全相同的内容");
+                    return;
+                }
+                throw error;
+            }
 
-            // 2. 调用 AI 分析
+            // 2. 调用 AI 分析（传入完整上下文）
             setIsAnalyzing(true);
-            toast.info("AI 裁判正在分析你的论点...");
+            toast.info("AI 裁判正在深度思考并分析你的论点，请稍候...");
 
             let roundTotalScore = 0;
+
+            const previousRounds = buildPreviousRoundsContext();
 
             const response = await fetch("/api/duel/analyze", {
                 method: "POST",
@@ -263,26 +316,17 @@ export default function DuelDetailClient({
                 body: JSON.stringify({
                     content: contentText,
                     topic: currentDuel.topic,
+                    description: currentDuel.description || "",
                     position: currentUser.id === currentDuel.challenger_id
                         ? currentDuel.challenger_position
                         : currentDuel.opponent_position,
+                    previousRounds,
                 }),
             });
 
             if (response.ok) {
-                const reader = response.body?.getReader();
-                const decoder = new TextDecoder();
-                let result = "";
-
-                while (reader) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    result += decoder.decode(value);
-                }
-
                 try {
-                    // 解析流式 JSON 结果
-                    const scoreData = JSON.parse(result);
+                    const scoreData = await response.json();
                     roundTotalScore = scoreData.totalScore || 0;
 
                     // 更新回合评分
@@ -301,10 +345,19 @@ export default function DuelDetailClient({
                         })
                         .eq("id", round.id);
 
-                    toast.success(`论点提交成功！得分: ${roundTotalScore}`);
+                    if (scoreData.isDuplicate) {
+                        toast.warning("AI 裁判判定你的论点与之前的内容高度重复，本回合得分: 0");
+                    } else {
+                        toast.success(`论点提交成功！得分: ${roundTotalScore}`);
+                    }
                 } catch {
                     console.error("Failed to parse AI response");
+                    toast.warning("AI 分析结果解析失败，论点已提交但未评分");
                 }
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("AI analyze failed:", errorData);
+                toast.warning("AI 分析暂时不可用，论点已提交但未评分");
             }
 
             // 3. 更新决斗状态 (分数, 回合, 结束判定)
@@ -316,13 +369,11 @@ export default function DuelDetailClient({
                 ? currentDuel.opponent_score + roundTotalScore
                 : currentDuel.opponent_score;
 
-            // Check if game is over (Max rounds reached for both sides)
-            // rounds.length was the count BEFORE this insert. Now it is rounds.length + 1 effectively.
-            // Actually `rounds` state might not have updated yet here, so let's use rounds.length + 1.
             const totalTurnsPlayed = rounds.length + 1;
             const maxTurns = currentDuel.max_rounds * 2;
             const isGameOver = totalTurnsPlayed >= maxTurns;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatePayload: any = {
                 challenger_score: newChallengerScore,
                 opponent_score: newOpponentScore,
@@ -332,14 +383,10 @@ export default function DuelDetailClient({
                 updatePayload.status = "completed";
                 updatePayload.ended_at = new Date().toISOString();
 
-                // Determine winner
                 if (newChallengerScore > newOpponentScore) {
                     updatePayload.winner_id = currentDuel.challenger_id;
                 } else if (newOpponentScore > newChallengerScore && currentDuel.opponent_id) {
                     updatePayload.winner_id = currentDuel.opponent_id;
-                } else {
-                    // Tie - logic can be defined. For now maybe no winner set or custom handle?
-                    // Let's assume draw is possible or just leave winner_id null.
                 }
 
                 toast.success("决斗结束！正在生成总结...");

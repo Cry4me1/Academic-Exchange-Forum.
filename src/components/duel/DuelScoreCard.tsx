@@ -82,20 +82,20 @@ export function DuelScoreCard({
                         {/* 评分明细 */}
                         <div className="space-y-2">
                             <ScoreRow
-                                icon={<BookOpen className="h-4 w-4" />}
-                                label="证据力度"
+                                icon={<Brain className="h-4 w-4" />}
+                                label="推理质量"
                                 score={evidenceScore}
                                 max={5}
                             />
                             <ScoreRow
-                                icon={<Quote className="h-4 w-4" />}
-                                label="引用权威性"
+                                icon={<BookOpen className="h-4 w-4" />}
+                                label="论据支撑"
                                 score={citationScore}
                                 max={3}
                             />
                             <ScoreRow
-                                icon={<Brain className="h-4 w-4" />}
-                                label="逻辑严密"
+                                icon={<Quote className="h-4 w-4" />}
+                                label="对话互动"
                                 score={logicScore}
                                 max={2}
                             />
