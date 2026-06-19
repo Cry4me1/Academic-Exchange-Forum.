@@ -44,7 +44,10 @@ import {
     Share2,
     Swords,
     Trash2,
+    ArrowRight,
+    Trophy,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
@@ -176,6 +179,42 @@ export default function PostDetailClient({
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
     const [duelDialogOpen, setDuelDialogOpen] = useState(false);
+
+    const [activeDuel, setActiveDuel] = useState<any | null>(null);
+    const [relatedDuels, setRelatedDuels] = useState<any[]>([]);
+
+    // 加载帖子关联的决斗战况
+    useEffect(() => {
+        const fetchRelatedDuels = async () => {
+            try {
+                const supabase = createClient();
+                const { data, error } = await supabase
+                    .from("duels")
+                    .select(`
+                        id, topic, status, current_round, max_rounds, challenger_score, opponent_score, challenger_position, opponent_position,
+                        challenger:profiles!challenger_id(username, avatar_url),
+                        opponent:profiles!opponent_id(username, avatar_url),
+                        winner:profiles!winner_id(username)
+                    `)
+                    .eq("post_id", post.id);
+                
+                if (error) {
+                    console.error("Fetch related duels failed:", error);
+                    toast.error(`无法加载决斗战况: ${error.message}`);
+                }
+                
+                if (data) {
+                    setRelatedDuels(data);
+                    const active = data.find((d) => d.status === "active");
+                    if (active) setActiveDuel(active);
+                }
+            } catch (err) {
+                console.error("Fetch related duels error:", err);
+            }
+        };
+
+        fetchRelatedDuels();
+    }, [post.id]);
 
     // 评论排序状态
     const [commentSort, setCommentSort] = useState<CommentSortType>("newest");
@@ -582,6 +621,37 @@ export default function PostDetailClient({
                                     ))}
                                 </div>
 
+                                {/* 进行中的学术决斗横幅 */}
+                                {activeDuel && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mb-6 p-4 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-blue-500/10 border border-amber-500/20 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="relative flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                            </span>
+                                            <div className="text-left">
+                                                <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                                                    <Swords className="h-4 w-4 text-rose-500 animate-pulse" />
+                                                    学术决斗火热进行中！
+                                                </p>
+                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                    辩题：{activeDuel.topic} (回合: {activeDuel.current_round}/{activeDuel.max_rounds})
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Link href={`/duels/${activeDuel.id}`}>
+                                            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs rounded-full gap-1.5 shadow-sm">
+                                                进入决斗现场观战
+                                                <ArrowRight className="h-3 w-3" />
+                                            </Button>
+                                        </Link>
+                                    </motion.div>
+                                )}
+
                                 {/* 标题 */}
                                 <div className="flex items-start gap-3 mb-6">
                                     <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight flex-1">
@@ -681,16 +751,16 @@ export default function PostDetailClient({
                                 />
                             </motion.div>
 
-                            {/* AI 同行评审面板（仅作者可见） */}
-                            {currentUser?.id === post.author.id && (
-                                <motion.div variants={itemVariants} className="mb-8">
-                                    <PeerReviewPanel
-                                        content={post.content as import("novel").JSONContent}
-                                        title={post.title}
-                                        tags={post.tags}
-                                    />
-                                </motion.div>
-                            )}
+                            {/* AI 同行评审面板 */}
+                            <motion.div variants={itemVariants} className="mb-8">
+                                <PeerReviewPanel
+                                    content={post.content as import("novel").JSONContent}
+                                    title={post.title}
+                                    tags={post.tags}
+                                    postId={post.id}
+                                    isAuthor={currentUser?.id === post.author.id}
+                                />
+                            </motion.div>
 
                             {/* 反向引用 - 知识网络 */}
                             {backlinks.length > 0 && (
@@ -733,6 +803,122 @@ export default function PostDetailClient({
                                 </Button>
                             </motion.div>
 
+                            {/* 发起决斗引导（如果还没有决斗） */}
+                            {relatedDuels.length === 0 && (!currentUser || post.author_id !== currentUser.id) && (
+                                <motion.div initial="hidden" animate="visible" variants={itemVariants} className="mb-8 mt-6">
+                                    <div className="p-6 rounded-xl border border-dashed border-border hover:border-primary/50 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors">
+                                        <div className="text-left">
+                                            <h3 className="text-sm font-bold flex items-center gap-2 mb-1">
+                                                <Swords className="h-4 w-4 text-muted-foreground" />
+                                                对本文观点有异议？
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground">你可以向作者发起学术决斗，在 AI 裁判的见证下展开激烈辩论！</p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="whitespace-nowrap gap-2"
+                                            onClick={() => {
+                                                if (!currentUser) {
+                                                    toast.error("请先登录");
+                                                    return;
+                                                }
+                                                setDuelDialogOpen(true);
+                                            }}
+                                        >
+                                            <Swords className="h-4 w-4" />
+                                            发起决斗挑战
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* 作者视角的无决斗占位 */}
+                            {relatedDuels.length === 0 && currentUser && post.author_id === currentUser.id && (
+                                <motion.div initial="hidden" animate="visible" variants={itemVariants} className="mb-8 mt-6">
+                                    <div className="p-6 rounded-xl border border-dashed border-border bg-muted/10 flex flex-col items-center justify-center gap-2 text-center">
+                                        <Swords className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                                        <p className="text-sm font-semibold text-muted-foreground">目前还没有人向你发起学术决斗</p>
+                                        <p className="text-xs text-muted-foreground">当有读者对你的观点提出挑战时，相关的决斗信息将在这里展示</p>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* 相关学术决斗面板 */}
+                            {relatedDuels.length > 0 && (
+                                <motion.div
+                                    initial="hidden"
+                                    animate="visible"
+                                    variants={itemVariants}
+                                    className="mb-8 mt-6"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                            <Swords className="h-5 w-5 text-primary" />
+                                            相关学术决斗 ({relatedDuels.length})
+                                        </h3>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            onClick={() => {
+                                                if (!currentUser) {
+                                                    toast.error("请先登录");
+                                                    return;
+                                                }
+                                                setDuelDialogOpen(true);
+                                            }}
+                                        >
+                                            发起新决斗
+                                        </Button>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {relatedDuels.map((duel) => (
+                                            <div key={duel.id} className="p-4 rounded-xl border border-border bg-card/50 flex flex-col sm:flex-row gap-4 items-center justify-between hover:bg-muted/50 transition-colors">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Badge variant={duel.status === "completed" ? "default" : duel.status === "active" ? "destructive" : "secondary"} className="text-[10px]">
+                                                            {duel.status === "completed" ? "已结束" : duel.status === "active" ? "进行中" : "待应战"}
+                                                        </Badge>
+                                                        <h4 className="font-semibold text-sm truncate">{duel.topic}</h4>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Avatar className="h-4 w-4">
+                                                                <AvatarImage src={duel.challenger?.avatar_url} />
+                                                                <AvatarFallback>{duel.challenger?.username?.charAt(0)}</AvatarFallback>
+                                                            </Avatar>
+                                                            <span>{duel.challenger?.username} (正方)</span>
+                                                        </div>
+                                                        <span className="font-bold text-foreground">
+                                                            {duel.status === "completed" || duel.status === "active" ? `${duel.challenger_score} : ${duel.opponent_score}` : "VS"}
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Avatar className="h-4 w-4">
+                                                                <AvatarImage src={duel.opponent?.avatar_url} />
+                                                                <AvatarFallback>{duel.opponent?.username?.charAt(0)}</AvatarFallback>
+                                                            </Avatar>
+                                                            <span>{duel.opponent ? `${duel.opponent.username} (反方)` : "等待应战"}</span>
+                                                        </div>
+                                                    </div>
+                                                    {duel.winner && (
+                                                        <p className="text-xs text-primary font-medium mt-2">
+                                                            🏆 {duel.winner.username} 获胜
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <Link href={`/duels/${duel.id}`}>
+                                                    <Button size="sm" variant={duel.status === "completed" ? "secondary" : "default"}>
+                                                        {duel.status === "completed" ? "查看战报" : duel.status === "active" ? "进入观战" : "查看详情"}
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+
+
                             {/* 评论区 */}
                             <motion.section variants={itemVariants} className="mt-12" id="comments" aria-label="评论区">
                                 {/* 排序切换 Tab */}
@@ -747,8 +933,12 @@ export default function PostDetailClient({
                                     {post.is_locked ? (
                                         <div className="bg-muted/30 rounded-xl p-6 text-center border border-border/50">
                                             <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                                            <p className="text-sm font-medium text-muted-foreground">该帖子的评论已被锁定</p>
-                                            <p className="text-xs text-muted-foreground mt-1">管理员已关闭此帖子的评论功能，无法发布新评论或回复。</p>
+                                            <p className="text-sm font-medium text-muted-foreground">该帖子已被暂时锁定</p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {activeDuel 
+                                                    ? "当前此帖子正处于学术决斗（辩论）阶段。辩论期间限制新评论的写入，以保证决斗不受外界干扰。"
+                                                    : "管理员已关闭此帖子的评论功能，或由于其他安全原因被锁定。"}
+                                            </p>
                                         </div>
                                     ) : (
                                         <CommentInput
@@ -900,6 +1090,7 @@ export default function PostDetailClient({
                 onOpenChange={setDuelDialogOpen}
                 currentUser={currentUser}
                 defaultTopic={post.title}
+                postId={post.id}
             />
         </>
     );

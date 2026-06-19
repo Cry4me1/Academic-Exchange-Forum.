@@ -27,8 +27,8 @@ export function extractPlainText(content: unknown): string {
  * 为帖子生成 1024 维度的 Embedding 并保存到数据库
  * 自动兼容：火山引擎豆包模型 与 Cohere 国际模型
  */
-export async function generatePostEmbedding(postId: string) {
-    const supabase = await createClient();
+export async function generatePostEmbedding(postId: string, supabaseClient?: any) {
+    const supabase = supabaseClient || (await createClient());
 
     // 1. 获取帖子内容
     const { data: post, error: postError } = await supabase

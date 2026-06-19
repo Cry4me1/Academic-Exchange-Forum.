@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, Coins, Zap } from "lucide-react";
 import { useEditor } from "novel";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Markdown from "react-markdown";
+// removed react-markdown
 import { toast } from "sonner";
 import AICompletionCommands from "./ai-completion-command";
 import AISelectorCommands from "./ai-selector-commands";
@@ -181,7 +181,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                 <div className="flex max-h-[400px]">
                     <ScrollArea>
                         <div className="prose p-2 px-4 prose-sm dark:prose-invert">
-                            <Markdown>{completion}</Markdown>
+                            {completion}
                         </div>
                     </ScrollArea>
                 </div>

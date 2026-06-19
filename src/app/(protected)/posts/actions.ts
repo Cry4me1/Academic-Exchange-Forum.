@@ -66,13 +66,13 @@ export async function createPost(data: {
         return { error: "创建帖子失败" };
     }
 
-    // 同步双向链接与异步生成 Embedding (非阻塞)
+    // 同步双向链接与同步生成 Embedding
     if (post?.id) {
-        syncPostLinks(supabase, post.id, data.content).catch((err) => {
+        await syncPostLinks(supabase, post.id, data.content).catch((err) => {
             console.error("[createPost] 同步双向链接失败:", err);
         });
-        generatePostEmbedding(post.id).catch((err) => {
-            console.error("[createPost] 异步生成 Embedding 向量失败:", err);
+        await generatePostEmbedding(post.id, supabase).catch((err) => {
+            console.error("[createPost] 同步生成 Embedding 向量失败:", err);
         });
     }
 
@@ -137,16 +137,16 @@ export async function updatePost(
         }
     }
 
-    // 同步双向链接与更新 AI Embedding（异步执行，不阻塞响应）
+    // 同步双向链接与更新 AI Embedding
     if (data.content) {
-        syncPostLinks(supabase, postId, data.content).catch((err) => {
+        await syncPostLinks(supabase, postId, data.content).catch((err) => {
             console.error("[updatePost] 同步双向链接失败:", err);
         });
     }
     
-    // 只要有任何更新动作，都异步重新计算向量（非阻塞）
-    generatePostEmbedding(postId).catch((err) => {
-        console.error("[updatePost] 异步生成 Embedding 向量失败:", err);
+    // 只要有任何更新动作，都重新计算向量
+    await generatePostEmbedding(postId, supabase).catch((err) => {
+        console.error("[updatePost] 同步生成 Embedding 向量失败:", err);
     });
 
     revalidatePath(`/posts/${postId}`);
@@ -332,3 +332,79 @@ export async function toggleAcceptAnswer(commentId: string) {
     // @ts-ignore
     return { success: true, status: data?.status };
 }
+
+// 保存同行评审
+export async function savePeerReview(postId: string, reasoning: string, review: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: "请先登录" };
+    }
+
+    try {
+        const { error } = await supabase
+            .from("peer_reviews")
+            .upsert({
+                post_id: postId,
+                user_id: user.id,
+                reasoning_content: reasoning,
+                review_content: review,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: "post_id"
+            });
+
+        if (error) throw error;
+
+        revalidatePath(`/posts/${postId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Save peer review error:", error);
+        return { error: "保存同行评审失败" };
+    }
+}
+
+// 切换同行评审的公开展示状态
+export async function togglePeerReviewVisibility(postId: string, isPublic: boolean) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: "请先登录" };
+    }
+
+    try {
+        const { error } = await supabase
+            .from("peer_reviews")
+            .update({ is_public: isPublic })
+            .eq("post_id", postId)
+            .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        revalidatePath(`/posts/${postId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Toggle peer review visibility error:", error);
+        return { error: "修改可见性失败" };
+    }
+}
+
+// 获取帖子的同行评审
+export async function getPeerReview(postId: string) {
+    const supabase = await createClient();
+    
+    try {
+        const { data, error } = await supabase
+            .from("peer_reviews")
+            .select("*")
+            .eq("post_id", postId)
+            .maybeSingle();
+
+        if (error) throw error;
+        return { data };
+    } catch (error) {
+        console.error("Get peer review error:", error);
+        return { error: "获取同行评审失败" };
+    }
+}
+

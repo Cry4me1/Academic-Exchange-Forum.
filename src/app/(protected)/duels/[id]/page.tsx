@@ -22,7 +22,8 @@ async function getDuel(id: string) {
             ),
             winner:profiles!winner_id (
                 id, username
-            )
+            ),
+            post:posts(id, title, content)
         `)
         .eq("id", id)
         .single();

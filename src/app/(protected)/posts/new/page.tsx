@@ -294,6 +294,7 @@ export default function NewPostPage() {
                                     content={contentJson}
                                     title={title}
                                     tags={selectedTags}
+                                    isAuthor={true}
                                 />
                             </motion.div>
                         )}

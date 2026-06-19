@@ -15,12 +15,15 @@ import {
     Coins,
     FileSearch,
     Sparkles,
+    Loader2,
 } from "lucide-react";
 import type { JSONContent } from "novel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { savePeerReview, togglePeerReviewVisibility, getPeerReview } from "../../app/(protected)/posts/actions";
 
 const MIN_REVIEW_CREDIT_COST = 15;
 
@@ -28,12 +31,17 @@ interface PeerReviewPanelProps {
     content: JSONContent | undefined;
     title: string;
     tags: string[];
+    postId?: string;
+    isAuthor: boolean;
 }
+
 
 export default function PeerReviewPanel({
     content,
     title,
     tags,
+    postId,
+    isAuthor,
 }: PeerReviewPanelProps) {
     const [isExpanded, setIsExpanded] = useState(true);
     const [creditBalance, setCreditBalance] = useState<number | null>(null);
@@ -41,6 +49,10 @@ export default function PeerReviewPanel({
     const [showDeduction, setShowDeduction] = useState(false);
     const [deductedAmount, setDeductedAmount] = useState<number>(0);
     const prevBalanceRef = useRef<number | null>(null);
+
+    // 数据库加载与公开状态
+    const [isPublic, setIsPublic] = useState(false);
+    const [isLoadingDb, setIsLoadingDb] = useState(true);
 
     // 加载积分余额
     const refreshCredits = useCallback(async () => {
@@ -59,14 +71,16 @@ export default function PeerReviewPanel({
     }, []);
 
     useEffect(() => {
-        if (isExpanded) {
+        if (isExpanded && isAuthor) {
             refreshCredits();
         }
-    }, [isExpanded, refreshCredits]);
+    }, [isExpanded, isAuthor, refreshCredits]);
 
-    // 初始化时从 localStorage 恢复数据 (解决刷新消失问题)
+
+
+    // 初始化时从 localStorage 恢复数据 (仅作者防丢失备用)
     const [initialMessages] = useState(() => {
-        if (typeof window !== "undefined" && title) {
+        if (typeof window !== "undefined" && title && isAuthor) {
             try {
                 const saved = localStorage.getItem(`peer-review-${title}`);
                 if (saved) return JSON.parse(saved);
@@ -84,8 +98,35 @@ export default function PeerReviewPanel({
         transport: new DefaultChatTransport({
             api: "/api/ai/peer-review",
         }),
-        onFinish: () => {
+        onFinish: async ({ message }) => {
             refreshCredits();
+
+            // 生成完后自动保存到数据库
+            let reasoning = "";
+            let review = "";
+            if (message.parts) {
+                for (const part of message.parts) {
+                    if (part.type === "reasoning") {
+                        reasoning += part.text || "";
+                    } else if (part.type === "text") {
+                        review += part.text || "";
+                    }
+                }
+            } else {
+                review = (message as any).content || "";
+            }
+
+            if (review && postId) {
+                try {
+                    await savePeerReview(postId, reasoning, review);
+                    // 清理 localStorage 缓存
+                    if (typeof window !== "undefined" && title) {
+                        localStorage.removeItem(`peer-review-${title}`);
+                    }
+                } catch (e) {
+                    console.error("Auto save peer review failed", e);
+                }
+            }
         },
         onError: (err: Error) => {
             if (
@@ -111,16 +152,53 @@ export default function PeerReviewPanel({
         },
     });
 
-    // 每次 messages 更新时同步到 localStorage
+    // 从数据库加载已有的评审结果
     useEffect(() => {
-        if (typeof window !== "undefined" && title) {
+        const loadDbReview = async () => {
+            if (!postId) {
+                setIsLoadingDb(false);
+                return;
+            }
+            setIsLoadingDb(true);
+            try {
+                const res = await getPeerReview(postId);
+                if (res?.data) {
+                    const dbMessages = [
+                        {
+                            id: "peer-review-database",
+                            role: "assistant" as const,
+                            content: res.data.review_content,
+                            parts: [
+                                { type: "reasoning" as const, text: res.data.reasoning_content || "" },
+                                { type: "text" as const, text: res.data.review_content || "" }
+                            ]
+                        }
+                    ];
+                    setMessages(dbMessages);
+                    setIsPublic(res.data.is_public);
+                } else {
+                    setMessages([]);
+                }
+            } catch (error) {
+                console.error("加载持久化同行评审失败", error);
+            } finally {
+                setIsLoadingDb(false);
+            }
+        };
+
+        loadDbReview();
+    }, [postId, setMessages]);
+
+    // 每次 messages 更新时同步到 localStorage (仅作者有权操作)
+    useEffect(() => {
+        if (typeof window !== "undefined" && title && isAuthor) {
             if (messages.length > 0) {
                 localStorage.setItem(`peer-review-${title}`, JSON.stringify(messages));
             } else if (messages.length === 0) {
                 localStorage.removeItem(`peer-review-${title}`);
             }
         }
-    }, [messages, title]);
+    }, [messages, title, isAuthor]);
 
     // 从 assistant 消息的 parts 中提取推理和正文
     const assistantMsg = messages.find((m) => m.role === "assistant");
@@ -188,6 +266,19 @@ export default function PeerReviewPanel({
         );
     };
 
+    if (isLoadingDb) {
+        return (
+            <div className="rounded-xl border border-border/40 p-4 bg-muted/10 flex items-center justify-center gap-2 h-14">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">正在加载评审数据...</span>
+            </div>
+        );
+    }
+
+    if (!isAuthor && messages.length === 0) {
+        return null;
+    }
+
     const insufficientCredits =
         creditBalance !== null && creditBalance < MIN_REVIEW_CREDIT_COST;
 
@@ -205,7 +296,7 @@ export default function PeerReviewPanel({
                     </div>
                     <div className="text-left">
                         <h3 className="text-sm font-semibold text-foreground">
-                            AI 同行评审
+                            {isAuthor ? "AI 同行评审" : "AI 同行评审 (作者已公开)"}
                         </h3>
                         <p className="text-xs text-muted-foreground">
                             Reviewer #2 · DeepSeek 深度推理模型
@@ -237,82 +328,84 @@ export default function PeerReviewPanel({
                         className="overflow-hidden"
                     >
                         <div className="border-t border-border/50">
-                            {/* 积分信息栏 */}
-                            <div className="flex items-center justify-between px-5 py-2.5 bg-muted/20">
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Sparkles className="h-3.5 w-3.5 text-violet-500 shrink-0" />
-                                    <span>
-                                        预计消耗 ≥{" "}
-                                        <span className="font-semibold text-violet-500">
-                                            {MIN_REVIEW_CREDIT_COST}
-                                        </span>{" "}
-                                        积分
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-1.5 relative">
-                                    <Coins className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                                    <AnimatePresence mode="popLayout">
-                                        <motion.span
-                                            key={creditBalance}
-                                            initial={{
-                                                y: -8,
-                                                opacity: 0,
-                                                scale: 0.8,
-                                            }}
-                                            animate={{
-                                                y: 0,
-                                                opacity: 1,
-                                                scale: 1,
-                                            }}
-                                            exit={{
-                                                y: 8,
-                                                opacity: 0,
-                                                scale: 0.8,
-                                            }}
-                                            transition={{
-                                                type: "spring",
-                                                stiffness: 500,
-                                                damping: 30,
-                                            }}
-                                            className={`text-xs font-semibold tabular-nums ${insufficientCredits
-                                                ? "text-red-500"
-                                                : "text-amber-500"
-                                                }`}
-                                        >
-                                            {creditBalance !== null
-                                                ? creditBalance
-                                                : "..."}
-                                        </motion.span>
-                                    </AnimatePresence>
-                                    {/* 扣费飘字 */}
-                                    <AnimatePresence>
-                                        {showDeduction && (
+                            {/* 积分信息栏（仅作者可见） */}
+                            {isAuthor && (
+                                <div className="flex items-center justify-between px-5 py-2.5 bg-muted/20">
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Sparkles className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                                        <span>
+                                            预计消耗 ≥{" "}
+                                            <span className="font-semibold text-violet-500">
+                                                {MIN_REVIEW_CREDIT_COST}
+                                            </span>{" "}
+                                            积分
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 relative">
+                                        <Coins className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                        <AnimatePresence mode="popLayout">
                                             <motion.span
+                                                key={creditBalance}
                                                 initial={{
-                                                    opacity: 1,
-                                                    y: 0,
-                                                    x: 4,
+                                                    y: -8,
+                                                    opacity: 0,
+                                                    scale: 0.8,
                                                 }}
                                                 animate={{
+                                                    y: 0,
+                                                    opacity: 1,
+                                                    scale: 1,
+                                                }}
+                                                exit={{
+                                                    y: 8,
                                                     opacity: 0,
-                                                    y: -24,
+                                                    scale: 0.8,
                                                 }}
-                                                exit={{ opacity: 0 }}
                                                 transition={{
-                                                    duration: 2,
-                                                    ease: "easeOut",
+                                                    type: "spring",
+                                                    stiffness: 500,
+                                                    damping: 30,
                                                 }}
-                                                className="absolute -top-2 right-0 text-[11px] font-bold text-red-400 pointer-events-none whitespace-nowrap"
+                                                className={`text-xs font-semibold tabular-nums ${insufficientCredits
+                                                    ? "text-red-500"
+                                                    : "text-amber-500"
+                                                    }`}
                                             >
-                                                -{deductedAmount}
+                                                {creditBalance !== null
+                                                    ? creditBalance
+                                                    : "..."}
                                             </motion.span>
-                                        )}
-                                    </AnimatePresence>
+                                        </AnimatePresence>
+                                        {/* 扣费飘字 */}
+                                        <AnimatePresence>
+                                            {showDeduction && (
+                                                <motion.span
+                                                    initial={{
+                                                        opacity: 1,
+                                                        y: 0,
+                                                        x: 4,
+                                                    }}
+                                                    animate={{
+                                                        opacity: 0,
+                                                        y: -24,
+                                                    }}
+                                                    exit={{ opacity: 0 }}
+                                                    transition={{
+                                                        duration: 2,
+                                                        ease: "easeOut",
+                                                    }}
+                                                    className="absolute -top-2 right-0 text-[11px] font-bold text-red-400 pointer-events-none whitespace-nowrap"
+                                                >
+                                                    -{deductedAmount}
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
-                            {/* ====== 操作按钮（初始状态） ====== */}
-                            {!hasStarted && !isActive && (
+                            {/* ====== 操作按钮（初始状态，仅作者可见） ====== */}
+                            {isAuthor && !hasStarted && !isActive && (
                                 <div className="px-5 py-4">
                                     {insufficientCredits ? (
                                         <div className="space-y-3">
@@ -505,8 +598,43 @@ export default function PeerReviewPanel({
                                         </div>
                                     )}
 
-                                    {/* 完成状态栏 */}
-                                    {hasResult && (
+                                    {/* 公开/隐藏评审切换（仅作者可见） */}
+                                    {hasResult && isAuthor && postId && (
+                                        <div className="flex items-center justify-between px-5 py-3 border-t border-border/40 bg-muted/10">
+                                            <div className="text-left pr-4">
+                                                <p className="text-xs font-semibold text-foreground">公开此审稿报告</p>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">开启后，所有访问该帖子的用户均可在文章下方查看 AI 同行评审结果</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    const newStatus = !isPublic;
+                                                    setIsPublic(newStatus);
+                                                    const res = await togglePeerReviewVisibility(postId, newStatus);
+                                                    if (res.error) {
+                                                        setIsPublic(!newStatus); // 回滚
+                                                        toast.error(res.error);
+                                                    } else {
+                                                        toast.success(newStatus ? "已将报告设为公开" : "已将报告设为私密");
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "relative w-9 h-5 rounded-full p-0.5 transition-colors focus:outline-none shrink-0",
+                                                    isPublic ? "bg-primary" : "bg-muted-foreground/30"
+                                                )}
+                                            >
+                                                <motion.div
+                                                    layout
+                                                    className="w-4 h-4 rounded-full bg-background shadow"
+                                                    animate={{ x: isPublic ? 16 : 0 }}
+                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* 完成状态栏（仅作者可见） */}
+                                    {hasResult && isAuthor && (
                                         <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/50 bg-green-500/5">
                                             <div className="flex items-center gap-2 text-xs text-green-600">
                                                 <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />

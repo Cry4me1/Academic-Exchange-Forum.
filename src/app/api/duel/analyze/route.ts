@@ -63,6 +63,11 @@ const DUEL_REFEREE_PROMPT = `你是一位公正但亲和的辩论裁判（AI Ref
   - 在 weaknesses 中添加"立场背离：内容支持了对方观点"
 - 注意区分：**有策略地承认对方部分观点再反驳**（"虽然…但是…"）属于高级辩论技巧，不算立场背离。只有**整体论点都在支撑对方立场**才判定为背离。
 
+### 4. 关联帖子原文参考（如果提供）
+如果系统提供了“决斗关联的帖子原文内容”，说明这场决斗是由于该帖子引发的争论。你必须：
+- 评估当前辩手的论点是否契合或有效回应了原帖子中阐述的核心事实、问题或讨论主旨。
+- 如果论点完全偏离原帖子论题，属于答非所问或脱离背景自说自话，应在 weaknesses 中明确指出“偏离原帖主题”，并对“推理质量”或“对话互动”进行扣分。
+
 ## 评分标准
 
 ### 加分项
@@ -134,12 +139,14 @@ export async function POST(req: Request): Promise<Response> {
             description,
             position,
             previousRounds,
+            postContent,
         } = body as {
             content: string;
             topic: string;
             description?: string;
             position?: string;
             previousRounds?: PreviousRound[];
+            postContent?: string | null;
         };
 
         if (!content || !topic) {
@@ -163,6 +170,9 @@ ${topic}
 ## 辩题背景描述
 ${description || "无额外描述"}
 
+## 决斗关联的帖子原文内容
+${postContent || "无关联帖子原文"}
+
 ## 当前论点作者的立场
 ${position || "未指定"}
 
@@ -174,7 +184,7 @@ ${previousRoundsText}
 ## 【当前需要评分的论点内容】
 ${content}
 
-请根据评分标准，对以上论点进行评分。注意仔细对比该作者之前的论点，检查是否存在重复提交。
+请根据评分标准，对以上论点进行评分。注意仔细对比该作者之前的论点，并结合关联的帖子原文背景，检查论点是否紧扣主题、是否存在重复提交。
 请直接输出 JSON 对象，不要有任何额外文字。
 `;
 

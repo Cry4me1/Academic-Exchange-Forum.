@@ -39,6 +39,7 @@ interface CreateDuelDialogProps {
     onOpenChange: (open: boolean) => void;
     currentUser: Profile | null;
     defaultTopic?: string;
+    postId?: string;
 }
 
 export function CreateDuelDialog({
@@ -46,6 +47,7 @@ export function CreateDuelDialog({
     onOpenChange,
     currentUser,
     defaultTopic = "",
+    postId,
 }: CreateDuelDialogProps) {
     const router = useRouter();
     const [topic, setTopic] = useState(defaultTopic);
@@ -114,6 +116,7 @@ export function CreateDuelDialog({
                     opponent_position: position === "正方" ? "反方" : "正方",
                     max_rounds: parseInt(maxRounds),
                     current_turn_user_id: currentUser.id, // 挑战者先手
+                    post_id: postId || null,
                 })
                 .select("id")
                 .single();

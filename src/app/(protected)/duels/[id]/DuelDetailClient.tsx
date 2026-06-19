@@ -25,8 +25,24 @@ import { DuelScoreCard } from "@/components/duel/DuelScoreCard";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "@/lib/utils";
-import NovelEditor from "@/components/editor/NovelEditor";
-import NovelViewer from "@/components/editor/NovelViewer";
+import dynamic from "next/dynamic";
+
+const NovelEditor = dynamic(() => import("@/components/editor/NovelEditor"), {
+    ssr: false,
+    loading: () => <div className="h-[200px] w-full bg-muted/20 animate-pulse rounded-lg border flex items-center justify-center text-sm text-muted-foreground">编辑器加载中...</div>
+});
+
+const NovelViewer = dynamic(() => import("@/components/editor/NovelViewer"), {
+    ssr: false,
+    loading: () => <div className="h-20 w-full bg-muted/10 animate-pulse rounded-lg border flex items-center justify-center text-sm text-muted-foreground">内容加载中...</div>
+});
+import { SpectatorBadge, Spectator } from "@/components/duel/SpectatorBadge";
+import { DanmakuOverlay, DanmakuMessage } from "@/components/duel/DanmakuOverlay";
+import { DanmakuHistoryPanel, DanmakuRecord } from "@/components/duel/DanmakuHistoryPanel";
+import { Input } from "@/components/ui/input";
+import { Eye, EyeOff, MessageSquareText, ShieldAlert } from "lucide-react";
+import { SpectatorBetPanel } from "@/components/duel/SpectatorBetPanel";
+import { Progress } from "@/components/ui/progress";
 
 interface Profile {
     id: string;
@@ -68,6 +84,8 @@ interface Duel {
     winner_id?: string;
     challenger_score: number;
     opponent_score: number;
+    challenger_lp: number;
+    opponent_lp: number;
     challenger_position: string;
     opponent_position: string;
     max_rounds: number;
@@ -81,6 +99,11 @@ interface Duel {
     challenger: Profile;
     opponent?: Profile;
     winner?: { id: string; username: string };
+    post?: {
+        id: string;
+        title: string;
+        content: object;
+    };
 }
 
 interface DuelDetailClientProps {
@@ -104,99 +127,275 @@ export default function DuelDetailClient({
     const [editorContent, setEditorContent] = useState<object | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const [userReputation, setUserReputation] = useState(currentUser?.reputation_score || 0);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     const [supabase] = useState(() => createClient());
     const processedIds = useRef(new Set(initialRounds.map(r => r.id)));
 
+    // 新增：弹幕与围观状态
+    const [spectators, setSpectators] = useState<Spectator[]>([]);
+    const [danmakuInput, setDanmakuInput] = useState("");
+    const [danmakuVisible, setDanmakuVisible] = useState(true);
+    const [latestDanmaku, setLatestDanmaku] = useState<DanmakuMessage | null>(null);
+    const [isSendingDanmaku, setIsSendingDanmaku] = useState(false);
+    const [danmakuHistory, setDanmakuHistory] = useState<DanmakuRecord[]>([]);
+
     // 实时监听
     useEffect(() => {
-        const channel = supabase
-            .channel(`duel-game-${currentDuel.id}`)
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "duel_rounds",
-                    filter: `duel_id=eq.${currentDuel.id}`,
-                },
-                async (payload) => {
-                    if (payload.eventType === "INSERT") {
-                        // Check duplicate immediately
-                        if (processedIds.current.has(payload.new.id)) return;
-                        processedIds.current.add(payload.new.id);
+        // 加载历史弹幕记录
+        const fetchDanmakuHistory = async () => {
+            const { data: comments } = await supabase
+                .from("duel_live_comments")
+                .select("id, content, user_id, created_at, profiles:user_id(username, avatar_url)")
+                .eq("duel_id", currentDuel.id)
+                .order("created_at", { ascending: true });
 
-                        // 获取完整的回合数据
-                        const { data: newRound } = await supabase
-                            .from("duel_rounds")
-                            .select(`
-                                *,
-                                author:profiles!author_id (
-                                    id, username, full_name, avatar_url
-                                )
-                            `)
-                            .eq("id", payload.new.id)
-                            .single();
+            if (comments) {
+                const records: DanmakuRecord[] = comments.map((c: any) => ({
+                    id: c.id,
+                    content: c.content,
+                    username: c.profiles?.username || "神秘学者",
+                    avatar_url: c.profiles?.avatar_url,
+                    user_id: c.user_id,
+                    created_at: c.created_at,
+                    role: c.user_id === currentDuel.challenger_id
+                        ? "challenger" as const
+                        : c.user_id === currentDuel.opponent_id
+                            ? "opponent" as const
+                            : "spectator" as const,
+                }));
+                setDanmakuHistory(records);
+            }
+        };
+        fetchDanmakuHistory();
 
-                        if (newRound) {
-                            setRounds((prev) => {
-                                // Double safety check
-                                if (prev.some(r => r.id === newRound.id)) return prev;
-                                return [...prev, newRound];
-                            });
-                        }
-                    } else if (payload.eventType === "UPDATE") {
-                        setRounds((prev) =>
-                            prev.map((r) =>
-                                r.id === payload.new.id ? { ...r, ...payload.new } : r
-                            )
-                        );
-                    }
+        // 主动拉取最新的决斗状态，避免 soft navigation 缓存问题
+        const fetchLatestDuel = async () => {
+            const { data: latestDuel } = await supabase
+                .from("duels")
+                .select(`
+                    *,
+                    challenger:profiles!challenger_id(
+                        id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                    ),
+                    opponent:profiles!opponent_id(
+                        id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                    ),
+                    winner:profiles!winner_id(
+                        id, username
+                    ),
+                    post:posts(id, title, content)
+                `)
+                .eq("id", currentDuel.id)
+                .single();
+            if (latestDuel) {
+                setCurrentDuel(latestDuel as unknown as Duel);
+                if (currentUser && latestDuel.current_turn_user_id) {
+                    setIsMyTurn(latestDuel.current_turn_user_id === currentUser.id);
                 }
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event: "UPDATE",
-                    schema: "public",
-                    table: "duels",
-                    filter: `id=eq.${currentDuel.id}`,
-                },
-                async (payload) => {
-                    // 当收到更新通知时，重新获取完整的决斗数据，以确保关联数据（如 winner, opponent）正确加载
-                    const { data: updatedDuel } = await supabase
-                        .from("duels")
+            }
+
+            if (currentUser) {
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("reputation_score")
+                    .eq("id", currentUser.id)
+                    .single();
+                if (profile) {
+                    setUserReputation(profile.reputation_score);
+                }
+            }
+        };
+        fetchLatestDuel();
+
+        const presenceKey = currentUser?.username || `Guest_${Math.random().toString(36).substr(2, 4)}`;
+        const channel = supabase.channel(`duel-game-${currentDuel.id}`, {
+            config: {
+                presence: { key: presenceKey }
+            }
+        });
+
+        // 监听决斗回合
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "duel_rounds",
+                filter: `duel_id=eq.${currentDuel.id}`,
+            },
+            async (payload) => {
+                if (payload.eventType === "INSERT") {
+                    // Check duplicate immediately
+                    if (processedIds.current.has(payload.new.id)) return;
+                    processedIds.current.add(payload.new.id);
+
+                    // 获取完整的回合数据
+                    const { data: newRound } = await supabase
+                        .from("duel_rounds")
                         .select(`
                             *,
-                            challenger:profiles!challenger_id(
-                                id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
-                            ),
-                            opponent:profiles!opponent_id(
-                                id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
-                            ),
-                            winner:profiles!winner_id(
-                                id, username
+                            author:profiles!author_id (
+                                id, username, full_name, avatar_url
                             )
                         `)
-                        .eq("id", currentDuel.id)
+                        .eq("id", payload.new.id)
                         .single();
 
-                    if (updatedDuel) {
-                        setCurrentDuel(updatedDuel as unknown as Duel);
+                    if (newRound) {
+                        setRounds((prev) => {
+                            // Double safety check
+                            if (prev.some(r => r.id === newRound.id)) return prev;
+                            return [...prev, newRound];
+                        });
+                    }
+                } else if (payload.eventType === "UPDATE") {
+                    setRounds((prev) =>
+                        prev.map((r) =>
+                            r.id === payload.new.id ? { ...r, ...payload.new } : r
+                        )
+                    );
+                }
+            }
+        );
 
-                        // Update turn state
-                        if (currentUser && updatedDuel.current_turn_user_id) {
-                            setIsMyTurn(updatedDuel.current_turn_user_id === currentUser.id);
-                        }
+        // 监听决斗主表
+        channel.on(
+            "postgres_changes",
+            {
+                event: "UPDATE",
+                schema: "public",
+                table: "duels",
+                filter: `id=eq.${currentDuel.id}`,
+            },
+            async (payload) => {
+                // 当收到更新通知时，重新获取完整的决斗数据，以确保关联数据（如 winner, opponent）正确加载
+                const { data: updatedDuel } = await supabase
+                    .from("duels")
+                    .select(`
+                        *,
+                        challenger:profiles!challenger_id(
+                            id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                        ),
+                        opponent:profiles!opponent_id(
+                            id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                        ),
+                        winner:profiles!winner_id(
+                            id, username
+                        ),
+                        post:posts(id, title, content)
+                    `)
+                    .eq("id", currentDuel.id)
+                    .single();
+
+                if (updatedDuel) {
+                    setCurrentDuel(updatedDuel as unknown as Duel);
+
+                    // Update turn state
+                    if (currentUser && updatedDuel.current_turn_user_id) {
+                        setIsMyTurn(updatedDuel.current_turn_user_id === currentUser.id);
                     }
                 }
-            )
-            .subscribe();
+            }
+        );
+
+        // 监听实时弹幕
+        channel.on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "duel_live_comments",
+                filter: `duel_id=eq.${currentDuel.id}`,
+            },
+            async (payload) => {
+                try {
+                    const { data: userProfile } = await supabase
+                        .from("profiles")
+                        .select("username, avatar_url")
+                        .eq("id", payload.new.user_id)
+                        .single();
+
+                    const role = payload.new.user_id === currentDuel.challenger_id 
+                        ? "challenger" as const
+                        : (payload.new.user_id === currentDuel.opponent_id ? "opponent" as const : "spectator" as const);
+                    
+                    const username = userProfile?.username || "神秘学者";
+
+                    setLatestDanmaku({
+                        id: payload.new.id,
+                        text: payload.new.content,
+                        userId: payload.new.user_id,
+                        username,
+                        positionColor: role,
+                    });
+
+                    // 追加到弹幕历史记录
+                    setDanmakuHistory((prev) => [
+                        ...prev,
+                        {
+                            id: payload.new.id,
+                            content: payload.new.content,
+                            username,
+                            avatar_url: userProfile?.avatar_url,
+                            user_id: payload.new.user_id,
+                            created_at: payload.new.created_at || new Date().toISOString(),
+                            role,
+                        },
+                    ]);
+                } catch (e) {
+                    console.error("Fetch danmaku profile error", e);
+                }
+            }
+        );
+
+        // 监听 Presence 同步，维护在线围观列表
+        channel.on("presence", { event: "sync" }, () => {
+            const state = channel.presenceState();
+            const onlineList: Spectator[] = [];
+            
+            Object.keys(state).forEach((key) => {
+                const presences = state[key] as any[];
+                presences.forEach((p) => {
+                    const isChallenger = p.username === currentDuel.challenger.username;
+                    const isOpponent = currentDuel.opponent && p.username === currentDuel.opponent.username;
+                    
+                    if (
+                        p.username && 
+                        !isChallenger && 
+                        !isOpponent && 
+                        !onlineList.some(o => o.username === p.username)
+                    ) {
+                        onlineList.push({
+                            username: p.username,
+                            avatar_url: p.avatar_url,
+                        });
+                    }
+                });
+            });
+            setSpectators(onlineList);
+        });
+
+        // 订阅频道并进行 track
+        channel.subscribe(async (status) => {
+            if (status === "SUBSCRIBED") {
+                await channel.track({
+                    username: currentUser?.username || `游客_${presenceKey.substr(-4)}`,
+                    avatar_url: currentUser?.avatar_url,
+                    online_at: new Date().toISOString()
+                });
+            }
+        });
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentDuel.id, supabase, currentUser]);
+    }, [currentDuel.id, supabase, currentUser, currentDuel.challenger_id, currentDuel.opponent_id]);
 
     // 提取纯文本
     const extractTextFromContent = (content: object): string => {
@@ -307,6 +506,7 @@ export default function DuelDetailClient({
             toast.info("AI 裁判正在深度思考并分析你的论点，请稍候...");
 
             let roundTotalScore = 0;
+            let hasFallacy = false;
 
             const previousRounds = buildPreviousRoundsContext();
 
@@ -321,6 +521,7 @@ export default function DuelDetailClient({
                         ? currentDuel.challenger_position
                         : currentDuel.opponent_position,
                     previousRounds,
+                    postContent: currentDuel.post?.content ? extractTextFromContent(currentDuel.post.content) : null,
                 }),
             });
 
@@ -328,6 +529,7 @@ export default function DuelDetailClient({
                 try {
                     const scoreData = await response.json();
                     roundTotalScore = scoreData.totalScore || 0;
+                    hasFallacy = scoreData.hasFallacy || false;
 
                     // 更新回合评分
                     await supabase
@@ -360,7 +562,7 @@ export default function DuelDetailClient({
                 toast.warning("AI 分析暂时不可用，论点已提交但未评分");
             }
 
-            // 3. 更新决斗状态 (分数, 回合, 结束判定)
+            // 3. 更新决斗状态 (分数, LP, 回合, 结束判定)
             const isChallenger = currentUser.id === currentDuel.challenger_id;
             const newChallengerScore = isChallenger
                 ? currentDuel.challenger_score + roundTotalScore
@@ -369,27 +571,66 @@ export default function DuelDetailClient({
                 ? currentDuel.opponent_score + roundTotalScore
                 : currentDuel.opponent_score;
 
+            // LP Logic
+            let newChallengerLp = currentDuel.challenger_lp;
+            let newOpponentLp = currentDuel.opponent_lp;
+            if (hasFallacy) {
+                if (isChallenger) {
+                    newChallengerLp = Math.max(0, currentDuel.challenger_lp - 10);
+                } else {
+                    newOpponentLp = Math.max(0, currentDuel.opponent_lp - 10);
+                }
+            }
+
             const totalTurnsPlayed = rounds.length + 1;
             const maxTurns = currentDuel.max_rounds * 2;
-            const isGameOver = totalTurnsPlayed >= maxTurns;
+            let isGameOver = totalTurnsPlayed >= maxTurns;
+            let koType = null;
+            let koReason = null;
+
+            // T.K.O check
+            if (newChallengerLp <= 0 || newOpponentLp <= 0) {
+                isGameOver = true;
+                koType = "fallacy_limit";
+                koReason = "逻辑值归零，惨遭技术性击倒";
+            } else if (newChallengerScore <= -30 || newOpponentScore <= -30) {
+                isGameOver = true;
+                koType = "negative_streak";
+                koReason = "得分极低，惨遭技术性击倒";
+            }
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatePayload: any = {
                 challenger_score: newChallengerScore,
                 opponent_score: newOpponentScore,
+                challenger_lp: newChallengerLp,
+                opponent_lp: newOpponentLp,
             };
 
             if (isGameOver) {
                 updatePayload.status = "completed";
                 updatePayload.ended_at = new Date().toISOString();
+                if (koType) {
+                    updatePayload.ko_type = koType;
+                    updatePayload.ko_reason = koReason;
+                }
 
-                if (newChallengerScore > newOpponentScore) {
+                // Determine winner logic with KO priority
+                if (newChallengerLp <= 0) {
+                     updatePayload.winner_id = currentDuel.opponent_id;
+                } else if (newOpponentLp <= 0) {
+                     updatePayload.winner_id = currentDuel.challenger_id;
+                } else if (newChallengerScore <= -30) {
+                     updatePayload.winner_id = currentDuel.opponent_id;
+                } else if (newOpponentScore <= -30) {
+                     updatePayload.winner_id = currentDuel.challenger_id;
+                } else if (newChallengerScore > newOpponentScore) {
                     updatePayload.winner_id = currentDuel.challenger_id;
                 } else if (newOpponentScore > newChallengerScore && currentDuel.opponent_id) {
                     updatePayload.winner_id = currentDuel.opponent_id;
                 }
 
-                toast.success("决斗结束！正在生成总结...");
+                toast.success(koType ? `决斗结束，判定 T.K.O！` : `决斗结束！正在生成总结...`);
             } else {
                 updatePayload.current_round = currentRoundNumber;
                 updatePayload.current_turn_user_id = isChallenger
@@ -420,11 +661,65 @@ export default function DuelDetailClient({
         return "spectator";
     };
 
+    // 发送实时弹幕
+    const handleSendDanmaku = async () => {
+        if (!currentUser) {
+            toast.error("请先登录后发送弹幕");
+            return;
+        }
+        if (!danmakuInput.trim()) return;
+
+        setIsSendingDanmaku(true);
+        try {
+            const { error } = await supabase
+                .from("duel_live_comments")
+                .insert({
+                    duel_id: currentDuel.id,
+                    user_id: currentUser.id,
+                    content: danmakuInput.trim(),
+                });
+
+            if (error) throw error;
+            setDanmakuInput("");
+        } catch (error) {
+            console.error("Send danmaku error:", error);
+            toast.error("弹幕发送失败");
+        } finally {
+            setIsSendingDanmaku(false);
+        }
+    };
+
+    if (!isMounted) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative flex flex-col">
+                <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-16">
+                            <Link href="/duels">
+                                <Button variant="ghost" size="sm" className="gap-2">
+                                    <ArrowLeft className="h-4 w-4" />
+                                    返回决斗场
+                                </Button>
+                            </Link>
+                            <div className="h-8 w-24 bg-muted/40 animate-pulse rounded-full" />
+                        </div>
+                    </div>
+                </header>
+                <main className="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-center min-h-[60vh]">
+                    <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
+                        <p className="text-sm text-muted-foreground animate-pulse">正在载入学术决斗现场...</p>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
     const myRole = currentUser ? getUserRole(currentUser.id) : "spectator";
     const myPosition = myRole === "challenger" ? currentDuel.challenger_position : currentDuel.opponent_position;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative">
             {/* 顶部导航 */}
             <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -436,26 +731,50 @@ export default function DuelDetailClient({
                             </Button>
                         </Link>
 
-                        <div className="flex items-center gap-2">
-                            {currentDuel.status === "active" && (
-                                <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/30">
-                                    <span className="animate-pulse mr-1">●</span> 进行中
-                                </Badge>
+                        <div className="flex items-center gap-4">
+                            {/* 观战人数显示 */}
+                            {currentDuel.status === "active" && isMounted && (
+                                <SpectatorBadge spectators={spectators} />
                             )}
-                            {currentDuel.status === "completed" && (
-                                <Badge variant="outline">
-                                    {currentDuel.ko_type ? "KO 结束" : "已完成"}
-                                </Badge>
+
+                            {/* 弹幕开关 */}
+                            {currentDuel.status === "active" && isMounted && myRole === "spectator" && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setDanmakuVisible(!danmakuVisible)}
+                                    title={danmakuVisible ? "屏蔽弹幕" : "开启弹幕"}
+                                    className="text-muted-foreground hover:text-foreground h-8 w-8"
+                                >
+                                    {danmakuVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                </Button>
                             )}
-                            <span className="text-sm text-muted-foreground">
-                                第 {currentDuel.current_round}/{currentDuel.max_rounds} 回合
-                            </span>
+
+                            <div className="flex items-center gap-2">
+                                {currentDuel.status === "active" && (
+                                    <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/30">
+                                        <span className="animate-pulse mr-1">●</span> 进行中
+                                    </Badge>
+                                )}
+                                {currentDuel.status === "completed" && (
+                                    <Badge variant="outline">
+                                        {currentDuel.ko_type ? "KO 结束" : "已完成"}
+                                    </Badge>
+                                )}
+                                <span className="text-sm text-muted-foreground">
+                                    第 {currentDuel.current_round}/{currentDuel.max_rounds} 回合
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+                {/* 实时弹幕层（仅非决斗选手的普通观众可见） */}
+                {isMounted && myRole === "spectator" && (
+                    <DanmakuOverlay newDanmaku={latestDanmaku} visible={danmakuVisible} />
+                )}
                 {/* 辩题 */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -507,6 +826,25 @@ export default function DuelDetailClient({
                                             />
                                         </div>
                                     )}
+                                    
+                                    <div className="mt-4 px-4">
+                                        <div className="flex justify-between text-xs font-semibold mb-1">
+                                            <span className="flex items-center gap-1 text-muted-foreground"><ShieldAlert className="h-3 w-3" /> LP</span>
+                                            <span className={currentDuel.challenger_lp <= 30 ? "text-red-500" : currentDuel.challenger_lp <= 60 ? "text-yellow-500" : "text-green-500"}>
+                                                {currentDuel.challenger_lp ?? 100} / 100
+                                            </span>
+                                        </div>
+                                        <Progress 
+                                            value={currentDuel.challenger_lp ?? 100} 
+                                            max={100}
+                                            className="h-2" 
+                                            indicatorClassName={
+                                                (currentDuel.challenger_lp ?? 100) <= 30 ? "bg-red-500" : 
+                                                (currentDuel.challenger_lp ?? 100) <= 60 ? "bg-yellow-500" : "bg-green-500"
+                                            }
+                                        />
+                                    </div>
+                                    
                                     <p className="text-3xl sm:text-4xl font-bold text-blue-600 mt-2 sm:mt-3">
                                         {currentDuel.challenger_score}
                                     </p>
@@ -549,6 +887,25 @@ export default function DuelDetailClient({
                                                     />
                                                 </div>
                                             )}
+
+                                            <div className="mt-4 px-4">
+                                                <div className="flex justify-between text-xs font-semibold mb-1">
+                                                    <span className="flex items-center gap-1 text-muted-foreground"><ShieldAlert className="h-3 w-3" /> LP</span>
+                                                    <span className={(currentDuel.opponent_lp ?? 100) <= 30 ? "text-red-500" : (currentDuel.opponent_lp ?? 100) <= 60 ? "text-yellow-500" : "text-green-500"}>
+                                                        {currentDuel.opponent_lp ?? 100} / 100
+                                                    </span>
+                                                </div>
+                                                <Progress 
+                                                    value={currentDuel.opponent_lp ?? 100} 
+                                                    max={100}
+                                                    className="h-2" 
+                                                    indicatorClassName={
+                                                        (currentDuel.opponent_lp ?? 100) <= 30 ? "bg-red-500" : 
+                                                        (currentDuel.opponent_lp ?? 100) <= 60 ? "bg-yellow-500" : "bg-green-500"
+                                                    }
+                                                />
+                                            </div>
+
                                             <p className="text-3xl sm:text-4xl font-bold text-red-600 mt-2 sm:mt-3">
                                                 {currentDuel.opponent_score}
                                             </p>
@@ -726,6 +1083,51 @@ export default function DuelDetailClient({
                     </motion.div>
                 )}
 
+                {/* 观战提示区域 */}
+                {currentDuel.status === "active" && !isParticipant && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                    >
+                        <div className="md:col-span-2">
+                            <Card className="bg-background/60 backdrop-blur-md border-dashed border-primary/30 h-full">
+                                <CardContent className="text-center py-8">
+                                    <Eye className="h-10 w-10 mx-auto text-primary/60 mb-3 animate-pulse" />
+                                    <h3 className="text-base font-semibold mb-1">您正在学术围观中</h3>
+                                    <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                                        您是本次学术决斗的观战嘉宾，可以阅读双方选手的交锋记录，并使用底部的弹幕框进行实时吐槽或学术应援！
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        
+                        <div className="md:col-span-1">
+                            {currentDuel.opponent && currentUser ? (
+                                <SpectatorBetPanel 
+                                    duelId={currentDuel.id}
+                                    challenger={{
+                                        id: currentDuel.challenger_id,
+                                        username: currentDuel.challenger.username,
+                                        avatar_url: currentDuel.challenger.avatar_url,
+                                        position: currentDuel.challenger_position
+                                    }}
+                                    opponent={{
+                                        id: currentDuel.opponent_id,
+                                        username: currentDuel.opponent.username,
+                                        avatar_url: currentDuel.opponent.avatar_url,
+                                        position: currentDuel.opponent_position
+                                    }}
+                                    userReputation={userReputation}
+                                    onBetSuccess={() => {
+                                        // Optional callback
+                                    }}
+                                />
+                            ) : null}
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* 决斗结束 */}
                 {currentDuel.status === "completed" && (
                     <motion.div
@@ -755,6 +1157,36 @@ export default function DuelDetailClient({
                             </CardContent>
                         </Card>
                     </motion.div>
+                )}
+
+                {/* 底部悬浮/固定弹幕栏 */}
+                {currentDuel.status === "active" && isMounted && myRole === "spectator" && (
+                    <div className="sticky bottom-6 left-0 right-0 max-w-xl mx-auto px-4 z-30 mt-8">
+                        <div className="flex items-center gap-2 p-2 rounded-full bg-background/80 backdrop-blur-lg border border-border/60 shadow-lg">
+                            <DanmakuHistoryPanel 
+                                records={danmakuHistory}
+                                challengerName={currentDuel.challenger.username}
+                                opponentName={currentDuel.opponent?.username}
+                            />
+                            <div className="w-px h-6 bg-border/50 hidden sm:block"></div>
+                            <Input
+                                placeholder={currentUser ? "说点什么，发送实时弹幕..." : "请登录后发送弹幕"}
+                                value={danmakuInput}
+                                onChange={(e) => setDanmakuInput(e.target.value)}
+                                disabled={!currentUser || isSendingDanmaku}
+                                onKeyDown={(e) => e.key === "Enter" && handleSendDanmaku()}
+                                className="flex-1 rounded-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-4 h-9 text-xs sm:text-sm"
+                            />
+                            <Button
+                                onClick={handleSendDanmaku}
+                                disabled={!currentUser || isSendingDanmaku || !danmakuInput.trim()}
+                                size="sm"
+                                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 h-8 shrink-0 text-xs font-medium"
+                            >
+                                {isSendingDanmaku ? "发送中..." : "发弹幕"}
+                            </Button>
+                        </div>
+                    </div>
                 )}
             </main>
         </div>
