@@ -804,7 +804,7 @@ export default function PostDetailClient({
                             </motion.div>
 
                             {/* 发起决斗引导（如果还没有决斗） */}
-                            {relatedDuels.length === 0 && (!currentUser || post.author_id !== currentUser.id) && (
+                            {relatedDuels.length === 0 && (!currentUser || post.author.id !== currentUser.id) && (
                                 <motion.div initial="hidden" animate="visible" variants={itemVariants} className="mb-8 mt-6">
                                     <div className="p-6 rounded-xl border border-dashed border-border hover:border-primary/50 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors">
                                         <div className="text-left">
@@ -834,7 +834,7 @@ export default function PostDetailClient({
                             )}
 
                             {/* 作者视角的无决斗占位 */}
-                            {relatedDuels.length === 0 && currentUser && post.author_id === currentUser.id && (
+                            {relatedDuels.length === 0 && currentUser && post.author.id === currentUser.id && (
                                 <motion.div initial="hidden" animate="visible" variants={itemVariants} className="mb-8 mt-6">
                                     <div className="p-6 rounded-xl border border-dashed border-border bg-muted/10 flex flex-col items-center justify-center gap-2 text-center">
                                         <Swords className="h-8 w-8 text-muted-foreground/30 mb-2" />

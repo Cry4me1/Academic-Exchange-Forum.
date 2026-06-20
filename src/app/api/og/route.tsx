@@ -219,8 +219,10 @@ export async function GET(request: NextRequest) {
                     {/* 作者信息 */}
                     <div style={{ display: "flex", alignItems: "center" }}>
                         {author?.avatar_url ? (
+                            {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
                             <img
                                 src={author.avatar_url}
+                                alt=""
                                 width={56}
                                 height={56}
                                 style={{
