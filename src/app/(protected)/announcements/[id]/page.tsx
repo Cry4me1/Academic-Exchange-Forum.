@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { Bell, Rocket, Sparkles, Wrench, Megaphone, ArrowLeft } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
           <div className="flex items-center gap-3 mt-8">
             <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
               {creator?.avatar_url ? (
-                <img src={creator.avatar_url} alt={creatorName} className="h-full w-full object-cover" />
+                <Image src={creator.avatar_url} alt={creatorName} width={40} height={40} className="h-full w-full object-cover" />
               ) : (
                 <Bell className="h-5 w-5 text-muted-foreground" />
               )}

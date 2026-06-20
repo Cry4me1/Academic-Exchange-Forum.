@@ -82,7 +82,6 @@ function extractTextFromContent(content: object): string {
 function extractImageFromContent(content: object): string | undefined {
     try {
         const jsonContent = content as { content?: Array<any> };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const findImage = (nodes: Array<any>): string | undefined => {
             for (const node of nodes) {
                 if (node.type === "image" && node.attrs?.src) {

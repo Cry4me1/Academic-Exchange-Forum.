@@ -395,7 +395,7 @@ export default function DuelDetailClient({
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentDuel.id, supabase, currentUser, currentDuel.challenger_id, currentDuel.opponent_id]);
+    }, [currentDuel.id, supabase, currentUser, currentDuel.challenger_id, currentDuel.opponent_id, currentDuel.challenger.username, currentDuel.opponent]);
 
     // 提取纯文本
     const extractTextFromContent = (content: object): string => {
@@ -599,7 +599,6 @@ export default function DuelDetailClient({
                 koReason = "得分极低，惨遭技术性击倒";
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatePayload: any = {
                 challenger_score: newChallengerScore,
                 opponent_score: newOpponentScore,
@@ -1113,7 +1112,7 @@ export default function DuelDetailClient({
                                         position: currentDuel.challenger_position
                                     }}
                                     opponent={{
-                                        id: currentDuel.opponent_id,
+                                        id: currentDuel.opponent_id!,
                                         username: currentDuel.opponent.username,
                                         avatar_url: currentDuel.opponent.avatar_url,
                                         position: currentDuel.opponent_position

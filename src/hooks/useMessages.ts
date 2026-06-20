@@ -69,6 +69,9 @@ interface UseMessagesReturn {
 
 const PAGE_SIZE = 50;
 
+// 撤回时间限制：2分钟
+const REVOKE_TIME_LIMIT_MS = 2 * 60 * 1000;
+
 export function useMessages(
     currentUserId: string | null,
     conversationPartnerId?: string
@@ -429,8 +432,6 @@ export function useMessages(
         };
     }, [currentUserId, conversationPartnerId, supabase, fetchConversations]);
 
-    // 撤回时间限制：2分钟
-    const REVOKE_TIME_LIMIT_MS = 2 * 60 * 1000;
 
     // 判断消息是否可以撤回
     const canRevoke = useCallback(

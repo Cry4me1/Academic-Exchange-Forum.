@@ -113,7 +113,7 @@ export default function LabRoomClient({
 
     const postLinks = room.lab_post_links || [];
     const selectedPost = postLinks[selectedPostIndex]?.post;
-    const members = room.lab_members || [];
+    const members = useMemo(() => room.lab_members || [], [room.lab_members]);
     const currentMember = members.find((m) => m.user.id === currentUserId);
     const isOwnerOrAdmin = currentMember?.role === "owner" || currentMember?.role === "admin";
     const router = useRouter();

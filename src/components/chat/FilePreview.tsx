@@ -101,6 +101,7 @@ export function FilePreview({ attachment, className }: FilePreviewProps) {
                     )}
                     onClick={() => setShowPreview(true)}
                 >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={attachment.publicUrl}
                         alt={attachment.fileName}
@@ -130,6 +131,7 @@ export function FilePreview({ attachment, className }: FilePreviewProps) {
                             </Button>
                         </DialogHeader>
                         <div className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={attachment.publicUrl}
                                 alt={attachment.fileName}
