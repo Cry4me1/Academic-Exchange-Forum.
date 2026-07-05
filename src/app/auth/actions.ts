@@ -112,3 +112,62 @@ export async function updatePassword(formData: FormData) {
     revalidatePath('/', 'layout')
     redirect('/dashboard')
 }
+
+export async function loginWithUsername(formData: FormData) {
+    const supabase = await createClient()
+    
+    const username = formData.get('username') as string
+    const password = formData.get('password') as string
+    
+    // 用户名注册时使用伪邮箱
+    const pseudoEmail = `${username.toLowerCase()}@scholarly.org`
+    
+    const { error } = await supabase.auth.signInWithPassword({
+        email: pseudoEmail,
+        password,
+    })
+
+    if (error) {
+        return { error: '用户名或密码错误' }
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/dashboard')
+}
+
+export async function signupWithUsername(formData: FormData) {
+    const supabase = await createClient()
+    
+    const username = formData.get('username') as string
+    const fullName = formData.get('full_name') as string
+    const password = formData.get('password') as string
+    
+    // 用户名注册使用伪邮箱
+    const pseudoEmail = `${username.toLowerCase()}@scholarly.org`
+    
+    const { error, data: authData } = await supabase.auth.signUp({
+        email: pseudoEmail,
+        password,
+        options: {
+            data: {
+                username: username,
+                full_name: fullName,
+                auth_provider: 'username',
+            },
+        },
+    })
+
+    if (error) {
+        if (error.message.includes('already registered')) {
+            return { error: '该用户名已被注册' }
+        }
+        return { error: error.message }
+    }
+
+    if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+        return { error: '该用户名已被注册' }
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/dashboard')
+}

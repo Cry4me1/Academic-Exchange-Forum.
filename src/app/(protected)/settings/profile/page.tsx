@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { LinkedAccountsCard } from "@/components/settings/linked-accounts-card";
 
 interface ProfileData {
     id: string;
@@ -380,6 +381,9 @@ export default function ProfileSettingsPage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* 绑定账号 Card */}
+                <LinkedAccountsCard />
             </div>
         </div>
     );

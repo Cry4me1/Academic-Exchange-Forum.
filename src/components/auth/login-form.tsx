@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
+import { loginSchema, type LoginFormData, usernameLoginSchema, type UsernameLoginFormData } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle, KeyRound, Loader2, Mail } from "lucide-react";
+import { CheckCircle, KeyRound, Loader2, Mail, User, Copy, ExternalLink, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,6 +23,12 @@ export function LoginForm() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("magic-link");
 
+    // 洛谷登录状态
+    const [luoguId, setLuoguId] = useState("");
+    const [luoguVerifyCode, setLuoguVerifyCode] = useState("");
+    const [isLuoguLoading, setIsLuoguLoading] = useState(false);
+    const [luoguError, setLuoguError] = useState<string | null>(null);
+
     useEffect(() => {
         const error = searchParams.get("error");
         const errorDescription = searchParams.get("error_description");
@@ -30,23 +37,95 @@ export function LoginForm() {
         }
     }, [searchParams]);
 
+    // 邮箱登录表单（magic-link 和 password 共用）
     const {
-        register,
-        handleSubmit,
-        formState: { errors },
-        reset,
+        register: registerEmail,
+        handleSubmit: handleSubmitEmail,
+        formState: { errors: emailErrors },
+        reset: resetEmail,
     } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
+    });
+
+    // 用户名登录表单
+    const {
+        register: registerUsername,
+        handleSubmit: handleSubmitUsername,
+        formState: { errors: usernameErrors },
+        reset: resetUsername,
+    } = useForm<UsernameLoginFormData>({
+        resolver: zodResolver(usernameLoginSchema),
     });
 
     // 切换 Tab 时重置表单状态
     const onTabChange = (value: string) => {
         setActiveTab(value);
         setError(null);
-        reset();
+        setLuoguError(null);
+        resetEmail();
+        resetUsername();
+        setLuoguId("");
+        setLuoguVerifyCode("");
     };
 
-    const onSubmit = async (data: LoginFormData) => {
+    // 洛谷登录第一步：获取登录验证码
+    const handleLuoguInit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!luoguId.trim()) {
+            setLuoguError("请输入洛谷 UID");
+            return;
+        }
+        if (isNaN(Number(luoguId.trim()))) {
+            setLuoguError("洛谷 UID 必须为纯数字");
+            return;
+        }
+
+        setIsLuoguLoading(true);
+        setLuoguError(null);
+
+        try {
+            const res = await fetch("/api/auth/luogu/login/init", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ luoguId: luoguId.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "获取验证码失败");
+
+            setLuoguVerifyCode(data.verificationCode);
+            toast.success("登录验证码生成成功！");
+        } catch (err: any) {
+            setLuoguError(err.message || "请求出错，请重试");
+        } finally {
+            setIsLuoguLoading(false);
+        }
+    };
+
+    // 洛谷登录第二步：验证并登录
+    const handleLuoguVerify = async () => {
+        setIsLuoguLoading(true);
+        setLuoguError(null);
+
+        try {
+            const res = await fetch("/api/auth/luogu/login/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ luoguId: luoguId.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "登录验证失败");
+
+            toast.success("验证成功，正在登录...");
+            // 重定向至 Supabase 生成的 Magic Link 完成登录会话初始化
+            window.location.href = data.actionLink;
+        } catch (err: any) {
+            setLuoguError(err.message || "登录失败，请重试");
+            setIsLuoguLoading(false);
+        }
+    };
+
+    // 邮箱相关登录（magic-link / password）
+    const onEmailSubmit = async (data: LoginFormData) => {
         setIsLoading(true);
         setError(null);
         const supabase = createClient();
@@ -54,7 +133,6 @@ export function LoginForm() {
         try {
             if (activeTab === "magic-link") {
                 // 邮箱链接登录
-                // 优先使用环境变量中的站点URL，否则使用当前页面origin
                 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
                 const redirectTo = `${siteUrl}/auth/callback?next=/dashboard`;
 
@@ -100,6 +178,34 @@ export function LoginForm() {
         }
     };
 
+    // 用户名登录
+    const onUsernameSubmit = async (data: UsernameLoginFormData) => {
+        setIsLoading(true);
+        setError(null);
+        const supabase = createClient();
+
+        try {
+            const pseudoEmail = `${data.username.toLowerCase()}@scholarly.org`;
+
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: pseudoEmail,
+                password: data.password,
+            });
+
+            if (authError) {
+                setError("用户名或密码错误");
+                return;
+            }
+
+            router.push("/dashboard");
+            router.refresh();
+        } catch {
+            setError("登录请求出错，请稍后重试");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     if (isSuccess && activeTab === "magic-link") {
         return (
             <div className="text-center space-y-4">
@@ -123,6 +229,8 @@ export function LoginForm() {
         );
     }
 
+    const gradientButtonClass = "w-full h-11 mt-2 text-white font-semibold border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/25 dark:from-amber-500 dark:to-orange-500 dark:hover:from-amber-400 dark:hover:to-orange-400 dark:text-slate-950 dark:shadow-amber-500/25";
+
     return (
         <div className="space-y-6">
             {/* 标题 */}
@@ -134,35 +242,85 @@ export function LoginForm() {
             </div>
 
             <Tabs defaultValue="magic-link" value={activeTab} onValueChange={onTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="magic-link">邮箱链接</TabsTrigger>
-                    <TabsTrigger value="password">账号密码</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 mb-4">
+                    <TabsTrigger value="magic-link" className="text-xs px-1">邮箱链接</TabsTrigger>
+                    <TabsTrigger value="password" className="text-xs px-1">账号密码</TabsTrigger>
+                    <TabsTrigger value="username" className="text-xs px-1">用户名</TabsTrigger>
+                    <TabsTrigger value="luogu" className="text-xs px-1">洛谷登录</TabsTrigger>
                 </TabsList>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    {/* 邮箱输入 (两个 Tab 共用) */}
-                    <div className="space-y-2">
-                        <Label htmlFor="email">邮箱地址</Label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="your@email.com"
-                                className="pl-10 h-11"
-                                {...register("email")}
-                            />
+                {/* Tab 1: 邮箱链接登录 */}
+                <TabsContent value="magic-link" className="space-y-4 mt-0">
+                    <form onSubmit={handleSubmitEmail(onEmailSubmit)} className="space-y-4">
+                        {/* 邮箱输入 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="magic-email">邮箱地址</Label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    id="magic-email"
+                                    type="email"
+                                    placeholder="your@email.com"
+                                    className="pl-10 h-11"
+                                    {...registerEmail("email")}
+                                />
+                            </div>
+                            {emailErrors.email && (
+                                <p className="text-sm text-destructive">{emailErrors.email.message}</p>
+                            )}
                         </div>
-                        {errors.email && (
-                            <p className="text-sm text-destructive">{errors.email.message}</p>
-                        )}
-                    </div>
 
-                    <TabsContent value="password" className="space-y-4 mt-0">
+                        {/* 错误提示 */}
+                        {error && (
+                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                                <Loader2 className="w-4 h-4" />
+                                {error}
+                            </div>
+                        )}
+
+                        {/* 提交按钮 */}
+                        <Button
+                            type="submit"
+                            className={gradientButtonClass}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    发送中...
+                                </>
+                            ) : (
+                                "发送登录链接"
+                            )}
+                        </Button>
+                    </form>
+                </TabsContent>
+
+                {/* Tab 2: 账号密码登录 */}
+                <TabsContent value="password" className="space-y-4 mt-0">
+                    <form onSubmit={handleSubmitEmail(onEmailSubmit)} className="space-y-4">
+                        {/* 邮箱输入 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="pwd-email">邮箱地址</Label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    id="pwd-email"
+                                    type="email"
+                                    placeholder="your@email.com"
+                                    className="pl-10 h-11"
+                                    {...registerEmail("email")}
+                                />
+                            </div>
+                            {emailErrors.email && (
+                                <p className="text-sm text-destructive">{emailErrors.email.message}</p>
+                            )}
+                        </div>
+
                         {/* 密码输入 */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password">密码</Label>
+                                <Label htmlFor="pwd-password">密码</Label>
                                 <Link
                                     href="/forgot-password"
                                     className="text-xs text-muted-foreground hover:text-orange-500 dark:hover:text-amber-400 hover:underline transition-colors"
@@ -173,47 +331,233 @@ export function LoginForm() {
                             <div className="relative">
                                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
-                                    id="password"
+                                    id="pwd-password"
                                     type="password"
                                     placeholder="请输入密码"
                                     className="pl-10 h-11"
-                                    {...register("password")}
+                                    {...registerEmail("password")}
                                 />
                             </div>
-                            {errors.password && (
-                                <p className="text-sm text-destructive">{errors.password.message}</p>
+                            {emailErrors.password && (
+                                <p className="text-sm text-destructive">{emailErrors.password.message}</p>
                             )}
                         </div>
-                    </TabsContent>
 
-                    <TabsContent value="magic-link" className="mt-0">
-                        {/* Magic Link 特定说明，这里暂时留空，因为表单主体是一样的 */}
-                    </TabsContent>
-
-                    {/* 错误提示 */}
-                    {error && (
-                        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-                            <Loader2 className="w-4 h-4" /> {/* 使用通用图标代替 AlertIcon */}
-                            {error}
-                        </div>
-                    )}
-
-                    {/* 提交按钮 */}
-                    <Button
-                        type="submit"
-                        className="w-full h-11 mt-2 text-white font-semibold border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/25 dark:from-amber-500 dark:to-orange-500 dark:hover:from-amber-400 dark:hover:to-orange-400 dark:text-slate-950 dark:shadow-amber-500/25"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                {activeTab === "magic-link" ? "发送中..." : "登录中..."}
-                            </>
-                        ) : (
-                            activeTab === "magic-link" ? "发送登录链接" : "登录"
+                        {/* 错误提示 */}
+                        {error && (
+                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                                <Loader2 className="w-4 h-4" />
+                                {error}
+                            </div>
                         )}
-                    </Button>
-                </form>
+
+                        {/* 提交按钮 */}
+                        <Button
+                            type="submit"
+                            className={gradientButtonClass}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    登录中...
+                                </>
+                            ) : (
+                                "登录"
+                            )}
+                        </Button>
+                    </form>
+                </TabsContent>
+
+                {/* Tab 3: 用户名登录 */}
+                <TabsContent value="username" className="space-y-4 mt-0">
+                    <form onSubmit={handleSubmitUsername(onUsernameSubmit)} className="space-y-4">
+                        {/* 用户名输入 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="uname-username">用户名</Label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    id="uname-username"
+                                    type="text"
+                                    placeholder="请输入用户名"
+                                    className="pl-10 h-11"
+                                    {...registerUsername("username")}
+                                />
+                            </div>
+                            {usernameErrors.username && (
+                                <p className="text-sm text-destructive">{usernameErrors.username.message}</p>
+                            )}
+                        </div>
+
+                        {/* 密码输入 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="uname-password">密码</Label>
+                            <div className="relative">
+                                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    id="uname-password"
+                                    type="password"
+                                    placeholder="请输入密码"
+                                    className="pl-10 h-11"
+                                    {...registerUsername("password")}
+                                />
+                            </div>
+                            {usernameErrors.password && (
+                                <p className="text-sm text-destructive">{usernameErrors.password.message}</p>
+                            )}
+                        </div>
+
+                        {/* 错误提示 */}
+                        {error && (
+                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                                <Loader2 className="w-4 h-4" />
+                                {error}
+                            </div>
+                        )}
+
+                        {/* 提交按钮 */}
+                        <Button
+                            type="submit"
+                            className={gradientButtonClass}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    登录中...
+                                </>
+                            ) : (
+                                "登录"
+                            )}
+                        </Button>
+                    </form>
+                </TabsContent>
+
+                {/* Tab 4: 洛谷登录 */}
+                <TabsContent value="luogu" className="space-y-4 mt-0">
+                    <form onSubmit={handleLuoguInit} className="space-y-4">
+                        {/* 洛谷 UID */}
+                        <div className="space-y-2">
+                            <Label htmlFor="luogu-login-uid">洛谷 UID (纯数字)</Label>
+                            <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-xs text-red-500 w-4 h-4">
+                                    谷
+                                </div>
+                                <Input
+                                    id="luogu-login-uid"
+                                    type="text"
+                                    placeholder="例如: 384039"
+                                    className="pl-10 h-11"
+                                    value={luoguId}
+                                    onChange={(e) => setLuoguId(e.target.value)}
+                                    disabled={isLuoguLoading || !!luoguVerifyCode}
+                                />
+                            </div>
+                        </div>
+
+                        {/* 错误提示 */}
+                        {luoguError && (
+                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 shrink-0" />
+                                <span className="leading-snug">{luoguError}</span>
+                            </div>
+                        )}
+
+                        {/* 如果已生成验证码，显示操作步骤 */}
+                        {luoguVerifyCode ? (
+                            <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-950/10 border border-orange-200/50 dark:border-orange-900/30 space-y-3">
+                                <h4 className="text-xs font-semibold text-orange-800 dark:text-orange-400 flex items-center gap-1">
+                                    <HelpCircle className="h-3.5 w-3.5" />
+                                    登录验证步骤：
+                                </h4>
+                                <ol className="text-xs text-muted-foreground space-y-2 list-decimal list-inside">
+                                    <li className="leading-relaxed">
+                                        复制您的专属登录验证码：
+                                        <div className="mt-1.5 flex items-center gap-2">
+                                            <code className="px-2 py-0.5 rounded bg-background border border-border text-foreground font-mono text-[10px] block flex-1 overflow-x-auto">
+                                                {luoguVerifyCode}
+                                            </code>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(luoguVerifyCode);
+                                                    toast.success("登录验证码已复制");
+                                                }}
+                                                className="h-6 text-[10px] px-2"
+                                            >
+                                                复制
+                                            </Button>
+                                        </div>
+                                    </li>
+                                    <li className="leading-relaxed">
+                                        在
+                                        <a
+                                            href="https://www.luogu.com.cn/"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-primary hover:underline font-semibold mx-1"
+                                        >
+                                            洛谷个人设置
+                                        </a>
+                                        中，将验证码保存到您的“个人介绍”。
+                                    </li>
+                                    <li className="leading-relaxed">
+                                        完成设置后，点击下方的“验证并登录”。
+                                    </li>
+                                </ol>
+
+                                <div className="flex gap-2 pt-1">
+                                    <Button
+                                        type="button"
+                                        onClick={handleLuoguVerify}
+                                        disabled={isLuoguLoading}
+                                        className="flex-1 h-9 text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 dark:from-amber-500 dark:to-orange-500 dark:text-slate-950"
+                                    >
+                                        {isLuoguLoading ? (
+                                            <>
+                                                <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                                                验证登录中...
+                                            </>
+                                        ) : (
+                                            "验证并登录"
+                                        )}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setLuoguVerifyCode("");
+                                            setLuoguError(null);
+                                        }}
+                                        className="h-9 text-xs"
+                                        disabled={isLuoguLoading}
+                                    >
+                                        上一步
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* 获取验证码按钮 */
+                            <Button
+                                type="submit"
+                                className={gradientButtonClass}
+                                disabled={isLuoguLoading}
+                            >
+                                {isLuoguLoading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                        请求中...
+                                    </>
+                                ) : (
+                                    "获取登录验证码"
+                                )}
+                            </Button>
+                        )}
+                    </form>
+                </TabsContent>
             </Tabs>
 
             {/* 注册链接 */}

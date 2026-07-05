@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteComment, toggleLikeComment } from "@/app/(protected)/posts/[id]/actions";
+import { deleteComment, toggleLikeComment } from "@/app/posts/[id]/actions";
 import { toggleAcceptAnswer } from "@/app/(protected)/posts/actions";
 import NovelViewer from "@/components/editor/NovelViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +10,8 @@ import { CheckCircle2, ChevronUp, CornerDownRight, Link2, Trash2 } from "lucide-
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { VerifiedBadge } from "@/components/ui/verified-badge";
+
 export interface CommentAuthor {
     id: string;
     username: string;
@@ -17,6 +19,8 @@ export interface CommentAuthor {
     title?: string;
     special_title?: string | null;
     badges?: string[] | null;
+    is_verified?: boolean;
+    auth_provider?: string;
 }
 
 export interface CommentData {
@@ -177,6 +181,9 @@ export function CommentItem({
                             <span className="font-medium text-sm text-foreground">
                                 {comment.author.username}
                             </span>
+                            {comment.author.is_verified && (
+                                <VerifiedBadge provider={comment.author.auth_provider} />
+                            )}
                             {/* 作者标记 */}
                             {isOriginalPoster && (
                                 <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">

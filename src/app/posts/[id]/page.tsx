@@ -1,6 +1,8 @@
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PostDetailClient from "./PostDetailClient";
+import PublicPostPreview from "./PublicPostPreview";
 import { getPostInteractionStatus, getCommentLikeStatus } from "./actions";
 
 interface PageProps {
@@ -25,7 +27,9 @@ async function getPost(id: string) {
                 is_developer,
                 developer_title,
                 special_title,
-                badges
+                badges,
+                is_verified,
+                auth_provider
             )
         `)
         .eq("id", id)
@@ -38,6 +42,73 @@ async function getPost(id: string) {
     }
 
     return post;
+}
+
+// 辅助函数：从富文本 JSON 或纯文本中安全提取描述纯文本
+function extractTextFromJSONContent(content: any): string {
+    if (!content) return "";
+    
+    // 如果是字符串类型（可能是老数据或者是普通字符串）
+    if (typeof content === "string") {
+        try {
+            const parsed = JSON.parse(content);
+            if (parsed && typeof parsed === "object") {
+                return getPlainText(parsed);
+            }
+        } catch {
+            // 解析失败，当成普通 markdown/HTML 字符串处理
+        }
+        return content.replace(/<[^>]*>?/gm, ''); // 过滤 HTML 标签
+    }
+    
+    // 如果是对象类型（Novel 的 JSON 格式）
+    if (typeof content === "object") {
+        return getPlainText(content);
+    }
+    
+    return String(content);
+}
+
+function getPlainText(node: any): string {
+    if (!node) return "";
+    let text = "";
+    if (node.text) {
+        text += node.text;
+    }
+    if (Array.isArray(node.content)) {
+        text += node.content.map(getPlainText).join(" ");
+    } else if (node.content && typeof node.content === "object") {
+        text += getPlainText(node.content);
+    }
+    return text;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { id } = await params;
+    const post = await getPost(id);
+    if (!post) return {};
+
+    const authorName = post.author?.full_name || post.author?.username || 'Unknown';
+    const description = extractTextFromJSONContent(post.content).substring(0, 150);
+
+    return {
+        title: post.title,
+        description,
+        authors: [{ name: authorName }],
+        openGraph: {
+            title: post.title,
+            description,
+            authors: [authorName],
+            images: post.author?.avatar_url ? [{ url: post.author.avatar_url }] : [],
+        },
+        other: {
+            "scholarly:author": authorName,
+            "scholarly:likes": String(post.like_count || 0),
+            "scholarly:comments": String(post.comment_count || 0),
+            "scholarly:bookmarks": String(post.bookmark_count || 0),
+            "scholarly:created_at": post.created_at || "",
+        }
+    };
 }
 
 // 获取评论列表（带嵌套回复）
@@ -55,7 +126,9 @@ async function getComments(postId: string) {
                 full_name,
                 avatar_url,
                 special_title,
-                badges
+                badges,
+                is_verified,
+                auth_provider
             )
         `)
         .eq("post_id", postId)
@@ -78,7 +151,9 @@ async function getComments(postId: string) {
                 full_name,
                 avatar_url,
                 special_title,
-                badges
+                badges,
+                is_verified,
+                auth_provider
             )
         `)
         .eq("post_id", postId)
@@ -195,12 +270,8 @@ async function getCurrentUser() {
 export default async function PostDetailPage({ params }: PageProps) {
     const { id } = await params;
 
-    const [post, comments, currentUser] = await Promise.all([
+    const [post, currentUser] = await Promise.all([
         getPost(id),
-        getComments(id).catch(e => {
-            console.error("Failed to fetch comments:", e);
-            return [];
-        }),
         getCurrentUser().catch(e => {
             console.error("Failed to fetch current user:", e);
             return null;
@@ -210,6 +281,16 @@ export default async function PostDetailPage({ params }: PageProps) {
     if (!post) {
         notFound();
     }
+
+    // 如果未登录（游客），显示只读预览，且不增加浏览量
+    if (!currentUser) {
+        return <PublicPostPreview post={post} />;
+    }
+
+    const comments = await getComments(id).catch(e => {
+        console.error("Failed to fetch comments:", e);
+        return [];
+    });
 
     // 获取用户互动状态和评论点赞状态
     const [interactionStatus, commentLikeStatus] = await Promise.all([

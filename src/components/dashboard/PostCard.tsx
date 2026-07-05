@@ -1,6 +1,6 @@
 "use client";
 
-import { createShareRecord, toggleBookmarkPost, toggleLikePost } from "@/app/(protected)/posts/[id]/actions";
+import { createShareRecord, toggleBookmarkPost, toggleLikePost } from "@/app/posts/[id]/actions";
 import { VipBadge } from "@/components/payments/VipBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

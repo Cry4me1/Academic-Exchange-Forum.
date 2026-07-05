@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { submitReport } from "@/app/(protected)/posts/[id]/report-actions";
+import { submitReport } from "@/app/posts/[id]/report-actions";
 
 interface ReportDialogProps {
     open: boolean;

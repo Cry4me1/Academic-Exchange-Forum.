@@ -4,7 +4,7 @@ import {
     getPostRevisions,
     getRevisionDiff,
     PostRevisionListItem,
-} from "@/app/(protected)/posts/[id]/history-actions";
+} from "@/app/posts/[id]/history-actions";
 import { DiffViewer } from "@/components/posts/DiffViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

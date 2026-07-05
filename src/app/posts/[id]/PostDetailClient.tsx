@@ -10,6 +10,7 @@ import { CoAuthorPanel, type CoAuthor } from "@/components/lab/co-author/CoAutho
 import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations, ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -82,6 +83,8 @@ interface PostDetailClientProps {
             developer_title?: string;
             special_title?: string | null;
             badges?: string[] | null;
+            is_verified?: boolean;
+            auth_provider?: string;
         };
         is_solved?: boolean;
         is_help_wanted?: boolean;
@@ -701,6 +704,9 @@ export default function PostDetailClient({
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <p className="font-semibold text-foreground">{authorDisplayName}</p>
+                                                {post.author.is_verified && (
+                                                    <VerifiedBadge provider={post.author.auth_provider} />
+                                                )}
                                                 {post.author.is_developer && (
                                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500/10 via-fuchsia-500/10 to-pink-500/10 text-xs">
                                                         <Code2 className="h-3 w-3 text-violet-500" />
