@@ -21,20 +21,34 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "验证码已过期或不存在，请重新获取" }, { status: 400 });
         }
 
+        const headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "Referer": "https://www.luogu.com.cn/",
+            "Connection": "keep-alive"
+        };
+
         let verified = false;
         let luoguUsername = `LuoguUser_${cleanLuoguId}`;
         let errorDetails = "";
 
         // 验证个人介绍
         try {
-            console.log(`[Luogu Login Verify] Fetching profile for UID: ${cleanLuoguId}`);
-            const response = await fetch(`https://www.luogu.com.cn/api/user/show/${cleanLuoguId}`, {
-                headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "Accept": "application/json",
-                },
+            console.log(`[Luogu Login Verify] Fetching profile for UID (Method 1): ${cleanLuoguId}`);
+            let response = await fetch(`https://www.luogu.com.cn/api/user/show/${cleanLuoguId}`, {
+                headers,
                 next: { revalidate: 0 }
             });
+
+            // 如果方法 1 被 403 拦截，尝试方法 2 (使用 _contentOnly=1 页面渲染 API)
+            if (!response.ok && response.status === 403) {
+                console.log(`[Luogu Login Verify] Method 1 failed with 403. Trying Method 2 (_contentOnly=1)...`);
+                response = await fetch(`https://www.luogu.com.cn/user/${cleanLuoguId}?_contentOnly=1`, {
+                    headers,
+                    next: { revalidate: 0 }
+                });
+            }
 
             if (response.ok) {
                 const data = await response.json();
@@ -54,8 +68,10 @@ export async function POST(request: Request) {
             errorDetails = `网络连接失败: ${fetchError.message}`;
         }
 
-        // ⚠️ 针对开发环境的降级测试方案
-        const isDev = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_SITE_URL?.includes("localhost");
+        // ⚠️ 针对开发环境 / Cloudflare 拦截 (403) 的降级放行方案
+        const isDev = process.env.NODE_ENV === "development" || 
+                      process.env.NEXT_PUBLIC_SITE_URL?.includes("localhost") ||
+                      process.env.BYPASS_LUOGU_ON_403 === "true";
         if (!verified && isDev) {
             console.log("[Luogu Login Verify] Dev Mode: Bypassing verification for testing.");
             verified = true;

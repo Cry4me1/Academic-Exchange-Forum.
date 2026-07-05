@@ -253,7 +253,7 @@ export function LinkedAccountsCard() {
                                     rel="noreferrer"
                                     className="text-primary hover:underline font-semibold mx-1 inline-flex items-center gap-0.5"
                                 >
-                                    洛谷个人设置页面
+                                    洛谷个人中心
                                     <ExternalLink className="h-3 w-3 inline" />
                                 </a>
                                 ，将上述验证码粘贴到您的

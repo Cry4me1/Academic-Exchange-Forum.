@@ -500,7 +500,7 @@ export function LoginForm() {
                                             rel="noreferrer"
                                             className="text-primary hover:underline font-semibold mx-1"
                                         >
-                                            洛谷个人设置
+                                            洛谷个人中心
                                         </a>
                                         中，将验证码保存到您的“个人介绍”。
                                     </li>
