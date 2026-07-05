@@ -77,7 +77,7 @@ export default function UpdatesPage() {
                 <div className="relative border-l-2 border-zinc-200 dark:border-zinc-800 ml-4 md:ml-6 space-y-12">
 
                     {/* ╔══════════════════════════════════════════════════╗ */}
-                    {/* ║  v1.1.0 – 织网学术图谱与5倍延迟提速 🚀           ║ */}
+                    {/* ║  v1.1.5 – 学术图像引擎与多端快捷入驻 🚀         ║ */}
                     {/* ╚══════════════════════════════════════════════════╝ */}
                     <div className="relative pl-8 md:pl-12 animate-[fadeInUp_0.7s_ease-out]">
                         {/* Pulsing timeline dot for the latest version */}
@@ -87,9 +87,110 @@ export default function UpdatesPage() {
                         </div>
 
                         <div className="flex flex-col gap-3 mb-5">
-                            <time className="text-sm text-muted-foreground font-mono">2026-05-23</time>
+                            <time className="text-sm text-muted-foreground font-mono">2026-07-05</time>
                             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
                                 <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]">
+                                    v1.1.5
+                                </span>
+                                <span className="text-foreground">— 交互数学引擎 & 快捷学术准入</span>
+                                <Badge variant="default" className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/25 animate-[pulse_2s_ease-in-out_infinite] text-xs px-3 py-1">
+                                    <Sparkles className="w-3 h-3 mr-1" />
+                                    最新版本
+                                </Badge>
+                            </h2>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+                                突破视觉与便捷极限。v1.1.5 带来全新交互式函数图像绘制引擎，在正文 LaTeX 表达式中一键拉开画板，呈献手绘渐显图像；同时扩展了多渠道的账号支持（洛谷账号登录绑定与自定义用户名注册），并支持游客无缝预览学术内容，为社区注入更广泛的学术活力。
+                            </p>
+                        </div>
+
+                        {/* Main Card with gradient border effect */}
+                        <div className="relative group mb-12">
+                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
+                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+
+                                <CardHeader className="pt-8">
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                                        全新功能与改进
+                                    </CardTitle>
+                                    <CardDescription>
+                                        文内自适应函数渲染、洛谷绑定、用户名准入及游客无缝预览。
+                                    </CardDescription>
+                                </CardHeader>
+
+                                <CardContent className="space-y-6 pb-8">
+                                    {/* Feature 1 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                <Activity className="w-4 h-4" />
+                                            </span>
+                                            手绘渐现数学图像引擎 (Desmos 深度融合)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>为数学、物理、算法等跨学科帖子带来革命性的动态渲染效果：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>智能函数判定</strong>：在阅读模式下，系统能够精准识别 LaTeX 行内及块级函数公式，在不破坏正文排版的情况下，于公式极右侧优雅浮现“绘制”按钮。</li>
+                                                <li><strong>上下拉开空位</strong>：采用平滑的 Framer Motion 高度拉伸面板，一键拉开正文物理空间，高亮展示极具高级感的绘图画板。</li>
+                                                <li><strong>自左向右手绘渐显</strong>：Desmos API 与 `requestAnimationFrame` 深度结合，使函数线条如同实体画笔般从左到右实时画出，提供顶级学术视觉体验。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 2 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
+                                                <Users className="w-4 h-4" />
+                                            </span>
+                                            洛谷账号绑定与用户名自由注册
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>扩展社区学术多元性，打造更加自由、与算法社区无缝衔接的准入体验：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>用户名自主注册</strong>：突破单一登录限制，全面开放基于自定义用户名的直接注册与认证渠道。</li>
+                                                <li><strong>洛谷 (Luogu) 绑定登录</strong>：为算法爱好者与 OI 选手特别定制，支持一键关联绑定洛谷凭证。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 3 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-500/10 text-green-500">
+                                                <Layers className="w-4 h-4" />
+                                            </span>
+                                            游客免登录无缝预览
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>降低学术交流准入门槛，让知识传播更加迅速：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>游客只读预览</strong>：未注册或未登录用户现在能够以游客身份，直接浏览论坛中的公开精选学术帖子，极大优化外部 SEO 与知识分享链路。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* ╔══════════════════════════════════════════════════╗ */}
+                    {/* ║  v1.1.0 – 织网学术图谱与5倍延迟提速 🚀           ║ */}
+                    {/* ╚══════════════════════════════════════════════════╝ */}
+                    <div className="relative pl-8 md:pl-12 opacity-80 hover:opacity-100 transition-opacity duration-300">
+                        {/* Normal timeline dot for older stable version */}
+                        <div className="absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full bg-muted-foreground/40 ring-4 ring-background" />
+
+                        <div className="flex flex-col gap-3 mb-5">
+                            <time className="text-sm text-muted-foreground font-mono">2026-05-23</time>
+                            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
+                                <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
                                     v1.1.0
                                 </span>
                                 <span className="text-foreground">— 织网学术图谱 & 5倍延迟提速</span>
