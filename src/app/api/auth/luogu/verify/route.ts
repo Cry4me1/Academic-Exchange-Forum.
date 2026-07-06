@@ -23,7 +23,7 @@ export async function POST(request: Request) {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-            "Referer": "https://www.luogu.com.cn/",
+            "Referer": "https://www.luogu.com/",
             "Connection": "keep-alive"
         };
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         // 尝试通过洛谷 API 获取用户信息
         try {
             console.log(`[Luogu Verify] Fetching profile for UID (Method 1): ${cleanLuoguId}`);
-            let response = await fetch(`https://www.luogu.com.cn/api/user/show/${cleanLuoguId}`, {
+            let response = await fetch(`https://www.luogu.com/api/user/show/${cleanLuoguId}`, {
                 headers,
                 next: { revalidate: 0 } // 禁用缓存
             });
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
             // 如果方法 1 被 403 拦截，尝试方法 2 (使用 _contentOnly=1 页面渲染 API)
             if (!response.ok && response.status === 403) {
                 console.log(`[Luogu Verify] Method 1 failed with 403. Trying Method 2 (_contentOnly=1)...`);
-                response = await fetch(`https://www.luogu.com.cn/user/${cleanLuoguId}?_contentOnly=1`, {
+                response = await fetch(`https://www.luogu.com/user/${cleanLuoguId}?_contentOnly=1`, {
                     headers,
                     next: { revalidate: 0 }
                 });

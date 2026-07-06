@@ -204,7 +204,7 @@ export function LinkedAccountsCard() {
                             <div className="flex gap-2">
                                 {/* HTML Anchor for visual helper */}
                                 <a
-                                    href="https://www.luogu.com.cn/"
+                                    href="https://www.luogu.com/"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground h-9"
@@ -248,7 +248,7 @@ export function LinkedAccountsCard() {
                             <li className="leading-relaxed">
                                 打开
                                 <a
-                                    href="https://www.luogu.com.cn/"
+                                    href="https://www.luogu.com/"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-primary hover:underline font-semibold mx-1 inline-flex items-center gap-0.5"
