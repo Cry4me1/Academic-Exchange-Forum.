@@ -495,7 +495,7 @@ export function LoginForm() {
                                     <li className="leading-relaxed">
                                         在
                                         <a
-                                            href="https://www.luogu.com/"
+                                            href="https://www.luogu.com.cn/"
                                             target="_blank"
                                             rel="noreferrer"
                                             className="text-primary hover:underline font-semibold mx-1"
