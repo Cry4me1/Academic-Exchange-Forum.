@@ -50,7 +50,7 @@ export function LinkedAccountsCard() {
 
             if (error) throw error;
 
-            const luogu = data?.find(item => item.provider === "luogu") || null;
+            const luogu = data?.find((item: any) => item.provider === "luogu") || null;
             setLuoguAccount(luogu);
         } catch (error: any) {
             console.error("Failed to load account bindings:", error);

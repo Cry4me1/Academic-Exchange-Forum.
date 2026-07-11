@@ -61,7 +61,7 @@ export function useLabPresence({
             const state = channel.presenceState();
             const members: LabPresenceUser[] = [];
 
-            Object.entries(state).forEach(([key, presences]) => {
+            Object.entries(state).forEach(([key, presences]: [string, any]) => {
                 const latest = presences[presences.length - 1] as any;
                 if (latest) {
                     members.push({
@@ -80,7 +80,7 @@ export function useLabPresence({
 
         channel
             .on("presence", { event: "sync" }, handleSync)
-            .subscribe(async (status) => {
+            .subscribe(async (status: any) => {
                 if (status === "SUBSCRIBED") {
                     setIsConnected(true);
                     await channel.track({

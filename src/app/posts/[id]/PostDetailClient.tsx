@@ -208,7 +208,7 @@ export default function PostDetailClient({
                 
                 if (data) {
                     setRelatedDuels(data);
-                    const active = data.find((d) => d.status === "active");
+                    const active = data.find((d: any) => d.status === "active");
                     if (active) setActiveDuel(active);
                 }
             } catch (err) {

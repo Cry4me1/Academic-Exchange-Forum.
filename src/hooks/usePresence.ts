@@ -64,7 +64,7 @@ export function usePresence(currentUserId: string | null): UsePresenceReturn {
             .on("presence", { event: "sync" }, handleSync)
             .on("presence", { event: "join" }, handleJoin)
             .on("presence", { event: "leave" }, handleLeave)
-            .subscribe(async (status) => {
+            .subscribe(async (status: any) => {
                 if (status === "SUBSCRIBED") {
                     setIsConnected(true);
                     // 追踪当前用户上线

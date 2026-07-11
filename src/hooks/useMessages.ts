@@ -111,7 +111,7 @@ export function useMessages(
                 unreadCount: number;
             }>();
 
-            allMessages?.forEach((msg) => {
+            allMessages?.forEach((msg: any) => {
                 const partnerId = msg.sender_id === currentUserId ? msg.receiver_id : msg.sender_id;
 
                 if (!conversationMap.has(partnerId)) {
@@ -138,7 +138,7 @@ export function useMessages(
 
                 const convList: Conversation[] = partnerIds.map((partnerId) => {
                     const conv = conversationMap.get(partnerId)!;
-                    const profile = profiles?.find((p) => p.id === partnerId);
+                    const profile = profiles?.find((p: any) => p.id === partnerId);
 
                     return {
                         partnerId,
@@ -301,7 +301,7 @@ export function useMessages(
 
             // 更新本地状态
             setMessages((prev) =>
-                prev.map((msg) =>
+                prev.map((msg: any) =>
                     messageIds.includes(msg.id) ? { ...msg, is_read: true } : msg
                 )
             );
@@ -338,7 +338,7 @@ export function useMessages(
                     table: "messages",
                     filter: `receiver_id=eq.${currentUserId}`,
                 },
-                async (payload) => {
+                async (payload: any) => {
                     const newMessage = payload.new as Message;
 
                     // 如果在对话页面，添加新消息
@@ -369,7 +369,7 @@ export function useMessages(
                     table: "messages",
                     filter: `sender_id=eq.${currentUserId}`,
                 },
-                (payload) => {
+                (payload: any) => {
                     const newMessage = payload.new as Message;
 
                     // 自己发送的消息也添加到列表
@@ -393,10 +393,10 @@ export function useMessages(
                     schema: "public",
                     table: "messages",
                 },
-                (payload) => {
+                (payload: any) => {
                     const updatedMessage = payload.new as Message;
                     setMessages((prev) =>
-                        prev.map((msg) =>
+                        prev.map((msg: any) =>
                             msg.id === updatedMessage.id
                                 ? { ...msg, ...updatedMessage, attachments: msg.attachments } // 保留原来的附件
                                 : msg
@@ -412,10 +412,10 @@ export function useMessages(
                     schema: "public",
                     table: "message_attachments",
                 },
-                (payload) => {
+                (payload: any) => {
                     const attachment = payload.new as MessageAttachment;
                     setMessages((prev) =>
-                        prev.map((msg) =>
+                        prev.map((msg: any) =>
                             msg.id === attachment.message_id
                                 ? { ...msg, attachments: [...(msg.attachments || []), attachment] }
                                 : msg
@@ -469,7 +469,7 @@ export function useMessages(
 
                 // 乐观更新：立即更新本地状态
                 setMessages((prev) =>
-                    prev.map((msg) =>
+                    prev.map((msg: any) =>
                         msg.id === messageId
                             ? {
                                 ...msg,

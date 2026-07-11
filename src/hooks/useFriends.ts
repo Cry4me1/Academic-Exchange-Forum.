@@ -75,7 +75,7 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
             if (friendsError) throw friendsError;
 
             // 获取好友的用户信息
-            const friendIds = acceptedFriendships?.map((f) =>
+            const friendIds = acceptedFriendships?.map((f: any) =>
                 f.requester_id === currentUserId ? f.addressee_id : f.requester_id
             ) || [];
 
@@ -87,9 +87,9 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
 
                 if (profilesError) throw profilesError;
 
-                const friendsWithProfile: FriendWithProfile[] = acceptedFriendships?.map((f) => {
+                const friendsWithProfile: FriendWithProfile[] = acceptedFriendships?.map((f: any) => {
                     const friendId = f.requester_id === currentUserId ? f.addressee_id : f.requester_id;
-                    const profile = profiles?.find((p) => p.id === friendId);
+                    const profile = profiles?.find((p: any) => p.id === friendId);
                     return {
                         friendshipId: f.id,
                         friend: profile || { id: friendId, username: null, email: "", avatar_url: null },
@@ -120,15 +120,15 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
 
             // 获取请求者信息
             if (pending && pending.length > 0) {
-                const requesterIds = pending.map((p) => p.requester_id);
+                const requesterIds = pending.map((p: any) => p.requester_id);
                 const { data: requesterProfiles } = await supabase
                     .from("profiles")
                     .select("id, username, email, avatar_url")
                     .in("id", requesterIds);
 
-                const pendingWithProfiles = pending.map((p) => ({
+                const pendingWithProfiles = pending.map((p: any) => ({
                     ...p,
-                    requester: requesterProfiles?.find((profile) => profile.id === p.requester_id),
+                    requester: requesterProfiles?.find((profile: any) => profile.id === p.requester_id),
                 }));
                 setPendingRequests(pendingWithProfiles as Friendship[]);
             } else {
@@ -152,15 +152,15 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
             if (sentError) throw sentError;
 
             if (sent && sent.length > 0) {
-                const addresseeIds = sent.map((s) => s.addressee_id);
+                const addresseeIds = sent.map((s: any) => s.addressee_id);
                 const { data: addresseeProfiles } = await supabase
                     .from("profiles")
                     .select("id, username, email, avatar_url")
                     .in("id", addresseeIds);
 
-                const sentWithProfiles = sent.map((s) => ({
+                const sentWithProfiles = sent.map((s: any) => ({
                     ...s,
-                    addressee: addresseeProfiles?.find((profile) => profile.id === s.addressee_id),
+                    addressee: addresseeProfiles?.find((profile: any) => profile.id === s.addressee_id),
                 }));
                 setSentRequests(sentWithProfiles as Friendship[]);
             } else {

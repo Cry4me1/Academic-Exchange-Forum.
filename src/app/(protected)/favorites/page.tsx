@@ -79,8 +79,8 @@ export default function FavoritesPage() {
                 console.error("Failed to load bookmarks:", error);
             } else if (data) {
                 const bookmarksList = data
-                    .filter((item) => item.post)
-                    .map((item) => ({
+                    .filter((item: any) => item.post)
+                    .map((item: any) => ({
                         ...(item.post as unknown as Omit<BookmarkedPost, "bookmarked_at">),
                         bookmarked_at: item.created_at,
                     }));

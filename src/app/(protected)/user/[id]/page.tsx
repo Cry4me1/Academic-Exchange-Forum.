@@ -163,8 +163,8 @@ export default function UserProfilePage() {
 
             if (likesData) {
                 const likedPostsList = likesData
-                    .filter((item) => item.post)
-                    .map((item) => {
+                    .filter((item: any) => item.post)
+                    .map((item: any) => {
                         const postData = item.post as unknown as Post;
                         return {
                             ...postData,
@@ -190,8 +190,8 @@ export default function UserProfilePage() {
 
                 if (bookmarksData) {
                     const bookmarkedPostsList = bookmarksData
-                        .filter((item) => item.post)
-                        .map((item) => {
+                        .filter((item: any) => item.post)
+                        .map((item: any) => {
                             const postData = item.post as unknown as Post;
                             return {
                                 ...postData,

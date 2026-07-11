@@ -59,7 +59,7 @@ export function useNotifications(currentUserId: string | null): UseNotifications
             if (fetchError) throw fetchError;
 
             // 获取发送者信息
-            const fromUserIds = [...new Set(data?.map((n) => n.from_user_id).filter(Boolean) || [])];
+            const fromUserIds = [...new Set(data?.map((n: any) => n.from_user_id).filter(Boolean) || [])];
 
             if (fromUserIds.length > 0) {
                 const { data: profiles } = await supabase
@@ -67,9 +67,9 @@ export function useNotifications(currentUserId: string | null): UseNotifications
                     .select("id, username, email, avatar_url")
                     .in("id", fromUserIds);
 
-                const notificationsWithUsers = data?.map((n) => ({
+                const notificationsWithUsers = data?.map((n: any) => ({
                     ...n,
-                    from_user: profiles?.find((p) => p.id === n.from_user_id) || null,
+                    from_user: profiles?.find((p: any) => p.id === n.from_user_id) || null,
                 })) || [];
 
                 setNotifications(notificationsWithUsers);
@@ -94,7 +94,7 @@ export function useNotifications(currentUserId: string | null): UseNotifications
                 .in("id", notificationIds);
 
             setNotifications((prev) =>
-                prev.map((n) =>
+                prev.map((n: any) =>
                     notificationIds.includes(n.id) ? { ...n, is_read: true } : n
                 )
             );
@@ -112,20 +112,20 @@ export function useNotifications(currentUserId: string | null): UseNotifications
             .eq("user_id", currentUserId)
             .eq("is_read", false);
 
-        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        setNotifications((prev) => prev.map((n: any) => ({ ...n, is_read: true })));
     }, [currentUserId, supabase]);
 
     // 删除通知
     const deleteNotification = useCallback(
         async (notificationId: string) => {
             await supabase.from("notifications").delete().eq("id", notificationId);
-            setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+            setNotifications((prev) => prev.filter((n: any) => n.id !== notificationId));
         },
         [supabase]
     );
 
     // 计算未读数量
-    const unreadCount = notifications.filter((n) => !n.is_read).length;
+    const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
     // 初始加载
     useEffect(() => {
@@ -146,7 +146,7 @@ export function useNotifications(currentUserId: string | null): UseNotifications
                     table: "notifications",
                     filter: `user_id=eq.${currentUserId}`,
                 },
-                async (payload) => {
+                async (payload: any) => {
                     const newNotification = payload.new as Notification;
 
                     // 获取发送者信息

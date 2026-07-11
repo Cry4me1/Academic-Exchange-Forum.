@@ -241,7 +241,7 @@ export function useYjsCollaboration({
 
         // --- Yjs 文档同步 ---
 
-        channel.on("broadcast", { event: "yjs-update" }, ({ payload }) => {
+        channel.on("broadcast", { event: "yjs-update" }, ({ payload }: any) => {
             if (payload?.update && payload.userId !== user.id) {
                 isApplyingRemote.current = true;
                 try {
@@ -253,7 +253,7 @@ export function useYjsCollaboration({
             }
         });
 
-        channel.on("broadcast", { event: "yjs-sync-request" }, ({ payload }) => {
+        channel.on("broadcast", { event: "yjs-sync-request" }, ({ payload }: any) => {
             if (payload.userId !== user.id) {
                 const state = Y.encodeStateAsUpdate(doc);
                 channel.send({
@@ -276,7 +276,7 @@ export function useYjsCollaboration({
             }
         });
 
-        channel.on("broadcast", { event: "yjs-sync-response" }, ({ payload }) => {
+        channel.on("broadcast", { event: "yjs-sync-response" }, ({ payload }: any) => {
             if (payload?.update && payload.userId !== user.id) {
                 isApplyingRemote.current = true;
                 try {
@@ -290,7 +290,7 @@ export function useYjsCollaboration({
 
         // --- Awareness 同步 ---
 
-        channel.on("broadcast", { event: "awareness-update" }, ({ payload }) => {
+        channel.on("broadcast", { event: "awareness-update" }, ({ payload }: any) => {
             if (payload?.clientId && payload.clientId !== awareness.clientID) {
                 isApplyingRemoteAwareness.current = true;
                 try {
@@ -311,7 +311,7 @@ export function useYjsCollaboration({
             }
         });
 
-        channel.on("broadcast", { event: "awareness-remove" }, ({ payload }) => {
+        channel.on("broadcast", { event: "awareness-remove" }, ({ payload }: any) => {
             if (payload?.clientId && payload.clientId !== awareness.clientID) {
                 const states = awareness.getStates();
                 if (states.has(payload.clientId)) {
@@ -375,7 +375,7 @@ export function useYjsCollaboration({
             setConnectedPeers(Math.max(0, Object.keys(presenceState).length - 1));
         });
 
-        channel.subscribe(async (status) => {
+        channel.subscribe(async (status: any) => {
             if (status === "SUBSCRIBED") {
                 setIsConnected(true);
                 await channel.track({

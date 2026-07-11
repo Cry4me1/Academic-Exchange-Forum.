@@ -98,7 +98,7 @@ export async function loadVipLevelsFromDB(): Promise<VipLevelInfo[]> {
             return DEFAULT_VIP_LEVELS
         }
 
-        const levels: VipLevelInfo[] = data.map((row) => ({
+        const levels: VipLevelInfo[] = data.map((row: any) => ({
             level: row.level,
             name: row.name,
             title: row.title,

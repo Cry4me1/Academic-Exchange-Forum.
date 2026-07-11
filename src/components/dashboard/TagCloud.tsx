@@ -36,7 +36,7 @@ export function TagCloud() {
             if (posts) {
                 // 统计标签出现次数
                 const tagCounts: Record<string, number> = {};
-                posts.forEach((post) => {
+                posts.forEach((post: any) => {
                     if (post.tags && Array.isArray(post.tags)) {
                         post.tags.forEach((tag: string) => {
                             tagCounts[tag] = (tagCounts[tag] || 0) + 1;

@@ -229,7 +229,7 @@ export default function DuelDetailClient({
                 table: "duel_rounds",
                 filter: `duel_id=eq.${currentDuel.id}`,
             },
-            async (payload) => {
+            async (payload: any) => {
                 if (payload.eventType === "INSERT") {
                     // Check duplicate immediately
                     if (processedIds.current.has(payload.new.id)) return;
@@ -273,7 +273,7 @@ export default function DuelDetailClient({
                 table: "duels",
                 filter: `id=eq.${currentDuel.id}`,
             },
-            async (payload) => {
+            async (payload: any) => {
                 // 当收到更新通知时，重新获取完整的决斗数据，以确保关联数据（如 winner, opponent）正确加载
                 const { data: updatedDuel } = await supabase
                     .from("duels")
@@ -313,7 +313,7 @@ export default function DuelDetailClient({
                 table: "duel_live_comments",
                 filter: `duel_id=eq.${currentDuel.id}`,
             },
-            async (payload) => {
+            async (payload: any) => {
                 try {
                     const { data: userProfile } = await supabase
                         .from("profiles")
@@ -382,7 +382,7 @@ export default function DuelDetailClient({
         });
 
         // 订阅频道并进行 track
-        channel.subscribe(async (status) => {
+        channel.subscribe(async (status: any) => {
             if (status === "SUBSCRIBED") {
                 await channel.track({
                     username: currentUser?.username || `游客_${presenceKey.substr(-4)}`,

@@ -36,7 +36,7 @@ export function AnnouncementCard() {
 
             if (!error && data) {
                 // Filter out ended announcements if RLS doesn't do it automatically
-                const validData = data.filter(a => !a.end_time || a.end_time > now);
+                const validData = data.filter((a: any) => !a.end_time || a.end_time > now);
                 setAnnouncements(validData);
             }
             setLoading(false);
