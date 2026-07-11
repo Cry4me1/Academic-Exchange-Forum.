@@ -38,23 +38,35 @@ export function LoginForm() {
             setError(errorDescription || "登录验证失败，请重试");
         }
 
-        // 🌟 客户端会话自动感知：当页面含有 URL Hash (例如 #access_token=) 时，
-        // 客户端 Supabase SDK 会在初始化时自动将其写入 Cookie 并建立会话。
-        // 我们在此检测并自动跳转至 dashboard
+        const supabase = createClient();
+        
+        // 获取重定向目标路径，优先使用 next 参数，否则默认为 /dashboard
+        const next = searchParams.get("next") || "/dashboard";
+
+        // 🌟 客户端会话自动感知：监听 Auth 状态变化，实时消费 Hash 并写入 Cookie。
+        // 使用 window.location.replace 触发整页跳转，确保服务端能携带并识别最新的 Cookie。
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log(`[LoginForm] Auth state changed: ${event}`, session ? "Session exists" : "No session");
+            if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+                console.log("[LoginForm] Active session detected via onAuthStateChange, redirecting to:", next);
+                window.location.replace(next);
+            }
+        });
+
+        // 兜底立即检查已有会话
         const checkActiveSession = async () => {
-            const supabase = createClient();
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                console.log("[LoginForm] Active session detected, redirecting...");
-                router.push("/dashboard");
-                router.refresh();
+                console.log("[LoginForm] Active session detected via getSession, redirecting to:", next);
+                window.location.replace(next);
             }
         };
+        checkActiveSession();
 
-        // 稍微延迟 100ms 给予客户端 SDK 读取和写入 Hash 的时间
-        const timer = setTimeout(checkActiveSession, 150);
-        return () => clearTimeout(timer);
-    }, [searchParams, router]);
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [searchParams]);
 
     // 邮箱登录表单（magic-link 和 password 共用）
     const {
