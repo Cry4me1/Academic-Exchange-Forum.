@@ -106,3 +106,77 @@ export async function fetchLuoguUser(uid: string): Promise<LuoguFetchResult> {
         };
     }
 }
+
+/**
+ * 从用户复制的洛谷主页 HTML 源码或纯 JSON 中解析出用户信息
+ */
+export function parseLuoguHtmlOrJson(rawInput: string): LuoguFetchResult {
+    if (!rawInput || !rawInput.trim()) {
+        return { ok: false, error: "输入内容为空" };
+    }
+
+    try {
+        let jsonStr = rawInput.trim();
+
+        // 如果是 HTML 源码，使用正则提取 <script id="lentille-context" type="application/json">...</script> 中的 JSON
+        if (rawInput.includes("<script") || rawInput.includes("<html") || rawInput.includes("<!DOCTYPE")) {
+            // 支持新版 lentille-context 标签
+            const scriptMatch = rawInput.match(/<script\s+id="lentille-context"\s+type="application\/json">([\s\S]*?)<\/script>/);
+            
+            // 兼容可能出现的旧版 feInjection 标签或其它 JSON 注入点
+            if (scriptMatch) {
+                jsonStr = scriptMatch[1].trim();
+            } else {
+                // 尝试通用匹配所有 type="application/json" 的 script 标签
+                const generalMatch = rawInput.match(/<script\s+type="application\/json">([\s\S]*?)<\/script>/);
+                if (generalMatch) {
+                    jsonStr = generalMatch[1].trim();
+                } else {
+                    return {
+                        ok: false,
+                        error: "未在复制的 HTML 网页源码中找到洛谷用户数据，请确保全选并复制了完整的网页源代码。",
+                    };
+                }
+            }
+        }
+
+        // 解析 JSON 数据
+        const json = JSON.parse(jsonStr);
+        
+        // 洛谷的结构可能有几种：
+        // 1. { data: { user: { ... } } } （content-only API 格式）
+        // 2. { currentData: { user: { ... } } } （网页端直接渲染的注入数据格式）
+        // 3. { code: 200, currentData: { user: { ... } } }
+        let rawUser = json?.data?.user || json?.currentData?.user;
+
+        if (!rawUser && json?.user) {
+            rawUser = json.user;
+        }
+
+        if (!rawUser) {
+            return {
+                ok: false,
+                error: "解析成功，但未能在数据中定位到洛谷用户信息（user 对象），请确保复制的是洛谷个人主页的源码数据。",
+            };
+        }
+
+        return {
+            ok: true,
+            user: {
+                uid: rawUser.uid,
+                name: rawUser.name || "",
+                introduction: rawUser.introduction || "",
+                avatar: rawUser.avatar || "",
+                slogan: rawUser.slogan || "",
+                color: rawUser.color || "",
+                ccfLevel: rawUser.ccfLevel ?? 0,
+            },
+        };
+    } catch (error: any) {
+        return {
+            ok: false,
+            error: `解析洛谷数据失败，请确认您复制了完整的 JSON 数据或网页源代码。错误信息: ${error.message}`,
+        };
+    }
+}
+

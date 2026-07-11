@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { fetchLuoguUser } from "@/lib/luogu";
+import { fetchLuoguUser, parseLuoguHtmlOrJson } from "@/lib/luogu";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "请先登录" }, { status: 401 });
         }
 
-        const { luoguId, verificationCode } = await request.json();
+        const { luoguId, verificationCode, luoguHtml } = await request.json();
 
         if (!luoguId || !verificationCode) {
             return NextResponse.json({ error: "参数不完整" }, { status: 400 });
@@ -20,13 +20,24 @@ export async function POST(request: Request) {
         // 规范化 Luogu ID
         const cleanLuoguId = luoguId.trim();
 
-        // 直接请求洛谷 API 获取用户信息
-        console.log(`[Luogu Verify] Fetching user info for UID: ${cleanLuoguId}`);
-        const result = await fetchLuoguUser(cleanLuoguId);
+        let result;
+        if (luoguHtml) {
+            console.log(`[Luogu Verify] Manual verify mode via HTML for UID: ${cleanLuoguId}`);
+            result = parseLuoguHtmlOrJson(luoguHtml);
+            
+            if (result.ok && result.user && String(result.user.uid) !== cleanLuoguId) {
+                return NextResponse.json({
+                    error: `验证失败：复制的网页数据对应的 UID (${result.user.uid}) 与输入的 UID (${cleanLuoguId}) 不匹配！`
+                }, { status: 400 });
+            }
+        } else {
+            console.log(`[Luogu Verify] Auto fetch mode for UID: ${cleanLuoguId}`);
+            result = await fetchLuoguUser(cleanLuoguId);
+        }
 
         if (!result.ok || !result.user) {
             return NextResponse.json({
-                error: `验证失败：${result.error || "无法获取洛谷用户信息"}。请确认 UID 正确后重试。`
+                error: `验证失败：${result.error || "无法获取洛谷用户信息"}。请确认 UID 正确并重试。`
             }, { status: 400 });
         }
 

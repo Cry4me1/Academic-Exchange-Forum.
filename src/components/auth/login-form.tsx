@@ -28,6 +28,8 @@ export function LoginForm() {
     const [luoguVerifyCode, setLuoguVerifyCode] = useState("");
     const [isLuoguLoading, setIsLuoguLoading] = useState(false);
     const [luoguError, setLuoguError] = useState<string | null>(null);
+    const [showLuoguManual, setShowLuoguManual] = useState(false);
+    const [luoguHtml, setLuoguHtml] = useState("");
 
     useEffect(() => {
         const error = searchParams.get("error");
@@ -110,7 +112,10 @@ export function LoginForm() {
             const res = await fetch("/api/auth/luogu/login/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ luoguId: luoguId.trim() }),
+                body: JSON.stringify({ 
+                    luoguId: luoguId.trim(),
+                    luoguHtml: showLuoguManual && luoguHtml.trim() ? luoguHtml.trim() : undefined,
+                }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "登录验证失败");
@@ -121,6 +126,9 @@ export function LoginForm() {
         } catch (err: any) {
             setLuoguError(err.message || "登录失败，请重试");
             setIsLuoguLoading(false);
+            if (!showLuoguManual) {
+                setShowLuoguManual(true);
+            }
         }
     };
 
@@ -509,7 +517,7 @@ export function LoginForm() {
                                     </li>
                                 </ol>
 
-                                <div className="flex gap-2 pt-1">
+                                <div className="flex gap-2 pt-1 flex-col sm:flex-row">
                                     <Button
                                         type="button"
                                         onClick={handleLuoguVerify}
@@ -531,6 +539,8 @@ export function LoginForm() {
                                         onClick={() => {
                                             setLuoguVerifyCode("");
                                             setLuoguError(null);
+                                            setShowLuoguManual(false);
+                                            setLuoguHtml("");
                                         }}
                                         className="h-9 text-xs"
                                         disabled={isLuoguLoading}
@@ -538,6 +548,60 @@ export function LoginForm() {
                                         上一步
                                     </Button>
                                 </div>
+
+                                {!showLuoguManual && (
+                                    <div className="text-center">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowLuoguManual(true)} 
+                                            className="text-[10px] text-muted-foreground hover:text-primary underline mt-1"
+                                        >
+                                            网络受限？尝试手动验证
+                                        </button>
+                                    </div>
+                                )}
+
+                                {showLuoguManual && (
+                                    <div className="mt-3 p-3 rounded-lg border border-dashed border-orange-300 dark:border-orange-900 bg-orange-50/20 dark:bg-orange-950/5 space-y-2.5">
+                                        <div className="text-[11px] text-orange-800 dark:text-orange-400 font-semibold flex items-center justify-between">
+                                            <span>🌐 服务器海外连接受限，请使用手动网页源码验证：</span>
+                                            <button 
+                                                type="button" 
+                                                className="text-[9px] underline hover:text-orange-600"
+                                                onClick={() => {
+                                                    setShowLuoguManual(false);
+                                                    setLuoguHtml("");
+                                                }}
+                                            >
+                                                隐藏手动模式
+                                            </button>
+                                        </div>
+                                        <ol className="list-decimal list-inside text-[10px] text-muted-foreground space-y-1 leading-relaxed">
+                                            <li>
+                                                点此打开洛谷数据页面：
+                                                <a 
+                                                    href={`https://www.luogu.com.cn/user/${luoguId.trim()}?_contentOnly=1`} 
+                                                    target="_blank" 
+                                                    rel="noreferrer" 
+                                                    className="text-primary font-semibold hover:underline inline-flex items-center ml-0.5"
+                                                >
+                                                    打开数据页面
+                                                    <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                                                </a>
+                                            </li>
+                                            <li>在打开的网页中<strong>右键选择查看网页源代码</strong> (或按 <kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+U</kbd>)</li>
+                                            <li>按 <kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+A</kbd> 全选，<kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+C</kbd> 复制全部代码，并粘贴在下方：</li>
+                                        </ol>
+                                        <textarea
+                                            className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-[10px] font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            placeholder="请在这里粘贴刚才复制的网页全部源代码..."
+                                            value={luoguHtml}
+                                            onChange={(e) => setLuoguHtml(e.target.value)}
+                                            disabled={isLuoguLoading}
+                                            rows={4}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             /* 获取验证码按钮 */
