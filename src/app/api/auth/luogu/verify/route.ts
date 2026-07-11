@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { fetchLuoguUser } from "@/lib/luogu";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -19,61 +20,24 @@ export async function POST(request: Request) {
         // 规范化 Luogu ID
         const cleanLuoguId = luoguId.trim();
 
-        let verified = false;
-        let luoguUsername = `LuoguUser_${cleanLuoguId}`;
-        let errorDetails = "";
+        // 直接请求洛谷 API 获取用户信息
+        console.log(`[Luogu Verify] Fetching user info for UID: ${cleanLuoguId}`);
+        const result = await fetchLuoguUser(cleanLuoguId);
 
-        // 通过 Supabase Edge Function 代理获取洛谷用户信息（绕过 Cloudflare 封锁）
-        try {
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-            const proxyUrl = `${supabaseUrl}/functions/v1/luogu-proxy?uid=${cleanLuoguId}`;
-            console.log(`[Luogu Verify] Fetching via Edge Function proxy: ${proxyUrl}`);
-
-            const response = await fetch(proxyUrl, {
-                headers: { "Content-Type": "application/json" },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-
-                if (data.ok) {
-                    const introduction = data.introduction || "";
-                    luoguUsername = data.name || luoguUsername;
-
-                    console.log(`[Luogu Verify] User Intro:`, introduction);
-                    console.log(`[Luogu Verify] Expected Code:`, verificationCode);
-
-                    if (introduction.includes(verificationCode)) {
-                        verified = true;
-                    } else {
-                        errorDetails = "未在个人介绍中找到验证码";
-                    }
-                } else {
-                    errorDetails = data.error || "洛谷代理返回异常";
-                }
-            } else {
-                const errData = await response.json().catch(() => ({}));
-                console.error(`[Luogu Verify] Proxy failed: ${response.status}`, errData);
-                errorDetails = `洛谷接口访问失败 (状态码: ${errData.status || response.status})`;
-            }
-        } catch (fetchError: any) {
-            console.error(`[Luogu Verify] Fetch error:`, fetchError);
-            errorDetails = `网络连接失败: ${fetchError.message}`;
-        }
-
-        // ⚠️ 针对开发环境 / Cloudflare 拦截 (403) 的降级放行方案
-        const isDev = process.env.NODE_ENV === "development" || 
-                      process.env.NEXT_PUBLIC_SITE_URL?.includes("localhost") ||
-                      process.env.BYPASS_LUOGU_ON_403 === "true";
-        if (!verified && isDev) {
-            console.log("[Luogu Verify] Dev Mode: Bypassing strict verification for testing.");
-            verified = true;
-            errorDetails = "";
-        }
-
-        if (!verified) {
+        if (!result.ok || !result.user) {
             return NextResponse.json({
-                error: `验证失败：${errorDetails || "个人介绍中未检测到验证码"}。请确保验证码正确写入洛谷“个人介绍”中，并等待几秒后重试。`
+                error: `验证失败：${result.error || "无法获取洛谷用户信息"}。请确认 UID 正确后重试。`
+            }, { status: 400 });
+        }
+
+        const { introduction, name: luoguUsername } = result.user;
+
+        console.log(`[Luogu Verify] User: ${luoguUsername}, Intro length: ${introduction.length}`);
+        console.log(`[Luogu Verify] Expected Code: ${verificationCode}`);
+
+        if (!introduction.includes(verificationCode)) {
+            return NextResponse.json({
+                error: `验证失败：未在个人介绍中找到验证码。请确保验证码正确写入洛谷"个人介绍"中，并等待几秒后重试。`
             }, { status: 400 });
         }
 

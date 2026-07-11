@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * 从 Tiptap JSON 内容中提取纯文本
@@ -28,7 +29,8 @@ export function extractPlainText(content: unknown): string {
  * 自动兼容：火山引擎豆包模型 与 Cohere 国际模型
  */
 export async function generatePostEmbedding(postId: string, supabaseClient?: any) {
-    const supabase = supabaseClient || (await createClient());
+    // 默认使用 AdminClient，避免因 cookies() 丢失 Request Scope 抛出异常，同时确保具备最高读写权限
+    const supabase = supabaseClient || createAdminClient();
 
     // 1. 获取帖子内容
     const { data: post, error: postError } = await supabase
@@ -76,19 +78,43 @@ export async function generatePostEmbedding(postId: string, supabaseClient?: any
             };
         }
 
-        const embeddingRes = await fetch(apiUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify(requestBody),
-        });
+        let embeddingRes: Response | null = null;
+        let lastError = "";
 
-        if (!embeddingRes.ok) {
-            const errBody = await embeddingRes.text();
-            console.error(`[generatePostEmbedding] 向量服务 API 错误: ${errBody}`);
-            return { error: "Embedding 生成失败" };
+        // 最多重试 3 次，增加抗抖动与防 429 频控能力
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                embeddingRes = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: AbortSignal.timeout(8000), // 8秒超时
+                });
+
+                if (embeddingRes.ok) {
+                    break;
+                }
+
+                const errBody = await embeddingRes.text();
+                lastError = `状态码 ${embeddingRes.status}: ${errBody}`;
+                console.warn(`[generatePostEmbedding] 向量服务请求失败 (尝试 ${attempt}/3): ${lastError}`);
+
+                // 若遇到 429 Rate Limit，稍作延迟以待恢复
+                const delay = embeddingRes.status === 429 ? 1200 * attempt : 500 * attempt;
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            } catch (err: any) {
+                lastError = err.message || String(err);
+                console.warn(`[generatePostEmbedding] 向量服务请求异常 (尝试 ${attempt}/3): ${lastError}`);
+                await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+            }
+        }
+
+        if (!embeddingRes || !embeddingRes.ok) {
+            console.error(`[generatePostEmbedding] 向量服务 API 最终请求失败: ${lastError}`);
+            return { error: `Embedding 生成最终失败: ${lastError}` };
         }
 
         const embeddingData = await embeddingRes.json();
@@ -111,8 +137,9 @@ export async function generatePostEmbedding(postId: string, supabaseClient?: any
             console.warn(`[generatePostEmbedding] 警告：获取的向量维度为 ${embedding.length} 维，而不是系统预设的 1024 维。`);
         }
 
-        // 4. 更新帖子的 embedding
-        const { error: updateError } = await supabase
+        // 4. 更新帖子的 embedding (使用 AdminClient 绕过 RLS 策略物理屏障)
+        const adminSupabase = createAdminClient();
+        const { error: updateError } = await adminSupabase
             .from("posts")
             .update({ embedding: JSON.stringify(embedding) })
             .eq("id", postId);
