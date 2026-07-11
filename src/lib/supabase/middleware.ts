@@ -10,7 +10,6 @@ const PUBLIC_ROUTES = [
     "/reset-password",
     "/pending-verification",
     "/auth/callback",
-    "/auth/session",
     "/updates",
 ];
 
