@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { CheckCircle2, Copy, ExternalLink, HelpCircle, Loader2, RefreshCw, Unlink } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface LinkedAccount {
@@ -32,7 +32,7 @@ export function LinkedAccountsCard() {
     const supabase = createClient();
 
     // 加载绑定状态
-    const loadBindings = async () => {
+    const loadBindings = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -56,11 +56,11 @@ export function LinkedAccountsCard() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [supabase]);
 
     useEffect(() => {
         loadBindings();
-    }, []);
+    }, [loadBindings]);
 
     // 复制验证码
     const handleCopyCode = () => {

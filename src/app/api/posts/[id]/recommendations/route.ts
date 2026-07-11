@@ -15,16 +15,18 @@ export async function GET(
         console.log(`🔍 [recommendations-api] 正在请求帖子 ${id} 的相似推荐...`);
 
         // 1. 获取当前帖子的 embedding 向量与 tags 属性
-        let { data: post, error: postError } = await supabase
+        const { data: initialPost, error: postError } = await supabase
             .from("posts")
             .select("id, title, embedding, tags")
             .eq("id", id)
             .single();
 
-        if (postError || !post) {
+        if (postError || !initialPost) {
             console.warn(`[recommendations-api] 帖子 ${id} 未找到，返回空推荐列表`);
             return NextResponse.json([]);
         }
+
+        let post = initialPost;
 
         // 🌟 向量自愈：若发现当前帖子无向量数据，实时触发静默补全生成向量
         if (!post.embedding) {
