@@ -45,9 +45,9 @@ export function LoginForm() {
 
         // 🌟 客户端会话自动感知：监听 Auth 状态变化，实时消费 Hash 并写入 Cookie。
         // 使用 window.location.replace 触发整页跳转，确保服务端能携带并识别最新的 Cookie。
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
             console.log(`[LoginForm] Auth state changed: ${event}`, session ? "Session exists" : "No session");
-            if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+            if (session) {
                 console.log("[LoginForm] Active session detected via onAuthStateChange, redirecting to:", next);
                 window.location.replace(next);
             }
