@@ -48,8 +48,8 @@ export async function GET(request: Request) {
       const next = params.get('next') || '/dashboard';
       
       if (hash && (hash.includes('access_token=') || hash.includes('error='))) {
-        // 如果包含凭证或错误，携带 Hash 重定向到目标页面，让前端 Supabase 客户端自行处理登录
-        window.location.replace(window.location.origin + next + hash);
+        // 如果包含凭证或错误，携带 Hash 重定向到公开中转页面处理登录
+        window.location.replace(window.location.origin + '/auth/session' + search + hash);
       } else {
         window.location.replace(window.location.origin + '/login?error=auth_failed_no_code');
       }
