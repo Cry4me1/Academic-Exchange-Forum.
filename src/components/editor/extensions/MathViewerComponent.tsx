@@ -35,7 +35,19 @@ function loadDesmosAPI(): Promise<void> {
 function extractParameters(latex: string, funcName: string | null) {
   const params = new Set<string>();
 
-  // 1. 查找希腊字母参数 (如 \sigma, \mu, \alpha 等)
+  // 1. 查找希腊字母参数 — 使用下标格式 (如 \sigma → s_{igma}) 以匹配 convertLatexForDesmos 的输出
+  //    同时也保留原始 \sigma 格式以兼容未经转换的输入
+  const greekLetters = ["sigma", "mu", "alpha", "beta", "gamma", "lambda", "omega", "phi", "psi", "delta"];
+  
+  // 检查 Desmos 下标格式: 如 s_{igma}
+  for (const g of greekLetters) {
+    const subscriptPattern = new RegExp(`${g[0]}_\\{${g.slice(1)}\\}`, "g");
+    if (subscriptPattern.test(latex)) {
+      params.add(`${g[0]}_{${g.slice(1)}}`);
+    }
+  }
+  
+  // 也检查原始 \greek 格式（向后兼容）
   const greekRegex = /\\(sigma|mu|alpha|beta|gamma|lambda|omega|phi|psi|delta)\b/g;
   let match;
   while ((match = greekRegex.exec(latex)) !== null) {
@@ -44,7 +56,9 @@ function extractParameters(latex: string, funcName: string | null) {
 
   // 2. 查找普通英文字母参数 (单个字母，排除 x, y, t, e)
   // 我们先通过正则把所有以 \ 开头的 LaTeX 命令暂时替换掉，防止误判命令内的字母 (如 \frac 中的 f, r, a, c)
-  const cleanLatex = latex.replace(/\\[a-zA-Z]+/g, " ");
+  // 同时排除下标模式中的字母（如 s_{igma} 中不应提取 s）
+  let cleanLatex = latex.replace(/\\[a-zA-Z]+/g, " ");
+  cleanLatex = cleanLatex.replace(/[a-zA-Z]_\{[a-zA-Z]+\}/g, " "); // 排除下标参数
 
   // 匹配单个英文字母 (排除 e, x, y, t)
   const letterRegex = /\b([a-df-wzAD-Z])\b/g;
@@ -58,6 +72,39 @@ function extractParameters(latex: string, funcName: string | null) {
   }
 
   return Array.from(params);
+}
+
+// 辅助函数：将标准 LaTeX 公式转换为 Desmos 兼容的 LaTeX 语法
+// Desmos 不支持某些标准 LaTeX 命令，需要做映射转换
+function convertLatexForDesmos(latex: string): string {
+  let result = latex;
+
+  // 1. 希腊字母 → Desmos 下标表示法
+  //    Desmos 不识别 \sigma，但识别 s_{igma} 形式
+  const greekMap: Record<string, string> = {
+    "\\sigma": "s_{igma}",
+    "\\mu": "m_{u}",
+    "\\alpha": "a_{lpha}",
+    "\\beta": "b_{eta}",
+    "\\gamma": "g_{amma}",
+    "\\lambda": "l_{ambda}",
+    "\\omega": "o_{mega}",
+    "\\phi": "p_{hi}",
+    "\\psi": "p_{si}",
+    "\\delta": "d_{elta}",
+    "\\pi": "\\pi",  // \pi 是 Desmos 原生支持的，不需要转换
+  };
+  for (const [latexGreek, desmosGreek] of Object.entries(greekMap)) {
+    // 使用全局替换，但排除 \pi（Desmos 原生支持）
+    result = result.split(latexGreek).join(desmosGreek);
+  }
+
+  // 2. e^{...} → \exp(...)
+  //    Desmos 不直接支持 e^{...} 的自然指数表示，需要用 e^{...} 的 Desmos 原生形式
+  //    实际上 Desmos 支持 e^{...}，但要确保 e 不被当作变量
+  //    我们不做转换，Desmos 能识别 e^{...}
+
+  return result;
 }
 
 // 1. 函数表达式整理 (只用于绘图)
@@ -193,35 +240,51 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
 
         const calc = Desmos.GraphingCalculator(calculatorRef.current, {
           keypad: false,
-          expressions: false,
+          expressions: true,           // 显示表达式面板，让参数滑块可见可调
           settingsMenu: false,
           zoomButtons: true,
-          expressionsCollapsed: true,
+          expressionsCollapsed: false,  // 展开表达式面板
         });
 
         calculatorInstance.current = calc;
 
-        // 默认坐标区间
-        calc.setViewport([-10, 10, -6, 6]);
+        // 默认坐标区间 — 使用 Desmos 官方 setMathBounds API
+        calc.setMathBounds({
+          left: -10,
+          right: 10,
+          bottom: -6,
+          top: 6,
+        });
 
-        const bounds = calc.graphpaperBounds;
-        const xMin = bounds?.mathCoordinates?.left ?? -10;
-        const xMax = bounds?.mathCoordinates?.right ?? 10;
+        const xMin = -10;
+        const xMax = 10;
 
         setIsDrawing(true);
 
+        // 将标准 LaTeX 转换为 Desmos 兼容语法
+        const convertedLatex = convertLatexForDesmos(desmosLatex);
+
         // 识别并提取公式中除自变量之外的未知参数 (如 \sigma, \mu, a, b)
         // 从而自动创建滑块默认值，防止由于未定义变量导致 Desmos 无法画图
-        const funcNameMatch = desmosLatex.trim().match(/^(f|g|h)\s*\(.*?\)\s*=/i);
+        const funcNameMatch = convertedLatex.trim().match(/^(f|g|h)\s*\(.*?\)\s*=/i);
         const funcName = funcNameMatch ? funcNameMatch[1] : null;
-        const params = extractParameters(desmosLatex, funcName);
+        const params = extractParameters(convertedLatex, funcName);
 
-        // 为每一个参数初始化默认值。对于 \sigma (标准差) 等系数不能为 0，我们默认都设为 1；而对于 \mu (均值) 这种平移参数，默认设为 0 以使其居中显示在坐标系原点。
+        // 为每一个参数初始化默认值。
+        // 对于 sigma (标准差) 等系数不能为 0，我们默认都设为 1
+        // 对于 mu (均值) 这种平移参数，默认设为 0 以使其居中
+        // 同时设置滑块的最小/最大值范围让用户可以拖动
         params.forEach((param, idx) => {
-          const defaultValue = param === "\\mu" ? "0" : "1";
+          const isMu = param.includes("m_{u}") || param === "\\mu";
+          const defaultValue = isMu ? "0" : "1";
           calc.setExpression({
             id: `param-slider-${idx}`,
             latex: `${param} = ${defaultValue}`,
+            sliderBounds: {
+              min: isMu ? "-10" : "0.1",
+              max: "10",
+              step: "0.1",
+            },
           });
         });
         
@@ -233,7 +296,7 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
 
         calc.setExpression({
           id: "main-graph",
-          latex: `${desmosLatex} \\left\\{ x \\le a_{anim} \\right\\}`,
+          latex: `${convertedLatex} \\left\\{ x \\le a_{anim} \\right\\}`,
           color: "#3b82f6",
           lineWidth: 3,
         });
@@ -257,7 +320,7 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
           } else {
             calc.setExpression({
               id: "main-graph",
-              latex: desmosLatex,
+              latex: convertedLatex,
               color: "#3b82f6",
               lineWidth: 3,
             });
@@ -377,7 +440,7 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
               </span>
 
               {/* 画板容器 */}
-              <span className="block relative w-full h-[280px] bg-muted/30 rounded-lg overflow-hidden border border-border/40">
+              <span className="block relative w-full h-[400px] bg-muted/30 rounded-lg overflow-hidden border border-border/40">
                 {!isDesmosLoaded && !error && (
                   <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground bg-card/60 backdrop-blur-sm z-10">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -396,7 +459,7 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
                   id={calculatorId}
                   ref={calculatorRef}
                   className="block w-full h-full"
-                  style={{ minHeight: "280px" }}
+                  style={{ minHeight: "400px" }}
                 />
               </span>
             </span>

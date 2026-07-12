@@ -1,7 +1,7 @@
 import { getChangedRanges, Extension } from "@tiptap/core";
 import { EditorState, Plugin, PluginKey, Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { createRoot } from "react-dom/client";
+import { createRoot, Root } from "react-dom/client";
 import React from "react";
 import MathViewerComponent from "./MathViewerComponent";
 
@@ -14,6 +14,63 @@ const defaultShouldRender = (state: EditorState, pos: number) => {
   const isInCodeBlock = $pos.parent.type.name === "codeBlock";
   return !isInCodeBlock;
 };
+
+// ── 持久化 DOM/React 缓存，防止选区变化时重新挂载 ──
+// 使用 content (公式文本) 作为 key，复用同一个 React 实例来保持状态
+// （如 Desmos 面板的打开状态），避免点击空白处时按钮消失。
+interface CachedWidget {
+  dom: HTMLElement;
+  root: Root;
+  content: string;
+  refCount: number;
+}
+
+const widgetCache = new Map<string, CachedWidget>();
+
+function getOrCreateWidget(content: string, isEditable: boolean): HTMLElement {
+  const cacheKey = content;
+  const cached = widgetCache.get(cacheKey);
+
+  if (cached) {
+    cached.refCount++;
+    return cached.dom;
+  }
+
+  const element = document.createElement("span");
+  element.classList.add("Tiptap-mathematics-render-wrapper", "inline-block");
+  if (isEditable) {
+    element.classList.add("Tiptap-mathematics-render--editable");
+  }
+
+  const root = createRoot(element);
+  root.render(React.createElement(MathViewerComponent, { content }));
+
+  widgetCache.set(cacheKey, {
+    dom: element,
+    root,
+    content,
+    refCount: 1,
+  });
+
+  return element;
+}
+
+function releaseWidget(content: string) {
+  const cached = widgetCache.get(content);
+  if (!cached) return;
+
+  cached.refCount--;
+  if (cached.refCount <= 0) {
+    // 延迟清理，避免在快速选区切换时频繁销毁重建
+    setTimeout(() => {
+      const current = widgetCache.get(content);
+      if (current && current.refCount <= 0) {
+        current.root.unmount();
+        widgetCache.delete(content);
+      }
+    }, 2000);
+  }
+}
 
 export const CustomMathematics = Extension.create<any>({
   name: "customMathematics",
@@ -140,27 +197,17 @@ export const CustomMathematics = Extension.create<any>({
 
                     if (!isEditable || !isEditing) {
                       // 注入自定义的 React Widget 渲染
+                      // 使用持久化缓存复用 DOM 节点，避免选区变化时组件被销毁重建
                       decorationsToAdd.push(
                         Decoration.widget(
                           from,
                           (() => {
-                            const element = document.createElement("span");
-                            element.classList.add("Tiptap-mathematics-render-wrapper", "inline-block");
-                            if (isEditable) {
-                              element.classList.add("Tiptap-mathematics-render--editable");
-                            }
+                            const element = getOrCreateWidget(content, isEditable);
 
-                            // 挂载 React 根节点并渲染 MathViewerComponent
-                            const root = createRoot(element);
-                            root.render(
-                              React.createElement(MathViewerComponent, { content })
-                            );
-
-                            // 返回 DOM 节点和销毁回调
                             return {
                               dom: element,
                               destroy: () => {
-                                root.unmount();
+                                releaseWidget(content);
                               },
                             };
                           }) as any,
@@ -168,6 +215,8 @@ export const CustomMathematics = Extension.create<any>({
                             content,
                             isEditable,
                             isEditing,
+                            // 设置 key 使 ProseMirror 能识别这是"同一个" widget
+                            key: `math-widget-${content}`,
                           }
                         )
                       );

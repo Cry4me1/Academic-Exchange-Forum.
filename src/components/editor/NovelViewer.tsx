@@ -117,8 +117,13 @@ export default function NovelViewer({ initialValue }: NovelViewerProps) {
         return () => {
             clearTimeout(timer);
             setMathPortals([]);
+            // 清理手动插入 DOM 中的 portal 容器节点，防止重复检查机制被绕过及内存泄漏
+            if (container) {
+                const portals = container.querySelectorAll(".math-desmos-portal-container");
+                portals.forEach(el => el.remove());
+            }
         };
-    }, [initialValue]);
+    }, [JSON.stringify(initialValue)]);
 
     if (!initialValue) return null;
 

@@ -233,23 +233,6 @@ export function PostCard({
                             </Link>
 
                             <div className="flex items-center gap-2 shrink-0">
-                                {/* 标签胶囊 */}
-                                {tags.slice(0, 2).map((tag) => {
-                                    const c = tagColors[tag] || defaultTagColor;
-                                    return (
-                                        <Badge
-                                            key={tag}
-                                            variant="outline"
-                                            className={cn(
-                                                "text-[10px] px-2 py-0 h-5 font-medium border-0 hidden sm:inline-flex",
-                                                c.bg, c.text
-                                            )}
-                                        >
-                                            {tag}
-                                        </Badge>
-                                    );
-                                })}
-
                                 {/* 更多操作 */}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -319,9 +302,9 @@ export function PostCard({
                             {content}
                         </p>
 
-                        {/* 移动端标签 */}
+                        {/* 帖子标签 */}
                         {tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2.5 sm:hidden">
+                            <div className="flex flex-wrap gap-1.5 mt-2.5">
                                 {tags.slice(0, 3).map((tag) => {
                                     const c = tagColors[tag] || defaultTagColor;
                                     return (
@@ -430,23 +413,6 @@ export function PostCard({
                             </Link>
 
                             <div className="flex items-center gap-2 shrink-0">
-                                {/* 标签胶囊 */}
-                                {tags.slice(0, 2).map((tag) => {
-                                    const c = tagColors[tag] || defaultTagColor;
-                                    return (
-                                        <Badge
-                                            key={tag}
-                                            variant="outline"
-                                            className={cn(
-                                                "text-[10px] px-2 py-0 h-5 font-medium border-0 hidden sm:inline-flex",
-                                                c.bg, c.text
-                                            )}
-                                        >
-                                            {tag}
-                                        </Badge>
-                                    );
-                                })}
-
                                 {/* 更多操作 */}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -500,9 +466,9 @@ export function PostCard({
                             {content}
                         </p>
 
-                        {/* 移动端标签（桌面端在头部已展示） */}
+                        {/* 帖子标签 */}
                         {tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2.5 sm:hidden">
+                            <div className="flex flex-wrap gap-1.5 mt-2.5">
                                 {tags.slice(0, 3).map((tag) => {
                                     const c = tagColors[tag] || defaultTagColor;
                                     return (
