@@ -50,15 +50,15 @@ export function VipBadge({ vipLevel, size = 'sm', showTitle = false, className =
             animate={{ scale: 1, opacity: 1 }}
             whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`relative inline-flex items-center rounded-full font-bold overflow-hidden
+            className={`relative inline-flex items-center rounded-full font-bold overflow-hidden shrink-0 whitespace-nowrap
         bg-gradient-to-r ${level.gradient} text-white
         shadow-lg ${level.glowColor} border border-white/20
         ${config.container} ${className}`}
         >
-            <IconComponent size={config.iconSize} />
-            <span className="relative z-10 drop-shadow-sm">{level.name}</span>
+            <IconComponent size={config.iconSize} className="shrink-0" />
+            <span className="relative z-10 drop-shadow-sm whitespace-nowrap">{level.name}</span>
             {showTitle && (
-                <span className={`font-medium opacity-90 drop-shadow-sm ml-0.5 ${config.title}`}>
+                <span className={`font-medium opacity-90 drop-shadow-sm ml-0.5 whitespace-nowrap ${config.title}`}>
                     {level.title}
                 </span>
             )}

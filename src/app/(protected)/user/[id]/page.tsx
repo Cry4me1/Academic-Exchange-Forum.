@@ -368,12 +368,12 @@ export default function UserProfilePage() {
                                         )}
                                         {/* 专属称号 */}
                                         {profile.special_title && (
-                                            <Badge variant="default" className="bg-purple-500 hover:bg-purple-600 shadow-sm shadow-purple-500/20 text-white border-0">
+                                            <Badge variant="default" className="bg-purple-500 hover:bg-purple-600 shadow-sm shadow-purple-500/20 text-white border-0 shrink-0 whitespace-nowrap">
                                                 {profile.special_title}
                                             </Badge>
                                         )}
                                         {/* VIP 等级徽章 */}
-                                        <VipBadge vipLevel={profile.vip_level || 1} size="md" showTitle />
+                                        <VipBadge vipLevel={profile.vip_level || 1} size="md" showTitle className="shrink-0" />
                                         {profile.reputation_score !== null && (
                                             <ReputationBadge
                                                 score={profile.reputation_score}

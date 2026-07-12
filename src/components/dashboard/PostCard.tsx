@@ -220,11 +220,11 @@ export function PostCard({
                                             {author.name}
                                         </p>
                                         {author.special_title && (
-                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0">
+                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0 shrink-0 whitespace-nowrap">
                                                 {author.special_title}
                                             </Badge>
                                         )}
-                                        <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} />
+                                        <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} className="shrink-0" />
                                     </div>
                                     <p className="text-[11px] text-muted-foreground/60" suppressHydrationWarning>
                                         {formatRelativeTime(createdAt)}
@@ -417,11 +417,11 @@ export function PostCard({
                                             {author.name}
                                         </p>
                                         {author.special_title && (
-                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0">
+                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0 shrink-0 whitespace-nowrap">
                                                 {author.special_title}
                                             </Badge>
                                         )}
-                                        <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} />
+                                        <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} className="shrink-0" />
                                     </div>
                                     <p className="text-[11px] text-muted-foreground/60" suppressHydrationWarning>
                                         {formatRelativeTime(createdAt)}
