@@ -24,10 +24,24 @@ export function extractTextFromJSON(content: JSONContent): string {
         }
 
         // 数学公式保留 LaTeX
-        if (node.type === "math" || node.type === "mathBlock") {
-            const latex = (node.attrs?.latex as string) || "";
+        if (
+            node.type === "math" ||
+            node.type === "mathBlock" ||
+            node.type === "mathematics" ||
+            node.type === "inlineMath" ||
+            node.type === "blockMath"
+        ) {
+            const latex =
+                (node.attrs?.latex as string) ||
+                (node.attrs?.math as string) ||
+                (node.attrs?.content as string) ||
+                "";
             if (latex) {
-                parts.push(node.type === "mathBlock" ? `\n$$${latex}$$\n` : `$${latex}$`);
+                parts.push(
+                    node.type === "mathBlock" || node.type === "blockMath"
+                        ? `\n$$${latex}$$\n`
+                        : `$${latex}$`
+                );
             }
             return;
         }
@@ -73,6 +87,19 @@ export function extractTextFromJSON(content: JSONContent): string {
 }
 
 /**
+ * 通用提取函数，支持对象或字符串格式
+ */
+export function extractTextFromContent(content: unknown): string {
+    if (!content) return "";
+    if (typeof content === "string") return content;
+    try {
+        return extractTextFromJSON(content as JSONContent);
+    } catch {
+        return "";
+    }
+}
+
+/**
  * 截断文本到指定字符数，确保不会在单词中间截断
  */
 export function truncateText(text: string, maxLength: number = 8000): string {
@@ -90,3 +117,4 @@ export function truncateText(text: string, maxLength: number = 8000): string {
         " 字符的内容]"
     );
 }
+

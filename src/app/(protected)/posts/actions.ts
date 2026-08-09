@@ -1,6 +1,6 @@
 "use server";
 
-// Force dev server Action ID re-mapping
+// Force dev server Action ID re-mapping & refresh manifest
 
 
 import { deleteImages, extractImageUrls, findRemovedImages } from "@/lib/storage-cleanup";

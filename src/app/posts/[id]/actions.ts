@@ -1,5 +1,7 @@
 "use server";
 
+// Refresh Server Action manifest ID
+
 import { deleteImages, extractImageUrls } from "@/lib/storage-cleanup";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";

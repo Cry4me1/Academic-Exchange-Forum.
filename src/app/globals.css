@@ -1026,6 +1026,23 @@
   overflow-y: hidden;
 }
 
+/* 卡片内数学公式 KaTeX 适配 */
+.inline-katex {
+  display: inline-block;
+  line-height: normal;
+  vertical-align: baseline;
+}
+
+.inline-katex .katex {
+  font-size: 1.05em;
+  color: inherit !important;
+}
+
+.inline-katex .katex-display {
+  margin: 0;
+  display: inline;
+}
+
 /* Block math display styling */
 .Tiptap-mathematics-render--block {
   display: flex;

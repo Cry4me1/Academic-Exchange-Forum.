@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { MathText } from "@/components/ui/math-text";
 import { motion } from "framer-motion";
 import {
     Bookmark,
@@ -293,13 +294,13 @@ export function PostCard({
                         {/* 标题 */}
                         <Link href={`/posts/${id}`}>
                             <h3 className="text-lg font-semibold text-foreground leading-snug line-clamp-2 hover:text-primary transition-colors duration-200">
-                                {title}
+                                <MathText text={title} inlineOnly />
                             </h3>
                         </Link>
 
                         {/* 摘要 */}
                         <p className="text-sm text-muted-foreground/80 line-clamp-2 mt-2.5 leading-relaxed break-words">
-                            {content}
+                            <MathText text={content} inlineOnly />
                         </p>
 
                         {/* 帖子标签 */}
@@ -457,13 +458,13 @@ export function PostCard({
                         {/* 标题 */}
                         <Link href={`/posts/${id}`}>
                             <h3 className="text-lg font-semibold text-foreground leading-snug line-clamp-2 hover:text-primary transition-colors duration-200">
-                                {title}
+                                <MathText text={title} inlineOnly />
                             </h3>
                         </Link>
 
                         {/* 摘要 */}
                         <p className="text-sm text-muted-foreground/80 line-clamp-2 mt-2.5 leading-relaxed break-words">
-                            {content}
+                            <MathText text={content} inlineOnly />
                         </p>
 
                         {/* 帖子标签 */}

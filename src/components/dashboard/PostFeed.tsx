@@ -2,6 +2,7 @@
 
 import { getPosts } from "@/app/(protected)/posts/actions";
 import { AnimatePresence, motion } from "framer-motion";
+import { extractTextFromContent } from "@/lib/extract-text";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { FeedFilter } from "./FeedTabs";
 import { PostCard } from "./PostCard";
@@ -57,27 +58,6 @@ const PAGE_SIZE = 12;
 // ====================
 // Utils
 // ====================
-function extractTextFromContent(content: object): string {
-    try {
-        const jsonContent = content as { content?: Array<{ content?: Array<{ text?: string }> }> };
-        if (jsonContent.content) {
-            const texts: string[] = [];
-            for (const node of jsonContent.content) {
-                if (node.content) {
-                    for (const child of node.content) {
-                        if (child.text) {
-                            texts.push(child.text);
-                        }
-                    }
-                }
-            }
-            return texts.join(" ").slice(0, 200);
-        }
-    } catch {
-        // ignore
-    }
-    return "";
-}
 
 function extractImageFromContent(content: object): string | undefined {
     try {

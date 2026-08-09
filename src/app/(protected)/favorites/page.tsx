@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { MathText } from "@/components/ui/math-text";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Bookmark, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -160,11 +161,11 @@ export default function FavoritesPage() {
                                             <div className="flex-1 min-w-0">
                                                 <Link href={`/posts/${post.id}`}>
                                                     <h3 className="font-semibold hover:text-primary transition-colors line-clamp-1">
-                                                        {post.title}
+                                                        <MathText text={post.title} inlineOnly />
                                                     </h3>
                                                 </Link>
                                                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                                    {extractTextFromContent(post.content).substring(0, 150)}...
+                                                    <MathText text={extractTextFromContent(post.content).substring(0, 150) + "..."} inlineOnly />
                                                 </p>
                                                 <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                                                     <Link href={`/user/${post.author?.id}`} className="hover:text-foreground">

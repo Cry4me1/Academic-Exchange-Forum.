@@ -14,6 +14,7 @@ trigger: always_on
     - 涉及到实时功能时，自动考虑 Supabase Realtime 和 Presence 机制。
 4.  **学术功能优先**: 在处理内容渲染时，始终考虑到 LaTeX 公式、代码高亮和图表的兼容性。
 5.  **MCP 协作**: 当我提到“UI设计”或“Figma”时，请准备好通过 MCP 工具接收设计指令或代码转换请求。
+6.  **思考与代码模式**: Must think hard , Extra code mode（必须深度思考，开启充分且完整的代码输出模式）。
 
 ### 回复格式：
 - 先简述你的计划。
