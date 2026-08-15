@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { logAdminAction } from "./permissions";
+import { logAdminAction, requireAdmin } from "./permissions";
 import { revalidatePath } from "next/cache";
 
 // ===== 类型定义 =====
@@ -98,10 +98,8 @@ export async function getCreditsConfig(): Promise<CreditsConfig> {
  * 更新积分策略配置
  */
 export async function updateCreditsConfig(config: CreditsConfig) {
+  const admin = await requireAdmin("admin");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // 验证参数
   if (config.signup_bonus < 0) throw new Error("注册奖励不能为负数");
@@ -114,7 +112,7 @@ export async function updateCreditsConfig(config: CreditsConfig) {
     .from("system_settings")
     .update({
       value: config,
-      updated_by: user?.id,
+      updated_by: admin.id,
       updated_at: new Date().toISOString(),
     })
     .eq("key", "credits");
@@ -288,12 +286,9 @@ export async function executeBatchGrant(params: {
   minVipLevel?: number;
   userIds?: string[];
 }) {
+  const admin = await requireAdmin("admin");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) throw new Error("未登录");
   if (params.amount <= 0) throw new Error("发放金额必须大于 0");
 
   const targetCriteria: Record<string, unknown> = {
@@ -336,7 +331,7 @@ export async function executeBatchGrant(params: {
       affected_user_count: targetUserIds.length,
       total_amount_granted: params.amount * targetUserIds.length,
       status: "processing",
-      created_by: user.id,
+      created_by: admin.id,
     })
     .select("id")
     .single();
@@ -479,10 +474,8 @@ export async function updateVipLevelConfig(
     is_active?: boolean;
   }
 ) {
+  const admin = await requireAdmin("admin");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // 获取旧配置
   const { data: oldConfig } = await supabase
@@ -495,7 +488,7 @@ export async function updateVipLevelConfig(
     .from("vip_level_config")
     .update({
       ...updates,
-      updated_by: user?.id,
+      updated_by: admin.id,
       updated_at: new Date().toISOString(),
     })
     .eq("level", level);

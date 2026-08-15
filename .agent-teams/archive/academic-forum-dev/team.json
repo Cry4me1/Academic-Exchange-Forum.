@@ -1,0 +1,92 @@
+{
+  "name": "academic-forum-dev",
+  "id": "academic-forum-dev",
+  "description": "用于 D:\\project\\academic_forum（学术论坛项目）的开发团队：先搭建团队骨架，具体目标与任务待定。",
+  "captainSessionId": "session-6dd89718-9248-4391-8eb2-052ff7ab55bd",
+  "createdAt": 1786776065538,
+  "members": [
+    {
+      "id": "55f23a76-c574-4282-ace3-94bc730bba5d",
+      "name": "researcher",
+      "role": "researcher",
+      "joinedAt": 1786776067357,
+      "status": "idle"
+    },
+    {
+      "id": "3a63a196-7c6e-471f-857b-f73f0695b636",
+      "name": "engineer",
+      "role": "engineer",
+      "joinedAt": 1786776067379,
+      "status": "idle"
+    },
+    {
+      "id": "d00a02de-e89e-41fa-a8a7-cd02b1358339",
+      "name": "reviewer",
+      "role": "reviewer",
+      "joinedAt": 1786776067400,
+      "status": "idle"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "项目现状盘点",
+      "description": "全面盘点 D:\\project\\academic_forum 项目现状：1) 功能模块清单（src/app 路由分组、页面、组件目录、API 路由、server actions）2) 技术栈与依赖分析（package.json）3) 数据模型概览（supabase/*.sql 迁移 → 核心表、RLS 模式）4) 关键文档摘要（README.md、project_rules.md、docs/*.md）5) 规模统计（src 文件数、代码量、SQL 迁移数、API 路由数）。输出结构化的现状盘点报告。",
+      "status": "completed",
+      "assignee": "researcher",
+      "dependencies": [],
+      "createdAt": 1786776140815,
+      "updatedAt": 1786776332392,
+      "output": "完成项目现状盘点。核心结论：Scholarly 是 Next.js 15(App Router)+Supabase+TipTap/Novel 的学术论坛，src 下 292 文件(~41.8k 行/2.14MB)，50 个 page.tsx、23 个 route 处理器、36 个 SQL 迁移。路由分组：(auth)4页、(protected)29页、(admin)11页、公开6页。src/actions 仅 user.ts，服务端能力主要分散在 co-located actions.ts、lib/admin/*、lib/supabase/* 与 /api 路由。数据模型约 30+ 表，其中 lab_rooms/lab_members/lab_sessions 等 7 张表被代码引用但不在迁移文件中（疑似手工建表漂移）。发现 12 个疑似未用依赖。详见发给队长的完整报告。"
+    },
+    {
+      "id": "t2",
+      "subject": "代码质量与架构审查",
+      "description": "审查 D:\\project\\academic_forum 的 src 代码质量与架构问题。检查项：anti-patterns、重复代码、any 类型滥用、错误处理缺失、TODO/FIXME/console.log 残留、API 路由与 server actions 的鉴权与输入校验、安全隐患（RLS 绕过、注入、文件上传、密钥暴露）、组件结构合理性、状态管理。输出按严重程度分级（高/中/低）的问题清单，每条附文件路径与具体说明。",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [],
+      "createdAt": 1786776140821,
+      "updatedAt": 1786776498242,
+      "output": "完成 src 代码质量与架构审查（约292文件，重点读 API 路由、server actions、RLS migrations、hooks/editor）。发现 6 个高危问题：(1) api/duel/analyze 无鉴权直调 deepseek-reasoner，可被匿名烧钱；(2) 积分 RPC add_user_credits/deduct_user_credits/claim_monthly_bonus 为 SECURITY DEFINER 且无 auth.uid() 校验、未 REVOKE，可任意刷积分；(3) duel_bets RLS 只校验 spectator_id，可绕过 API 直接 INSERT 押注赢家，结算触发器按 2 倍给信誉分=凭空铸造；(4) 公开注册接口用 service_role 且自动 email_confirm+is_verified，未用 zod schema、无速率限制；(5) lib/admin/actions.ts 的管理 server actions 均不调用 requireAdmin()，越权完全依赖 RLS 兜底（且 user_credits 无 UPDATE 策略致 adjustCredits 对所有人失效）；(6) 私信 rich_text 经 dangerouslySetInnerHTML 无 DOMPurify 清洗=存储型 XSS。另有 ~19 项中/低问题：下载无 Supabase 回退、积分预检与扣费非原子、batch-embed 硬编码密钥、recommendations 公开触发付费向量、cron 未配置密钥时公开、上传仅校验 MIME 且允许 SVG/HTML、peer_reviews 全局 UNIQUE、下注 read-modify-write、敏感日志、大量重复代码(JSONContentNode×3/getFileCategory/createAdminClient/deletePost 等)、src/types 无 Database 类型致 any 泛滥、@ts-ignore 残留、revalidatePath 字面 [id] 无效、console.log 约268处等。完整分级清单已发 captain。"
+    },
+    {
+      "id": "t3",
+      "subject": "构建、性能与部署审查",
+      "description": "检查 D:\\project\\academic_forum 的构建健康度与性能/部署问题：1) package.json 脚本、next.config.ts、eslint.config.mjs 配置合理性 2) 运行 npm run lint 检查 lint 错误 3) 根目录杂项文件清理评估（debug-novel.js/.mjs、explore.md、build-output.txt、admin_system_status.md.resolved、launch-scholarly-duel.md 等）4) supabase 迁移中的性能隐患（缺索引、N+1 查询、realtime 过度订阅）5) docs/deployment_guide.md 与项目现状的一致性 6) .env.local 密钥/变量使用检查（注意：只报告变量名，不要泄露密钥值）。输出问题清单与建议。",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [],
+      "createdAt": 1786776140830,
+      "updatedAt": 1786776668205,
+      "output": "完成 t3 构建/性能/部署审查。构建可通过（25 静态页，lint 0 error 1 warning），但发现：eslint 规则过松（no-explicit-any/ban-ts-comment/no-unused-vars 全 off，导致 t2 的 any/@ts-ignore 全被放行）；构建警告 @supabase/realtime-js & supabase-js 在 Edge Runtime 用 Node API process.versions/process.version（经 middleware 引入），在 Cloudflare Pages 需 nodejs_compat；首屏 JS 偏大（/posts/new、/posts/[id]/edit 743kB，/duels/[id] 767kB，/posts/[id] 653kB，middleware 77.3kB）；realtime 过度订阅（useMessages 对 messages UPDATE、message_attachments INSERT 无 filter 全量订阅）；部署文档与代码不一致（package.json 无 @cloudflare/next-on-pages 依赖、无 pages:build 脚本、cron 路由注释引用不存在的 vercel.json、keep-alive workflow 硬编码 pages.dev 域名）；缺 3 个环境变量（NEXT_PUBLIC_SITE_URL、CRON_SECRET、ADMIN_SECRET，均被代码引用但不在 .env.local）；根目录 7 个遗留文件待清理/归档。完整六部分报告已发 captain（仅变量名，无敏感值）。"
+    },
+    {
+      "id": "t4",
+      "subject": "综合优化方案报告",
+      "description": "汇总前三项任务（项目现状盘点、代码质量与架构审查、构建/性能/部署审查）的结论，输出一份完整的、按优先级排序的优化方案报告：P0 立即修复（安全/数据风险）、P1 短期（重要质量与性能改进）、P2 中期（架构与体验优化）、P3 长期（演进方向）。每项含：问题描述、影响、建议动作、工作量估计。将报告写入 D:\\project\\academic_forum\\docs\\optimization-plan.md。",
+      "status": "cancelled",
+      "assignee": "reviewer",
+      "dependencies": [],
+      "createdAt": 1786776140836,
+      "updatedAt": 1786776145735,
+      "output": "重建为带依赖关系的版本（依赖 t1、t2、t3）。"
+    },
+    {
+      "id": "t5",
+      "subject": "综合优化方案报告",
+      "description": "汇总前三项任务（项目现状盘点 t1、代码质量与架构审查 t2、构建/性能/部署审查 t3）的结论，输出一份完整的、按优先级排序的优化方案报告：P0 立即修复（安全/数据风险）、P1 短期（重要质量与性能改进）、P2 中期（架构与体验优化）、P3 长期（演进方向）。每项含：问题描述、影响、建议动作、工作量估计。将报告写入 D:\\project\\academic_forum\\docs\\optimization-plan.md。",
+      "status": "completed",
+      "assignee": "reviewer",
+      "dependencies": [
+        "t1",
+        "t2",
+        "t3"
+      ],
+      "createdAt": 1786776147525,
+      "updatedAt": 1786776853996,
+      "output": "已汇总 t1/t2/t3 三项报告，写入 D:\\project\\academic_forum\\docs\\optimization-plan.md（中文，P0-P3 四级，每项含问题/影响/建议动作/工作量估计）。交叉点已核对合并（XSS↔CSP、积分刷取↔缺失密钥、any/@ts-ignore↔eslint 全关、recommendations 未鉴权↔付费 embedding、middleware 死代码↔体积 77kB、迁移漂移↔部署一致性等）。P0 共 7 项立即修复（安全/数据风险）：①admin/actions.ts 全部 action 无 requireAdmin（越权）；②积分 RPC SECURITY DEFINER 无 auth.uid() 校验（刷积分）；③api/duel/analyze 无鉴权直调 deepseek-reasoner（匿名烧钱）；④私信 dangerouslySetInnerHTML 无 DOMPurify + SVG/HTML 可上传（存储型 XSS）；⑤duel_bets RLS 只校验 spectator_id + 触发器 +amount*2（铸造信誉分）；⑥register 路由批量注册已验证账号；⑦CRON_SECRET/ADMIN_SECRET fail-open 硬编码 + recommendations 未鉴权触发付费。P1 11 项、P2 9 项、P3 7 项。P0 合计约 4-6 工作日。"
+    }
+  ],
+  "taskSeq": 5
+}

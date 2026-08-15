@@ -1,13 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { logAdminAction } from "./permissions";
+import { logAdminAction, requireAdmin } from "./permissions";
 import { revalidatePath } from "next/cache";
 
 /**
  * 封禁用户
  */
 export async function banUser(userId: string, reason: string) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -43,6 +44,7 @@ export async function banUser(userId: string, reason: string) {
  * 解封用户
  */
 export async function unbanUser(userId: string) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -81,6 +83,7 @@ export async function muteUser(
   durationHours: number,
   reason: string
 ) {
+  await requireAdmin("admin");
   const supabase = await createClient();
   const muteUntil = new Date();
   muteUntil.setHours(muteUntil.getHours() + durationHours);
@@ -118,6 +121,7 @@ export async function muteUser(
  * 解除禁言
  */
 export async function unmuteUser(userId: string) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -152,10 +156,8 @@ export async function unmuteUser(userId: string) {
  * 隐藏帖子
  */
 export async function hidePost(postId: string, reason: string) {
+  const admin = await requireAdmin("admin");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // 先获取作者信息和标题
   const { data: post } = await supabase
@@ -169,7 +171,7 @@ export async function hidePost(postId: string, reason: string) {
     .update({
       is_hidden: true,
       hidden_reason: reason,
-      hidden_by: user?.id,
+      hidden_by: admin.id,
     })
     .eq("id", postId);
 
@@ -201,6 +203,7 @@ export async function hidePost(postId: string, reason: string) {
  * 恢复帖子
  */
 export async function unhidePost(postId: string) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -228,6 +231,7 @@ export async function unhidePost(postId: string) {
  * 置顶/取消置顶帖子
  */
 export async function togglePinPost(postId: string, isPinned: boolean) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -251,6 +255,7 @@ export async function togglePinPost(postId: string, isPinned: boolean) {
  * 锁定/解锁评论
  */
 export async function toggleLockPost(postId: string, isLocked: boolean) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -278,6 +283,7 @@ export async function adjustCredits(
   amount: number,
   reason: string
 ) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   // 获取当前余额
@@ -336,10 +342,8 @@ export async function handleReport(
     handlerNote?: string;
   }
 ) {
+  const admin = await requireAdmin("admin");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // 先获取举报详情，用于联动操作
   const { data: report } = await supabase
@@ -357,7 +361,7 @@ export async function handleReport(
       status: action.status,
       action_taken: action.actionTaken,
       handler_note: action.handlerNote,
-      handled_by: user?.id,
+      handled_by: admin.id,
       handled_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -380,7 +384,7 @@ export async function handleReport(
               .update({
                 is_hidden: true,
                 hidden_reason: actionNote,
-                hidden_by: user?.id,
+                hidden_by: admin.id,
               })
               .eq("id", report.target_id);
 
@@ -424,7 +428,7 @@ export async function handleReport(
               .update({
                 is_hidden: true,
                 hidden_reason: `[已删除] ${actionNote}`,
-                hidden_by: user?.id,
+                hidden_by: admin.id,
               })
               .eq("id", report.target_id);
 
@@ -628,6 +632,7 @@ async function getTargetAuthorId(
  * 调整用户 VIP 等级
  */
 export async function adjustVipLevel(userId: string, newLevel: number) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   if (newLevel < 1 || newLevel > 6) throw new Error("VIP 等级必须在 1-6 之间");
@@ -663,6 +668,7 @@ export async function adjustVipLevel(userId: string, newLevel: number) {
  * 删除用户评论
  */
 export async function adminDeleteComment(commentId: string, postId: string) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   // 获取评论作者信息以便记录日志和发通知
@@ -760,7 +766,6 @@ function createAdminClient() {
  */
 export async function resetUserPassword(userId: string, newPassword: string) {
   // 验证调用者是否有管理员权限
-  const { requireAdmin } = await import("./permissions");
   await requireAdmin("admin");
 
   const adminAuthClient = createAdminClient();
@@ -788,6 +793,7 @@ export async function updateUserBadges(
   specialTitle: string | null,
   badges: string[]
 ) {
+  await requireAdmin("admin");
   const supabase = await createClient();
 
   const { error } = await supabase
