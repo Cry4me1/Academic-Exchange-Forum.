@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { logAdminAction, requireAdmin } from "./permissions";
 import { revalidatePath } from "next/cache";
 
@@ -339,10 +340,11 @@ export async function executeBatchGrant(params: {
   if (batchError) throw new Error(`创建批量发放记录失败: ${batchError.message}`);
 
   try {
-    // 逐个用户发放积分（使用 RPC 保证原子性）
+    // 逐个用户发放积分（add_user_credits 仅 service_role 可调用，使用 admin client）
+    const adminClient = createAdminClient();
     for (const userId of targetUserIds) {
       const txType = params.grantType === "event_bonus" ? "event_bonus" : "admin_adjustment";
-      const { error: rpcError } = await supabase.rpc("add_user_credits", {
+      const { error: rpcError } = await adminClient.rpc("add_user_credits", {
         p_user_id: userId,
         p_amount: params.amount,
         p_type: txType,
@@ -495,8 +497,9 @@ export async function updateVipLevelConfig(
 
   if (error) throw new Error(`更新 VIP 配置失败: ${error.message}`);
 
-  // 重新同步所有用户的 VIP 等级（应用新的称号/阈值）
-  await supabase.rpc("sync_all_vip_titles" as string);
+  // 重新同步所有用户的 VIP 等级（sync_all_vip_titles 仅 service_role 可调用）
+  const adminClient = createAdminClient();
+  await adminClient.rpc("sync_all_vip_titles");
 
   await logAdminAction({
     actionType: "vip_config_updated",

@@ -1,16 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
-
-// ============================================
-// 积分定价方案
-// ============================================
-const PRICING_PLANS: Record<string, { credits: number; bonus: number; priceYuan: number }> = {
-    basic: { credits: 100, bonus: 0, priceYuan: 10 },
-    pro: { credits: 500, bonus: 50, priceYuan: 50 },
-    scholar: { credits: 1000, bonus: 200, priceYuan: 100 },
-};
 
 // ============================================
 // 查询当前用户积分余额
@@ -25,7 +15,7 @@ export async function getMyCredits() {
 
     // [新增] 每次获取用户积分时，触发一次“当月奖励检查”
     // 这个操作是懒加载的，RPC 内部会判断如果当月已领取就不再操作
-    await supabase.rpc("claim_monthly_bonus", { p_user_id: user.id });
+    await supabase.rpc("claim_monthly_bonus");
 
     const { data, error } = await supabase
         .from("user_credits")
@@ -82,48 +72,13 @@ export async function getMyTransactions(limit = 20, offset = 0) {
 }
 
 // ============================================
-// 购买积分 (模拟支付成功后的积分发放)
+// 购买积分（支付渠道尚未接入，fail-closed）
 // ============================================
-export async function purchaseCredits(planId: string) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        return { error: "请先登录" };
-    }
-
-    const plan = PRICING_PLANS[planId];
-    if (!plan) {
-        return { error: "无效的套餐" };
-    }
-
-    const totalCredits = plan.credits + plan.bonus;
-    const description = `购买${planId === "basic" ? "基础包" : planId === "pro" ? "进阶包" : "学术探索包"} (¥${plan.priceYuan})`;
-
-    // 调用 RPC 增加积分
-    const { data, error } = await supabase.rpc("add_user_credits", {
-        p_user_id: user.id,
-        p_amount: totalCredits,
-        p_type: "purchase",
-        p_description: description,
-    });
-
-    if (error) {
-        console.error("购买积分失败:", error);
-        return { error: "购买失败，请稍后重试" };
-    }
-
-    const result = data as { success: boolean; new_balance: number };
-
-    if (!result.success) {
-        return { error: "购买失败" };
-    }
-
-    revalidatePath("/vip");
-    revalidatePath("/dashboard");
-
-    return {
-        success: true,
-        newBalance: result.new_balance,
-    };
+export async function purchaseCredits(
+    _planId: string
+): Promise<{ error: string; newBalance?: number }> {
+    // 支付渠道未接入（CreditRechargeDialog 的购买按钮为 disabled）。
+    // 积分发放只能由支付回调 Webhook 以 service_role 调用 add_user_credits 完成，
+    // 禁止用户会话直接铸造积分（P0-2 修复后 add_user_credits 仅 service_role 可调用）。
+    return { error: "支付功能即将上线，暂不支持直接充值" };
 }

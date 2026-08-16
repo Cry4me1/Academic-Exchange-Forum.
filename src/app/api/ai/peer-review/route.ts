@@ -120,19 +120,12 @@ export async function POST(req: Request): Promise<Response> {
         .eq("user_id", user.id)
         .single();
 
-    if (!creditData) {
-        console.log("[AI Peer Review] 老用户无积分记录，自动补发");
-        await supabase.rpc("add_user_credits", {
-            p_user_id: user.id,
-            p_amount: 100,
-            p_type: "signup_bonus",
-            p_description: "老用户积分系统初始化奖励",
-        });
-    } else if (creditData.balance < MIN_REVIEW_CREDIT_COST) {
+    // 无积分记录或余额不足时拒绝（注册奖励由触发器发放，老用户补发已由迁移处理）
+    if (!creditData || creditData.balance < MIN_REVIEW_CREDIT_COST) {
         return new Response(
             JSON.stringify({
                 error: "INSUFFICIENT_CREDITS",
-                balance: creditData.balance,
+                balance: creditData?.balance ?? 0,
                 required: MIN_REVIEW_CREDIT_COST,
             }),
             {

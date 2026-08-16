@@ -17,87 +17,39 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
         }
 
-        // 1. 获取用户信息和信誉分
-        const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("reputation_score")
-            .eq("id", session.user.id)
-            .single();
+        // 下注逻辑已收口到 SECURITY DEFINER RPC：
+        // 原子「校验（决斗状态/选手自押/押注对象/重复下注/余额）→ 扣分 → 插单」，
+        // 客户端无法再绕过扣款直接 INSERT duel_bets。
+        const { data, error } = await supabase.rpc("place_duel_bet", {
+            p_duel_id: duelId,
+            p_target_id: targetId,
+            p_amount: amount,
+        });
 
-        if (profileError || !profile) {
-            return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+        if (error) {
+            console.error("Place bet RPC error:", error);
+            return NextResponse.json({ error: "下注失败，请稍后重试" }, { status: 500 });
         }
 
-        if (profile.reputation_score < amount) {
-            return NextResponse.json({ error: "信誉分不足" }, { status: 400 });
+        const result = data as { success: boolean; bet_id?: string; error?: string };
+
+        if (!result.success) {
+            const messageMap: Record<string, string> = {
+                INVALID_AMOUNT: "下注金额无效",
+                DUEL_NOT_FOUND: "决斗不存在",
+                DUEL_NOT_ACTIVE: "只能在进行中的决斗下注",
+                PARTICIPANT_CANNOT_BET: "决斗选手不能下注",
+                INVALID_TARGET: "押注对象无效",
+                ALREADY_BET: "您已对本场决斗进行过下注",
+                INSUFFICIENT_REPUTATION: "信誉分不足",
+            };
+            return NextResponse.json(
+                { error: messageMap[result.error ?? ""] ?? "下注失败" },
+                { status: 400 }
+            );
         }
 
-        // 2. 获取决斗状态（必须是 active）
-        const { data: duel, error: duelError } = await supabase
-            .from("duels")
-            .select("status, challenger_id, opponent_id")
-            .eq("id", duelId)
-            .single();
-
-        if (duelError || !duel) {
-            return NextResponse.json({ error: "Duel not found" }, { status: 404 });
-        }
-
-        if (duel.status !== "active") {
-            return NextResponse.json({ error: "只能在进行中的决斗下注" }, { status: 400 });
-        }
-
-        if (session.user.id === duel.challenger_id || session.user.id === duel.opponent_id) {
-            return NextResponse.json({ error: "决斗选手不能下注" }, { status: 400 });
-        }
-
-        // 检查是否已经下注过（每个用户一场只能下注一次）
-        const { data: existingBet } = await supabase
-            .from("duel_bets")
-            .select("id")
-            .eq("duel_id", duelId)
-            .eq("spectator_id", session.user.id)
-            .single();
-
-        if (existingBet) {
-            return NextResponse.json({ error: "您已对本场决斗进行过下注" }, { status: 400 });
-        }
-
-        // 3. 扣除信誉分并插入下注记录
-        // 为了确保一致性，理想情况下应使用 RPC，这里我们先扣除再插入
-        const { error: deductError } = await supabase
-            .from("profiles")
-            .update({ reputation_score: profile.reputation_score - amount })
-            .eq("id", session.user.id);
-
-        if (deductError) {
-            return NextResponse.json({ error: "扣除信誉分失败" }, { status: 500 });
-        }
-
-        const { data: bet, error: betError } = await supabase
-            .from("duel_bets")
-            .insert({
-                duel_id: duelId,
-                spectator_id: session.user.id,
-                target_id: targetId,
-                amount: amount,
-                status: "pending"
-            })
-            .select()
-            .single();
-
-        if (betError) {
-            // 回滚（实际生产建议用 RPC/事务）
-            await supabase
-                .from("profiles")
-                .update({ reputation_score: profile.reputation_score })
-                .eq("id", session.user.id);
-                
-            return NextResponse.json({ error: "下注记录创建失败" }, { status: 500 });
-        }
-
-        return NextResponse.json({ success: true, bet });
-
+        return NextResponse.json({ success: true, bet_id: result.bet_id });
     } catch (error) {
         console.error("Bet error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
