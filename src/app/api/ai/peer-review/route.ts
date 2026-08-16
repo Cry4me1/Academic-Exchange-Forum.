@@ -163,14 +163,15 @@ export async function POST(req: Request): Promise<Response> {
 
         const userId = user.id;
 
-        // 使用 deepseek-reasoner 推理模型
+        // 使用 deepseek-v4-flash 思考模式（评审）
         const result = streamText({
-            model: deepseek("deepseek-reasoner"),
+            model: deepseek("deepseek-v4-flash"),
+            providerOptions: { deepseek: { thinking: { type: "enabled" } } },
             messages: [
                 { role: "system", content: REVIEWER_SYSTEM_PROMPT },
                 { role: "user", content: userMessage },
             ],
-            // deepseek-reasoner 不支持 temperature 参数
+            // 思考模式不支持 temperature 参数
             onFinish: async ({ usage }) => {
                 const totalTokens =
                     usage?.totalTokens ||

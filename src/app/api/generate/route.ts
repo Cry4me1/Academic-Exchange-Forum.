@@ -298,7 +298,8 @@ export async function POST(req: Request): Promise<Response> {
         const userId = user.id;
 
         const result = streamText({
-            model: deepseek("deepseek-chat"),
+            model: deepseek("deepseek-v4-flash"),
+            providerOptions: { deepseek: { thinking: { type: "disabled" } } },
             messages,
             temperature: 0.7,
             onFinish: async ({ usage }) => {

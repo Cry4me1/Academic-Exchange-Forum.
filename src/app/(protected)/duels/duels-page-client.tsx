@@ -389,6 +389,10 @@ export default function DuelsPageClient({
                         <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
                             <Plus className="h-4 w-4" />
                             发起决斗
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/10 text-[11px] font-medium text-yellow-400">
+                                <Zap className="h-3 w-3" />
+                                100 积分
+                            </span>
                         </Button>
                     </div>
                 </div>

@@ -514,7 +514,8 @@ export default function DuelDetailClient({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    content: contentText,
+                    duelId: currentDuel.id,
+                    roundId: round.id,
                     topic: currentDuel.topic,
                     description: currentDuel.description || "",
                     position: currentUser.id === currentDuel.challenger_id

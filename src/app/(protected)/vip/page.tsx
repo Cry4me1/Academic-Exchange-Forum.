@@ -14,6 +14,7 @@ import {
     Coins,
     History,
     Sparkles,
+    Swords,
     TrendingUp,
     Zap
 } from "lucide-react";
@@ -26,6 +27,7 @@ const transactionTypeLabels: Record<string, { label: string; icon: typeof Coins 
     purchase: { label: "积分购买", icon: Coins },
     ask_ai_usage: { label: "AI 调用", icon: Zap },
     admin_adjustment: { label: "管理员调整", icon: TrendingUp },
+    duel_fee: { label: "学术决斗", icon: Swords },
 };
 
 // ====== 动画参数 ======
@@ -54,6 +56,7 @@ interface Transaction {
         output_tokens?: number;
         total_tokens?: number;
         credit_cost?: number;
+        duel_id?: string;
     } | null;
     created_at: string;
 }
@@ -361,7 +364,10 @@ export default function VipPage() {
                             <CardContent className="p-0">
                                 <div className="divide-y divide-zinc-800/60">
                                     {transactions.map((tx: Transaction, i: number) => {
-                                        const meta = transactionTypeLabels[tx.type] || { label: tx.type, icon: Coins };
+                                        const isDuelFee = tx.type === "ask_ai_usage" && !!tx.metadata?.duel_id;
+                                        const meta = isDuelFee
+                                            ? transactionTypeLabels.duel_fee
+                                            : transactionTypeLabels[tx.type] || { label: tx.type, icon: Coins };
                                         const IconComp = meta.icon;
                                         const isPositive = tx.amount > 0;
                                         return (
@@ -380,7 +386,7 @@ export default function VipPage() {
                                                     <p className="text-xs text-zinc-500 mt-0.5">
                                                         {meta.label} · {new Date(tx.created_at).toLocaleDateString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                                     </p>
-                                                    {tx.type === "ask_ai_usage" && tx.metadata?.total_tokens && (
+                                                    {!isDuelFee && tx.type === "ask_ai_usage" && tx.metadata?.total_tokens && (
                                                         <p className="text-[10px] text-zinc-600 mt-0.5">
                                                             {tx.metadata.total_tokens} tokens
                                                         </p>

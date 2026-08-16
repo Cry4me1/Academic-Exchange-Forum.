@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -23,8 +23,11 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Search, Swords, UserPlus } from "lucide-react";
+import { Coins, Loader2, Search, Swords, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+// 发起决斗的一次性费用（积分），覆盖整场裁判 AI 开销（方案 C）
+const DUEL_CREATION_FEE = 100;
 
 interface Profile {
     id: string;
@@ -59,8 +62,36 @@ export function CreateDuelDialog({
     const [selectedOpponent, setSelectedOpponent] = useState<Profile | null>(null);
     const [isSearching, setIsSearching] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+    const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
     const supabase = createClient();
+
+    // 打开对话框时获取当前用户积分余额（用于展示费用提示）
+    useEffect(() => {
+        if (!open || !currentUser?.id) {
+            setCreditBalance(null);
+            return;
+        }
+
+        let cancelled = false;
+        (async () => {
+            const { data, error } = await supabase
+                .from("user_credits")
+                .select("balance")
+                .eq("user_id", currentUser.id)
+                .single();
+
+            if (!cancelled) {
+                setCreditBalance(error || !data ? 0 : data.balance);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [open, currentUser?.id]);
+
+    const insufficientCredits = creditBalance !== null && creditBalance < DUEL_CREATION_FEE;
 
     // 搜索用户
     const handleSearch = async () => {
@@ -104,34 +135,40 @@ export function CreateDuelDialog({
 
         setIsCreating(true);
         try {
-            // 创建决斗
-            const { data: duel, error: duelError } = await supabase
-                .from("duels")
-                .insert({
-                    topic: topic.trim(),
-                    description: description.trim() || null,
-                    challenger_id: currentUser.id,
-                    challenger_position: position,
-                    opponent_id: selectedOpponent.id, // Add this to ensure RLS visibility
-                    opponent_position: position === "正方" ? "反方" : "正方",
-                    max_rounds: parseInt(maxRounds),
-                    current_turn_user_id: currentUser.id, // 挑战者先手
-                    post_id: postId || null,
-                })
-                .select("id")
-                .single();
+            // 原子创建决斗 + 邀请 + 扣发起费（SECURITY DEFINER RPC）
+            const { data, error: rpcError } = await supabase.rpc(
+                "create_duel_with_fee",
+                {
+                    p_topic: topic.trim(),
+                    p_description: description.trim() || null,
+                    p_position: position,
+                    p_max_rounds: parseInt(maxRounds),
+                    p_opponent_id: selectedOpponent.id,
+                    p_post_id: postId || null,
+                    p_fee: DUEL_CREATION_FEE,
+                }
+            );
 
-            if (duelError) throw duelError;
+            if (rpcError) throw rpcError;
 
-            // 创建邀请
-            const { error: inviteError } = await supabase
-                .from("duel_invitations")
-                .insert({
-                    duel_id: duel.id,
-                    invitee_id: selectedOpponent.id,
-                });
+            const result = data as {
+                success: boolean;
+                duel_id?: string;
+                fee?: number;
+                error?: string;
+            };
 
-            if (inviteError) throw inviteError;
+            if (!result.success) {
+                const errorMessages: Record<string, string> = {
+                    INVALID_TOPIC: "请输入辩题",
+                    INVALID_OPPONENT: "请选择对手",
+                    INVALID_MAX_ROUNDS: "回合数无效",
+                    INVALID_POSITION: "立场无效",
+                    OPPONENT_NOT_FOUND: "对手不存在",
+                    INSUFFICIENT_CREDITS: "积分不足，无法发起决斗",
+                };
+                throw new Error(errorMessages[result.error ?? ""] ?? "发起决斗失败");
+            }
 
             toast.success("决斗邀请已发送！");
             onOpenChange(false);
@@ -326,6 +363,25 @@ export function CreateDuelDialog({
                         发起决斗
                     </Button>
                 </DialogFooter>
+
+                {/* 费用提示 */}
+                <div className="flex items-center justify-between px-6 pb-4 -mt-2">
+                    <div className="flex items-center gap-2 text-sm">
+                        <Coins className="h-4 w-4 text-yellow-500" />
+                        <span className="text-muted-foreground">
+                            发起决斗消耗
+                            <span className="font-semibold text-foreground mx-1">
+                                {DUEL_CREATION_FEE}
+                            </span>
+                            积分（覆盖裁判 AI 成本）
+                        </span>
+                    </div>
+                    {creditBalance !== null && (
+                        <span className={`text-xs ${insufficientCredits ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                            {insufficientCredits ? "积分不足" : `余额 ${creditBalance}`}
+                        </span>
+                    )}
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -1,4 +1,5 @@
 import { createDeepSeek } from "@ai-sdk/deepseek";
+import { createServerClient } from "@supabase/ssr";
 import { generateText } from "ai";
 
 export const runtime = "edge";
@@ -6,6 +7,32 @@ export const runtime = "edge";
 const deepseek = createDeepSeek({
     apiKey: process.env.DEEPSEEK_API_KEY,
 });
+
+// ====== 裁判 AI 成本已由「发起决斗时一次性预付」承担（方案 C）======
+// 选手提交论点时不再扣积分；此处仅做鉴权 + 回合归属校验 + 防滥用限流（Vercel WAF）。
+const MAX_CONTENT_LENGTH = 8000;
+
+// Edge 兼容的 Supabase Client（从 request cookies 读取）
+function createSupabaseEdgeClient(req: Request) {
+    return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    const cookieHeader = req.headers.get("cookie") || "";
+                    return cookieHeader.split(";").map((c) => {
+                        const [name, ...rest] = c.trim().split("=");
+                        return { name, value: rest.join("=") };
+                    }).filter((c) => c.name);
+                },
+                setAll() {
+                    // Edge 函数中不设置 cookie
+                },
+            },
+        }
+    );
+}
 
 // 评分结果类型
 interface DuelScore {
@@ -131,17 +158,32 @@ export async function POST(req: Request): Promise<Response> {
         );
     }
 
+    // ====== 鉴权 ======
+    const supabase = createSupabaseEdgeClient(req);
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return new Response(
+            JSON.stringify({ error: "请先登录" }),
+            { status: 401, headers: { "Content-Type": "application/json" } }
+        );
+    }
+
     try {
         const body = await req.json();
         const {
-            content,
+            duelId,
+            roundId,
             topic,
             description,
             position,
             previousRounds,
             postContent,
         } = body as {
-            content: string;
+            duelId: string;
+            roundId: string;
             topic: string;
             description?: string;
             position?: string;
@@ -149,9 +191,45 @@ export async function POST(req: Request): Promise<Response> {
             postContent?: string | null;
         };
 
-        if (!content || !topic) {
+        if (!duelId || !roundId || !topic) {
             return new Response(
-                JSON.stringify({ error: "缺少必要参数: content, topic" }),
+                JSON.stringify({ error: "缺少必要参数: duelId, roundId, topic" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // ====== 回合归属校验：只能分析本人提交的回合 ======
+        const { data: round, error: roundError } = await supabase
+            .from("duel_rounds")
+            .select("id, duel_id, author_id, content_text")
+            .eq("id", roundId)
+            .eq("duel_id", duelId)
+            .single();
+
+        if (roundError || !round) {
+            return new Response(
+                JSON.stringify({ error: "回合不存在" }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        if (round.author_id !== user.id) {
+            return new Response(
+                JSON.stringify({ error: "只能分析本人提交的论点" }),
+                { status: 403, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        const content = round.content_text || "";
+        if (!content) {
+            return new Response(
+                JSON.stringify({ error: "论点内容为空" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+        if (content.length > MAX_CONTENT_LENGTH) {
+            return new Response(
+                JSON.stringify({ error: `论点内容过长（上限 ${MAX_CONTENT_LENGTH} 字符）` }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             );
         }
@@ -188,16 +266,17 @@ ${content}
 请直接输出 JSON 对象，不要有任何额外文字。
 `;
 
-        console.log("[Duel Analyze] 使用 deepseek-reasoner 思考模式进行评分");
+        console.log("[Duel Analyze] 使用 deepseek-v4-flash 思考模式进行评分");
 
-        // 使用 deepseek-reasoner（thinking 模式），不支持 streamObject，改用 generateText
+        // 思考模式不支持 temperature 参数，改用 generateText
+        // 裁判成本已由发起决斗时一次性预付（方案 C），此处不再扣选手积分
         const result = await generateText({
-            model: deepseek("deepseek-reasoner"),
+            model: deepseek("deepseek-v4-flash"),
+            providerOptions: { deepseek: { thinking: { type: "enabled" } } },
             messages: [
                 { role: "system", content: DUEL_REFEREE_PROMPT },
                 { role: "user", content: userPrompt },
             ],
-            // deepseek-reasoner 不支持 temperature 参数
         });
 
         const responseText = result.text;
