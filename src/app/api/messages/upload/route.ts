@@ -9,8 +9,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 // 允许的文件类型（扩展列表，支持更多类型）
 const ALLOWED_TYPES: Record<string, string[]> = {
-    // 图片
-    image: ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"],
+    // 图片（禁止 SVG，可内嵌脚本）
+    image: ["image/jpeg", "image/png", "image/gif", "image/webp"],
     // 视频
     video: ["video/mp4", "video/webm", "video/ogg", "video/quicktime"],
     // 文档
@@ -33,13 +33,10 @@ const ALLOWED_TYPES: Record<string, string[]> = {
         "application/x-7z-compressed",
         "application/gzip",
     ],
-    // 代码
+    // 代码（仅允许安全的数据格式，禁止 HTML/JS/XML）
     code: [
         "application/json",
-        "application/javascript",
-        "text/html",
         "text/css",
-        "application/xml",
     ],
 };
 

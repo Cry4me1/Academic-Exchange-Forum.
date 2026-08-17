@@ -124,10 +124,10 @@ export function getRemainingTime(expiresAt: string): string {
     return `${minutes}分钟后过期`;
 }
 
-// 允许的文件类型
+// 允许的文件类型（禁止 SVG/HTML/JS/XML 等可执行类型）
 export const ALLOWED_FILE_TYPES = [
     // 图片
-    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+    "image/jpeg", "image/png", "image/gif", "image/webp",
     // 视频
     "video/mp4", "video/webm", "video/ogg", "video/quicktime",
     // 文档
@@ -141,8 +141,8 @@ export const ALLOWED_FILE_TYPES = [
     "text/plain", "text/markdown", "text/csv",
     // 压缩包
     "application/zip", "application/x-rar-compressed", "application/x-7z-compressed", "application/gzip",
-    // 代码
-    "application/json", "application/javascript", "text/html", "text/css", "application/xml",
+    // 代码（仅安全数据格式）
+    "application/json", "text/css",
 ];
 
 // 文件大小限制

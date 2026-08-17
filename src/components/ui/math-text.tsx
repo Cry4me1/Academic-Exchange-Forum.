@@ -79,6 +79,15 @@ export function parseMathText(text: string): MathSegment[] {
     return segments;
 }
 
+function escapeHtml(str: string): string {
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function renderKatexToString(mathStr: string, displayMode: boolean): string {
     try {
         return katex.renderToString(mathStr, {
@@ -87,7 +96,9 @@ function renderKatexToString(mathStr: string, displayMode: boolean): string {
             output: "html",
         });
     } catch {
-        return displayMode ? `\\[${mathStr}\\]` : `\\(${mathStr}\\)`;
+        // HTML 转义防止 XSS：畸形 LaTeX 可能包含恶意 HTML 标签
+        const safe = escapeHtml(mathStr);
+        return displayMode ? `\\[${safe}\\]` : `\\(${safe}\\)`;
     }
 }
 
@@ -119,7 +130,7 @@ export function MathText({
                     return (
                         <span
                             key={index}
-                            className="block my-1 text-center overflow-x-auto select-none"
+                            className="block my-1 text-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden select-none"
                             dangerouslySetInnerHTML={{ __html: html }}
                         />
                     );

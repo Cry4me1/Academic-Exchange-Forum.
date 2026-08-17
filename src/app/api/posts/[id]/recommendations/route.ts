@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient } from "@/lib/supabase/server";
-import { generatePostEmbedding } from "@/lib/post-embed";
-
 export const dynamic = "force-dynamic"; // ⚡ 强制动态渲染，打碎 Next.js 在服务端的强缓存
 
 export async function GET(
@@ -26,26 +24,11 @@ export async function GET(
             return NextResponse.json([]);
         }
 
-        let post = initialPost;
+        const post = initialPost;
 
-        // 🌟 向量自愈：若发现当前帖子无向量数据，实时触发静默补全生成向量
+        // 如果帖子无向量数据，直接降级到标签匹配推荐
         if (!post.embedding) {
-            console.log(`[recommendations-api] 帖子 ${id} 无向量数据，启动实时静默补全...`);
-            const embedRes = await generatePostEmbedding(id);
-            if (embedRes.success) {
-                // 重新拉取以加载最新的 embedding
-                const { data: updatedPost } = await supabase
-                    .from("posts")
-                    .select("id, title, embedding, tags")
-                    .eq("id", id)
-                    .single();
-                if (updatedPost && updatedPost.embedding) {
-                    post = updatedPost;
-                    console.log(`[recommendations-api] 帖子 ${id} 向量静默自愈成功，已加载 1024 维 Embedding。`);
-                }
-            } else {
-                console.error(`[recommendations-api] 帖子 ${id} 向量静默自愈失败:`, embedRes.error);
-            }
+            console.log(`[recommendations-api] 帖子 ${id} 无向量数据，降级至标签匹配推荐`);
         }
 
         const currentTags = post.tags || [];

@@ -8,6 +8,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import DOMPurify from "isomorphic-dompurify";
 import renderMathInElement from "katex/dist/contrib/auto-render";
 import {
     Bold,
@@ -19,7 +20,7 @@ import {
     Quote,
     Strikethrough,
 } from "lucide-react";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 // 使用 TipTap 核心库创建轻量级编辑器
 import Link from "@tiptap/extension-link";
@@ -320,6 +321,28 @@ interface ChatContentViewerProps {
 export function ChatContentViewer({ content, className }: ChatContentViewerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
+    // DOMPurify 清洗：仅保留 TipTap 富文本安全标签与 KaTeX 相关属性
+    const sanitizedContent = useMemo(() => {
+        return DOMPurify.sanitize(content, {
+            ALLOWED_TAGS: [
+                "p", "br", "strong", "b", "em", "i", "u", "s", "del",
+                "h1", "h2", "h3", "h4", "h5", "h6",
+                "ul", "ol", "li",
+                "blockquote", "pre", "code",
+                "a", "img",
+                "table", "thead", "tbody", "tr", "th", "td",
+                "span", "div", "sub", "sup", "mark",
+                "hr",
+            ],
+            ALLOWED_ATTR: [
+                "href", "target", "rel", "src", "alt", "title", "width", "height",
+                "class", "data-tex", "data-type", "data-language",
+                "colspan", "rowspan",
+            ],
+            ALLOW_DATA_ATTR: false,
+        });
+    }, [content]);
+
     useEffect(() => {
         if (containerRef.current) {
             // 使用 KaTeX 自动渲染容器内的 LaTeX 公式
@@ -338,9 +361,8 @@ export function ChatContentViewer({ content, className }: ChatContentViewerProps
                 console.error("KaTeX rendering error:", e);
             }
         }
-    }, [content]);
+    }, [sanitizedContent]);
 
-    // 始终使用 dangerouslySetInnerHTML 以支持富文本和公式
     return (
         <div
             ref={containerRef}
@@ -349,7 +371,7 @@ export function ChatContentViewer({ content, className }: ChatContentViewerProps
                 "prose-p:my-0 prose-ul:my-1 prose-ol:my-1 prose-blockquote:my-1",
                 className
             )}
-            dangerouslySetInnerHTML={{ __html: content }}
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
     );
 }

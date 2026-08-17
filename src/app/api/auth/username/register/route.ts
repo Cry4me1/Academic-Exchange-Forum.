@@ -1,13 +1,30 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { usernameRegisterSchema } from "@/lib/validations/auth";
+import { registerLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
     try {
-        const { username, full_name, password } = await request.json();
-
-        if (!username || !full_name || !password) {
-            return NextResponse.json({ error: "请填写完整的注册信息" }, { status: 400 });
+        const forwarded = request.headers.get("x-forwarded-for");
+        const ip = forwarded?.split(",")[0]?.trim() || "unknown";
+        const { limited, resetIn } = registerLimiter.check(ip);
+        if (limited) {
+            return NextResponse.json(
+                { error: `注册请求过于频繁，请 ${Math.ceil(resetIn / 60000)} 分钟后重试` },
+                { status: 429 }
+            );
         }
+
+        const body = await request.json();
+        const validated = usernameRegisterSchema.safeParse(body);
+        if (!validated.success) {
+            return NextResponse.json(
+                { error: validated.error.issues[0]?.message || "参数错误" },
+                { status: 400 }
+            );
+        }
+
+        const { username, full_name, password } = validated.data;
 
         const adminClient = createAdminClient();
 
@@ -19,18 +36,20 @@ export async function POST(request: Request) {
             .maybeSingle();
 
         if (existingProfile) {
-            return NextResponse.json({ error: "该用户名已被使用，请换一个用户名" }, { status: 400 });
+            return NextResponse.json(
+                { error: "该用户名已被使用，请换一个用户名" },
+                { status: 400 }
+            );
         }
 
         // 2. 生成合法的 TLD 虚拟邮箱以绕过 TLD 校验且避免触发验证邮件发送限制
         const pseudoEmail = `${username.toLowerCase()}@scholarly.org`;
 
         // 3. 在服务端通过 Admin API 注册用户（自动标记 email_confirm 为 true）
-        // 这样可以绕过 Supabase 前台的 SMTP 邮件发送频次限制且直接激活用户状态
         const { data: authData, error: createError } = await adminClient.auth.admin.createUser({
             email: pseudoEmail,
             password: password,
-            email_confirm: true, // 关键：设为 true 直接激活用户，绝不发送任何邮件
+            email_confirm: true,
             user_metadata: {
                 username: username,
                 full_name: full_name,
@@ -55,34 +74,15 @@ export async function POST(request: Request) {
         await adminClient
             .from("profiles")
             .update({
-                is_verified: true,
+                is_verified: false,
                 auth_provider: "username",
             })
             .eq("id", userId);
 
-        // 4. 利用 Admin API 为该注册成功的虚拟邮箱生成一次性 Magic Link 自动登录链接
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-            type: "magiclink",
-            email: pseudoEmail,
-            options: {
-                redirectTo: `${siteUrl}/auth/callback?next=/dashboard`,
-            }
-        });
-
-        if (linkError || !linkData?.properties?.action_link) {
-            console.error("[Username Register API] Generate login link failed:", linkError);
-            // 提示用户虽然注册成功但需要手动登录一次
-            return NextResponse.json({
-                success: true,
-                needManualLogin: true,
-                message: "注册成功！由于登录会话生成失败，请使用刚刚注册的账号手动进行登录。"
-            });
-        }
-
         return NextResponse.json({
             success: true,
-            actionLink: linkData.properties.action_link,
+            needManualLogin: true,
+            message: "注册成功！请使用刚刚注册的账号进行登录。"
         });
 
     } catch (error: any) {

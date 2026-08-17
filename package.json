@@ -61,6 +61,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.26",
     "highlight.js": "^11.11.1",
+    "isomorphic-dompurify": "^3.22.0",
     "jsondiffpatch": "^0.7.3",
     "katex": "^0.16.27",
     "lowlight": "^3.3.0",

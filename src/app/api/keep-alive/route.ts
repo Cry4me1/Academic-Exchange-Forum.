@@ -5,10 +5,9 @@ export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-    // 优先使用 SERVICE_ROLE_KEY (拥有绕过 RLS 的权限)
-    // 如果没有，回退到 ANON_KEY (通常受 RLS 限制，但我们刚才为 _keep_alive 表添加了公共读取策略)
+    // 使用 ANON_KEY (通常受 RLS 限制，但我们刚才为 _keep_alive 表添加了公共读取策略)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
     if (!supabaseUrl || !supabaseKey) {
         return NextResponse.json({ error: 'Missing Supabase environment variables' }, { status: 500 });

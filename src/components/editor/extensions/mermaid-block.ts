@@ -76,7 +76,7 @@ export const MermaidBlock = Node.create({
                         )
                             ? "dark"
                             : "default",
-                        securityLevel: "loose",
+                        securityLevel: "strict",
                         fontFamily: "inherit",
                     });
 

@@ -13,8 +13,15 @@ export async function GET(request: NextRequest) {
         const authHeader = request.headers.get("authorization");
         const cronSecret = process.env.CRON_SECRET;
 
-        // 如果配置了 CRON_SECRET，验证请求
-        if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+        if (!cronSecret) {
+            console.error("[cron] CRON_SECRET 环境变量未配置");
+            return NextResponse.json(
+                { error: "服务端配置错误：CRON_SECRET 未设置" },
+                { status: 500 }
+            );
+        }
+
+        if (authHeader !== `Bearer ${cronSecret}`) {
             return NextResponse.json(
                 { error: "未授权" },
                 { status: 401 }

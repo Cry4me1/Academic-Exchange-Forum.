@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Ping Keep Alive Endpoint
         run: |
-          curl -I "https://academic-exchange-forum.pages.dev/api/keep-alive"
+          curl -I "${{ vars.SITE_URL || 'https://academic-exchange-forum.pages.dev' }}/api/keep-alive"

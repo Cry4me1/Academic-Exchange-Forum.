@@ -9,12 +9,19 @@ export async function GET(request: NextRequest) {
         
         const supabase = await createClient();
 
-        // 1. 权限拦截 (仅允许开发环境下执行，或生产环境下要求匹配管理员秘钥)
+        // 权限拦截：必须配置 ADMIN_SECRET 且请求必须携带正确的 secret
         const secret = searchParams.get("secret");
-        const isDev = process.env.NODE_ENV === "development";
-        const adminSecret = process.env.ADMIN_SECRET || "scholarly_dev_secret_2026";
+        const adminSecret = process.env.ADMIN_SECRET;
         
-        if (!isDev && secret !== adminSecret) {
+        if (!adminSecret) {
+            console.error("[batch-embed] ADMIN_SECRET 环境变量未配置");
+            return NextResponse.json(
+                { error: "服务端配置错误：ADMIN_SECRET 未设置" },
+                { status: 500 }
+            );
+        }
+
+        if (secret !== adminSecret) {
             return NextResponse.json({ error: "无权访问此敏感管理接口" }, { status: 403 });
         }
 
