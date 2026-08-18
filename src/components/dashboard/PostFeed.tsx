@@ -47,6 +47,7 @@ interface PostData {
     isLiked: boolean;
     isBookmarked: boolean;
     authorVipLevel: number;
+    collections?: Array<{ id: string; name: string }>;
 }
 
 interface PostFeedProps {
@@ -277,6 +278,7 @@ export function PostFeed({ filter }: PostFeedProps) {
                                     isHelpWanted={post.is_help_wanted}
                                     authorVipLevel={post.authorVipLevel}
                                     isPinned={post.is_pinned}
+                                    collections={post.collections}
                                 />
                             </motion.div>
                         ))}

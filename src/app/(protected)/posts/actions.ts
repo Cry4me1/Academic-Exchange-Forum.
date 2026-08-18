@@ -266,36 +266,67 @@ export async function getPosts(options: {
         return { error: "获取帖子列表失败", posts: [] };
     }
 
-    // 如果用户已登录，获取用户的点赞和收藏状态
+    // 获取用户的点赞、收藏状态及帖子的所属专栏
     let userLikes: string[] = [];
     let userBookmarks: string[] = [];
+    const postCollectionsMap: Record<string, Array<{ id: string; name: string }>> = {};
 
-    if (user && posts && posts.length > 0) {
+    if (posts && posts.length > 0) {
         const postIds = posts.map((p) => p.id);
 
-        const [likesResult, bookmarksResult] = await Promise.all([
+        const [likesResult, bookmarksResult, collectionsResult] = await Promise.all([
+            user
+                ? supabase
+                    .from("likes")
+                    .select("post_id")
+                    .eq("user_id", user.id)
+                    .in("post_id", postIds)
+                : Promise.resolve({ data: [] }),
+            user
+                ? supabase
+                    .from("bookmarks")
+                    .select("post_id")
+                    .eq("user_id", user.id)
+                    .in("post_id", postIds)
+                : Promise.resolve({ data: [] }),
             supabase
-                .from("likes")
-                .select("post_id")
-                .eq("user_id", user.id)
-                .in("post_id", postIds),
-            supabase
-                .from("bookmarks")
-                .select("post_id")
-                .eq("user_id", user.id)
+                .from("collection_posts")
+                .select(`
+                    post_id,
+                    collection:collections!collection_id (
+                        id,
+                        name,
+                        is_public
+                    )
+                `)
                 .in("post_id", postIds),
         ]);
 
-        userLikes = (likesResult.data || []).map((l) => l.post_id!);
-        userBookmarks = (bookmarksResult.data || []).map((b) => b.post_id);
+        userLikes = ((likesResult as any).data || []).map((l: any) => l.post_id!);
+        userBookmarks = ((bookmarksResult as any).data || []).map((b: any) => b.post_id);
+
+        if ((collectionsResult as any).data) {
+            for (const item of (collectionsResult as any).data) {
+                if (item.collection && item.collection.is_public) {
+                    if (!postCollectionsMap[item.post_id]) {
+                        postCollectionsMap[item.post_id] = [];
+                    }
+                    postCollectionsMap[item.post_id].push({
+                        id: item.collection.id,
+                        name: item.collection.name,
+                    });
+                }
+            }
+        }
     }
 
-    // 为每个帖子添加用户互动状态 + 作者VIP等级
+    // 为每个帖子添加用户互动状态 + 作者VIP等级 + 所属专栏
     const postsWithStatus = (posts || []).map((post) => ({
         ...post,
         isLiked: userLikes.includes(post.id),
         isBookmarked: userBookmarks.includes(post.id),
         authorVipLevel: (post as any).author?.vip_level || 1,
+        collections: postCollectionsMap[post.id] || [],
     }));
 
     return { posts: postsWithStatus };

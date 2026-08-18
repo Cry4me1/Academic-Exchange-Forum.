@@ -1,17 +1,20 @@
 "use client";
 
+import { CreateCollectionDialog } from "@/components/collections";
 import NovelEditor from "@/components/editor/NovelEditor";
 import PeerReviewPanel from "@/components/editor/peer-review-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getMyCollections, syncPostCollections } from "@/app/(protected)/collections/actions";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, HelpCircle, Plus, Send, X } from "lucide-react";
+import { ArrowLeft, BookOpen, HelpCircle, Plus, Send, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type JSONContent } from "novel";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createPost } from "../actions";
 
@@ -59,6 +62,19 @@ export default function NewPostPage() {
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [isHelpWanted, setIsHelpWanted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [myCollections, setMyCollections] = useState<Array<{ id: string; name: string; post_count?: number }>>([]);
+    const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
+    const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
+
+    const loadCollectionsData = useCallback(async () => {
+        const { collections } = await getMyCollections();
+        setMyCollections(collections || []);
+    }, []);
+
+    // 加载用户的专栏列表
+    useEffect(() => {
+        loadCollectionsData();
+    }, [loadCollectionsData]);
 
     const handleTagToggle = (tag: string) => {
         if (selectedTags.includes(tag)) {
@@ -107,6 +123,13 @@ export default function NewPostPage() {
             if (result.error) {
                 toast.error(result.error);
                 return;
+            }
+
+            // 同步帖子的专栏归属
+            if (result.data?.id && selectedCollectionIds.length > 0) {
+                await syncPostCollections(result.data.id, selectedCollectionIds).catch((err) => {
+                    console.error("Sync post collections error:", err);
+                });
             }
 
             toast.success("发布成功！");
@@ -241,6 +264,90 @@ export default function NewPostPage() {
                         </div>
                     </motion.div>
 
+                    {/* 专栏选择（可选） */}
+                    <motion.div variants={itemVariants} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium flex items-center gap-1.5">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                                归入专栏
+                                <span className="text-muted-foreground font-normal text-xs ml-1">
+                                    （作者专栏，可选）
+                                </span>
+                            </Label>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsCreateCollectionOpen(true)}
+                                    className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1 px-2"
+                                >
+                                    <Plus className="h-3 w-3" />
+                                    新建专栏
+                                </Button>
+                                {myCollections.length > 0 && (
+                                    <Link
+                                        href="/collections/manage"
+                                        target="_blank"
+                                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        管理专栏
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+
+                        {myCollections.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {myCollections.map((col) => {
+                                    const isSelected = selectedCollectionIds.includes(col.id);
+                                    return (
+                                        <label
+                                            key={col.id}
+                                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                                isSelected
+                                                    ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                                                    : "border-border/60 hover:border-border hover:bg-muted/40"
+                                            }`}
+                                        >
+                                            <Checkbox
+                                                checked={isSelected}
+                                                onCheckedChange={(checked) => {
+                                                    setSelectedCollectionIds(
+                                                        checked
+                                                            ? [...selectedCollectionIds, col.id]
+                                                            : selectedCollectionIds.filter((id) => id !== col.id)
+                                                    );
+                                                }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate text-foreground">{col.name}</p>
+                                                <p className="text-xs text-muted-foreground">{col.post_count ?? 0} 篇文章</p>
+                                            </div>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between p-3.5 rounded-lg border border-dashed border-border/80 bg-muted/20">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Sparkles className="h-4 w-4 text-amber-500/80" />
+                                    <span>暂未创建任何专栏，可将文章系列化整理归类</span>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsCreateCollectionOpen(true)}
+                                    className="h-8 gap-1.5 text-xs font-medium"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    立即创建专栏
+                                </Button>
+                            </div>
+                        )}
+                    </motion.div>
+
                     {/* 内容编辑器 */}
                     <motion.div variants={itemVariants} className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -316,6 +423,18 @@ export default function NewPostPage() {
                     </motion.div>
                 </div>
             </main>
+
+            {/* 新建专栏弹窗 */}
+            <CreateCollectionDialog
+                open={isCreateCollectionOpen}
+                onOpenChange={setIsCreateCollectionOpen}
+                onSuccess={async (newCol) => {
+                    await loadCollectionsData();
+                    if (newCol?.id) {
+                        setSelectedCollectionIds((prev) => Array.from(new Set([...prev, newCol.id])));
+                    }
+                }}
+            />
         </motion.div>
     );
 }

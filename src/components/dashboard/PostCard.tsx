@@ -16,7 +16,9 @@ import { MathText } from "@/components/ui/math-text";
 import { motion } from "framer-motion";
 import {
     Bookmark,
+    BookOpen,
     CheckCircle2,
+    ChevronRight,
     Heart,
     HelpCircle,
     MessageCircle,
@@ -72,6 +74,8 @@ export interface PostCardProps {
     coverImage?: string;
     authorVipLevel?: number;
     isPinned?: boolean;
+    collectionNames?: string[];
+    collections?: Array<{ id: string; name: string }>;
 }
 
 // ============================================================
@@ -111,6 +115,8 @@ export function PostCard({
     coverImage,
     authorVipLevel = 1,
     isPinned = false,
+    collectionNames = [],
+    collections = [],
 }: PostCardProps) {
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(likes);
@@ -118,6 +124,10 @@ export function PostCard({
     const [isPending, startTransition] = useTransition();
     const [justLiked, setJustLiked] = useState(false);
     const [justBookmarked, setJustBookmarked] = useState(false);
+
+    const finalCollections: Array<{ id?: string; name: string }> = collections.length > 0
+        ? collections
+        : collectionNames.map(name => ({ name }));
 
     const hasCover = !!coverImage;
     const primaryTag = tags[0];
@@ -291,6 +301,32 @@ export function PostCard({
                         {/* 状态标签 (无封面图上的角标时在此展示) */}
                         {!isSolved && !isHelpWanted ? null : null}
 
+                        {/* 所属专栏指示条 */}
+                        {finalCollections.length > 0 && (
+                            <div className="mb-2">
+                                <Link
+                                    href={`/collections/${finalCollections[0].id || ''}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-primary/[0.07] hover:bg-primary/[0.13] text-primary border border-primary/20 transition-all duration-200 group/col max-w-full"
+                                >
+                                    <span className="flex items-center gap-1 shrink-0 text-primary/80 font-normal">
+                                        <BookOpen className="h-3 w-3 text-primary" />
+                                        专栏
+                                    </span>
+                                    <span className="text-primary/30 font-light">·</span>
+                                    <span className="font-semibold text-foreground/90 group-hover/col:text-primary transition-colors truncate max-w-[200px]">
+                                        {finalCollections[0].name}
+                                    </span>
+                                    {finalCollections.length > 1 && (
+                                        <span className="text-[10px] bg-primary/15 text-primary px-1 rounded font-normal shrink-0">
+                                            +{finalCollections.length - 1}
+                                        </span>
+                                    )}
+                                    <ChevronRight className="h-3 w-3 text-primary/50 group-hover/col:translate-x-0.5 group-hover/col:text-primary transition-transform ml-0.5 shrink-0" />
+                                </Link>
+                            </div>
+                        )}
+
                         {/* 标题 */}
                         <Link href={`/posts/${id}`}>
                             <h3 className="text-lg font-semibold text-foreground leading-snug line-clamp-2 hover:text-primary transition-colors duration-200">
@@ -305,7 +341,7 @@ export function PostCard({
 
                         {/* 帖子标签 */}
                         {tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            <div className="flex flex-wrap items-center gap-1.5 mt-3">
                                 {tags.slice(0, 3).map((tag) => {
                                     const c = tagColors[tag] || defaultTagColor;
                                     return (
@@ -455,6 +491,32 @@ export function PostCard({
                             </div>
                         )}
 
+                        {/* 所属专栏指示条 */}
+                        {finalCollections.length > 0 && (
+                            <div className="mb-2">
+                                <Link
+                                    href={`/collections/${finalCollections[0].id || ''}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-primary/[0.07] hover:bg-primary/[0.13] text-primary border border-primary/20 transition-all duration-200 group/col max-w-full"
+                                >
+                                    <span className="flex items-center gap-1 shrink-0 text-primary/80 font-normal">
+                                        <BookOpen className="h-3 w-3 text-primary" />
+                                        专栏
+                                    </span>
+                                    <span className="text-primary/30 font-light">·</span>
+                                    <span className="font-semibold text-foreground/90 group-hover/col:text-primary transition-colors truncate max-w-[200px]">
+                                        {finalCollections[0].name}
+                                    </span>
+                                    {finalCollections.length > 1 && (
+                                        <span className="text-[10px] bg-primary/15 text-primary px-1 rounded font-normal shrink-0">
+                                            +{finalCollections.length - 1}
+                                        </span>
+                                    )}
+                                    <ChevronRight className="h-3 w-3 text-primary/50 group-hover/col:translate-x-0.5 group-hover/col:text-primary transition-transform ml-0.5 shrink-0" />
+                                </Link>
+                            </div>
+                        )}
+
                         {/* 标题 */}
                         <Link href={`/posts/${id}`}>
                             <h3 className="text-lg font-semibold text-foreground leading-snug line-clamp-2 hover:text-primary transition-colors duration-200">
@@ -469,7 +531,7 @@ export function PostCard({
 
                         {/* 帖子标签 */}
                         {tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            <div className="flex flex-wrap items-center gap-1.5 mt-3">
                                 {tags.slice(0, 3).map((tag) => {
                                     const c = tagColors[tag] || defaultTagColor;
                                     return (

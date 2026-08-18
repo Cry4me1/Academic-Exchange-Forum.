@@ -1,5 +1,6 @@
 "use client";
 
+import { CollectionCard } from "@/components/collections";
 import { ReputationBadge } from "@/components/duel/ReputationBadge";
 import { VipBadge } from "@/components/payments/VipBadge";
 import { BannerSelector, bannerGradients } from "@/components/profile/banner-selector";
@@ -12,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFriends } from "@/hooks/useFriends";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { ArrowLeft, Ban, Bookmark, Calendar, Code2, Globe, Heart, Loader2, MapPin, MessageCircle, Sparkles, Swords, UserPlus, VolumeX } from "lucide-react";
+import { ArrowLeft, Ban, Bookmark, BookOpen, Calendar, Code2, Globe, Heart, Loader2, MapPin, MessageCircle, Sparkles, Swords, UserPlus, VolumeX } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -59,6 +60,17 @@ interface BookmarkedPost extends Post {
     bookmarked_at: string;
 }
 
+interface UserCollection {
+    id: string;
+    name: string;
+    description: string | null;
+    cover_url: string | null;
+    cover_style: string;
+    is_public: boolean;
+    post_count: number;
+    updated_at: string;
+}
+
 const genderLabels: Record<string, string> = {
     male: "男",
     female: "女",
@@ -100,6 +112,7 @@ export default function UserProfilePage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [likedPosts, setLikedPosts] = useState<LikedPost[]>([]);
     const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPost[]>([]);
+    const [collections, setCollections] = useState<UserCollection[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [isFriend, setIsFriend] = useState(false);
@@ -200,6 +213,32 @@ export default function UserProfilePage() {
                             };
                         });
                     setBookmarkedPosts(bookmarkedPostsList);
+                }
+            }
+
+            // 获取该用户的专栏
+            const { data: collectionsData } = await supabase
+                .from("collections")
+                .select("id, name, description, cover_url, cover_style, is_public, post_count, updated_at")
+                .eq("author_id", userId)
+                .eq("is_public", true)
+                .order("updated_at", { ascending: false });
+
+            if (collectionsData) {
+                setCollections(collectionsData);
+            }
+
+            // 如果是自己的主页，也加载私有专栏
+            if (user && user.id === userId) {
+                const { data: privateCollections } = await supabase
+                    .from("collections")
+                    .select("id, name, description, cover_url, cover_style, is_public, post_count, updated_at")
+                    .eq("author_id", userId)
+                    .eq("is_public", false)
+                    .order("updated_at", { ascending: false });
+
+                if (privateCollections && privateCollections.length > 0) {
+                    setCollections(prev => [...prev, ...privateCollections]);
                 }
             }
 
@@ -488,6 +527,10 @@ export default function UserProfilePage() {
                             <TabsTrigger value="posts">
                                 帖子 ({posts.length})
                             </TabsTrigger>
+                            <TabsTrigger value="collections">
+                                <BookOpen className="h-3.5 w-3.5 mr-1" />
+                                专栏 ({collections.length})
+                            </TabsTrigger>
                             <TabsTrigger value="likes">
                                 <Heart className="h-3.5 w-3.5 mr-1" />
                                 点赞 ({likedPosts.length})
@@ -508,6 +551,52 @@ export default function UserProfilePage() {
                             ) : (
                                 <div className="text-center py-12">
                                     <p className="text-muted-foreground">该用户还没有发布任何帖子</p>
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="collections">
+                            {collections.length > 0 ? (
+                                <div className="space-y-4">
+                                    {isOwnProfile && (
+                                        <div className="flex justify-end">
+                                            <Link href="/collections/manage">
+                                                <Button variant="outline" size="sm" className="gap-1.5">
+                                                    <BookOpen className="h-3.5 w-3.5" />
+                                                    管理专栏
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {collections.map((col) => (
+                                            <CollectionCard
+                                                key={col.id}
+                                                id={col.id}
+                                                name={col.name}
+                                                description={col.description}
+                                                coverUrl={col.cover_url}
+                                                coverStyle={col.cover_style}
+                                                postCount={col.post_count}
+                                                isPublic={col.is_public}
+                                                updatedAt={col.updated_at}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+                                    <p className="text-muted-foreground">
+                                        {isOwnProfile ? "还没有创建任何专栏" : "该用户还没有创建任何专栏"}
+                                    </p>
+                                    {isOwnProfile && (
+                                        <Link href="/collections/manage">
+                                            <Button variant="outline" size="sm" className="mt-3">
+                                                创建第一个专栏
+                                            </Button>
+                                        </Link>
+                                    )}
                                 </div>
                             )}
                         </TabsContent>
