@@ -5,6 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
+import {
+    PostCollectionBanner,
+    PostCollectionFooterNav,
+    type CollectionSummary,
+} from "@/components/collections";
 import { formatDate } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
@@ -40,9 +45,10 @@ interface PublicPostPreviewProps {
             auth_provider?: string;
         } | null;
     };
+    collections?: CollectionSummary[];
 }
 
-export default function PublicPostPreview({ post }: PublicPostPreviewProps) {
+export default function PublicPostPreview({ post, collections = [] }: PublicPostPreviewProps) {
     const authorName = post.author?.full_name || post.author?.username || "匿名用户";
     const authorInitial = authorName.charAt(0).toUpperCase();
 
@@ -88,6 +94,15 @@ export default function PublicPostPreview({ post }: PublicPostPreviewProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                 >
+                    {/* 所属专栏标识 */}
+                    {collections.length > 0 && (
+                        <PostCollectionBanner
+                            collections={collections}
+                            currentPostId={post.id}
+                            isAuthor={false}
+                        />
+                    )}
+
                     {/* 标签 */}
                     {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
@@ -142,6 +157,14 @@ export default function PublicPostPreview({ post }: PublicPostPreviewProps) {
                     <div className="prose dark:prose-invert max-w-none mb-8">
                         <NovelViewer initialValue={post.content} />
                     </div>
+
+                    {/* 专栏连载导读卡片（上一篇/下一篇） */}
+                    {collections.length > 0 && (
+                        <PostCollectionFooterNav
+                            collection={collections[0]}
+                            currentPostId={post.id}
+                        />
+                    )}
 
                     {/* 互动统计（只读） */}
                     <div className="flex items-center gap-6 py-4 border-t border-border/50 text-muted-foreground">

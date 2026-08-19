@@ -267,14 +267,90 @@ async function getCurrentUser() {
     return profile;
 }
 
+// 获取帖子所属的专栏及其专栏内文章列表
+async function getPostCollections(postId: string) {
+    try {
+        const supabase = await createClient();
+
+        // 1. 获取该帖子关联的所有专栏ID
+        const { data: colPosts, error: colError } = await supabase
+            .from("collection_posts")
+            .select("collection_id, position")
+            .eq("post_id", postId);
+
+        if (colError || !colPosts || colPosts.length === 0) {
+            return [];
+        }
+
+        const collectionIds = Array.from(new Set(colPosts.map((cp) => cp.collection_id)));
+
+        // 2. 获取专栏详情
+        const { data: collections, error: collectionsError } = await supabase
+            .from("collections")
+            .select("id, name, description, cover_url, cover_style, is_public, post_count, author_id, created_at, updated_at")
+            .in("id", collectionIds);
+
+        if (collectionsError || !collections || collections.length === 0) {
+            return [];
+        }
+
+        // 3. 批量获取各专栏下的所有篇目（按 position 升序）
+        const { data: allColPosts, error: allColError } = await supabase
+            .from("collection_posts")
+            .select(`
+                collection_id,
+                position,
+                post:posts!post_id (
+                    id,
+                    title,
+                    created_at
+                )
+            `)
+            .in("collection_id", collectionIds)
+            .order("position", { ascending: true });
+
+        const postsByCollectionId = new Map<string, Array<{ id: string; title: string; position: number; created_at: string }>>();
+        if (!allColError && allColPosts) {
+            allColPosts.forEach((item: any) => {
+                if (!item.post) return;
+                const list = postsByCollectionId.get(item.collection_id) || [];
+                list.push({
+                    id: item.post.id,
+                    title: item.post.title,
+                    position: item.position ?? 0,
+                    created_at: item.post.created_at,
+                });
+                postsByCollectionId.set(item.collection_id, list);
+            });
+        }
+
+        return collections.map((col: any) => ({
+            id: col.id,
+            name: col.name,
+            description: col.description,
+            cover_url: col.cover_url,
+            cover_style: col.cover_style,
+            post_count: col.post_count,
+            posts: postsByCollectionId.get(col.id) || [],
+        }));
+    } catch (error) {
+        console.error("Failed to load post collections:", error);
+        return [];
+    }
+}
+
 export default async function PostDetailPage({ params }: PageProps) {
     const { id } = await params;
 
-    const [post, currentUser] = await Promise.all([
+    const [post, currentUser, collections] = await Promise.all([
         getPost(id),
         getCurrentUser().catch(e => {
             console.error("Failed to fetch current user:", e);
             return null;
+        }),
+        getPostCollections(id).catch(e => {
+            console.error("Failed to fetch collections:", e);
+            return [];
         }),
     ]);
 
@@ -284,7 +360,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
     // 如果未登录（游客），显示只读预览，且不增加浏览量
     if (!currentUser) {
-        return <PublicPostPreview post={post} />;
+        return <PublicPostPreview post={post} collections={collections} />;
     }
 
     const comments = await getComments(id).catch(e => {
@@ -324,6 +400,7 @@ export default async function PostDetailPage({ params }: PageProps) {
             commentLikeStatus={commentLikeStatus}
             coAuthors={coAuthors as any}
             backlinks={backlinks}
+            collections={collections}
         />
     );
 }

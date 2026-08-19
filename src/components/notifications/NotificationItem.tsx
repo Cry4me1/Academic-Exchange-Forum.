@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
     AtSign,
     Bell,
+    BookOpen,
     Heart,
     Mail,
     MessageCircle,
@@ -37,6 +38,7 @@ const notificationIcons: Record<Notification["type"], React.ComponentType<{ clas
     duel_accepted: Trophy,
     duel_rejected: XCircle,
     system: ShieldAlert,
+    collection_update: BookOpen,
 };
 
 const notificationColors: Record<Notification["type"], string> = {
@@ -50,6 +52,7 @@ const notificationColors: Record<Notification["type"], string> = {
     duel_accepted: "text-green-500 bg-green-500/10",
     duel_rejected: "text-red-500 bg-red-500/10",
     system: "text-orange-600 bg-orange-600/10",
+    collection_update: "text-indigo-500 bg-indigo-500/10",
 };
 
 export function NotificationItem({

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useUpdateNotification } from "@/hooks/use-update-notification";
 import {
     Bookmark,
+    BookMarked,
     Crown,
     FlaskConical,
     Flame,
@@ -28,6 +29,7 @@ const navItems = [
     { href: "/messages", label: "私信", icon: MessageSquare },
     { href: "/friends", label: "好友", icon: Users },
     { href: "/favorites", label: "我的收藏", icon: Bookmark },
+    { href: "/collections/following", label: "关注专栏", icon: BookMarked },
     { href: "/updates", label: "更新日志", icon: Zap, isUpdateLog: true },
     { href: "/profile", label: "个人中心", icon: User },
     { href: "/vip", label: "Ask AI · VIP", icon: Crown, isVip: true },

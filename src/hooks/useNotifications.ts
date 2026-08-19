@@ -6,7 +6,7 @@ import { toast } from "sonner";
 export interface Notification {
     id: string;
     user_id: string;
-    type: "like" | "comment" | "friend_request" | "friend_accepted" | "message" | "mention" | "duel_invite" | "duel_accepted" | "duel_rejected" | "system";
+    type: "like" | "comment" | "friend_request" | "friend_accepted" | "message" | "mention" | "duel_invite" | "duel_accepted" | "duel_rejected" | "system" | "collection_update";
     title: string;
     content: string | null;
     is_read: boolean;

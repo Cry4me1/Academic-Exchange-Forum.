@@ -386,6 +386,8 @@ export async function getCollectionWithPosts(collectionId: string) {
             cover_style,
             is_public,
             post_count,
+            follower_count,
+            view_count,
             created_at,
             updated_at,
             author_id,
@@ -449,4 +451,150 @@ export async function getCollectionWithPosts(collectionId: string) {
         }));
 
     return { collection, posts, error: null };
+}
+
+// ============================================
+// 关注/取消关注专栏（切换模式）
+// ============================================
+export async function toggleFollowCollection(collectionId: string) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: "请先登录" };
+    }
+
+    // 检查是否已关注
+    const { data: existing } = await supabase
+        .from("collection_follows")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("collection_id", collectionId)
+        .single();
+
+    if (existing) {
+        // 取消关注
+        const { error } = await supabase
+            .from("collection_follows")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("collection_id", collectionId);
+
+        if (error) {
+            console.error("Unfollow collection error:", error);
+            return { error: "取消关注失败" };
+        }
+        revalidatePath(`/collections/${collectionId}`);
+        return { followed: false };
+    } else {
+        // 关注
+        const { error } = await supabase
+            .from("collection_follows")
+            .insert({
+                user_id: user.id,
+                collection_id: collectionId,
+            });
+
+        if (error) {
+            if (error.code === "23505") {
+                return { followed: true }; // 已经关注了
+            }
+            console.error("Follow collection error:", error);
+            return { error: "关注失败" };
+        }
+        revalidatePath(`/collections/${collectionId}`);
+        return { followed: true };
+    }
+}
+
+// ============================================
+// 获取当前用户是否已关注指定专栏
+// ============================================
+export async function getCollectionFollowStatus(collectionId: string) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { isFollowing: false };
+    }
+
+    const { data } = await supabase
+        .from("collection_follows")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("collection_id", collectionId)
+        .single();
+
+    return { isFollowing: !!data };
+}
+
+// ============================================
+// 获取当前用户关注的所有专栏
+// ============================================
+export async function getFollowedCollections() {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { collections: [] };
+    }
+
+    // 先获取关注记录
+    const { data: follows, error: followError } = await supabase
+        .from("collection_follows")
+        .select("collection_id, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+    if (followError || !follows || follows.length === 0) {
+        return { collections: [] };
+    }
+
+    const collectionIds = follows.map(f => f.collection_id);
+
+    // 获取专栏详情
+    const { data: collections, error: colError } = await supabase
+        .from("collections")
+        .select(`
+            id, name, description, cover_url, cover_style,
+            is_public, post_count, follower_count, view_count,
+            created_at, updated_at,
+            author:profiles!author_id (
+                id, username, full_name, avatar_url
+            )
+        `)
+        .in("id", collectionIds);
+
+    if (colError || !collections) {
+        return { collections: [] };
+    }
+
+    // 按关注时间排序
+    const followTimeMap = new Map(follows.map(f => [f.collection_id, f.created_at]));
+    const sorted = collections.sort((a: any, b: any) => {
+        const tA = followTimeMap.get(a.id) || "";
+        const tB = followTimeMap.get(b.id) || "";
+        return tB.localeCompare(tA);
+    });
+
+    return { collections: sorted };
+}
+
+// ============================================
+// 记录浏览量（去重：每用户仅首次计数）
+// ============================================
+export async function incrementCollectionViewCount(collectionId: string) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+        await supabase.rpc("increment_collection_view_count", {
+            target_collection_id: collectionId,
+            viewer_user_id: user.id,
+        });
+    } catch (error) {
+        console.error("Increment view count error:", error);
+    }
 }

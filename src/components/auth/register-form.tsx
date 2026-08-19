@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createClient } from "@/lib/supabase/client";
 import {
     registerSchema,
     type RegisterFormData,
@@ -12,38 +11,72 @@ import {
     type UsernameRegisterFormData,
 } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle, KeyRound, Loader2, Lock, Mail, User } from "lucide-react";
+import { CheckCircle, KeyRound, Loader2, Lock, Mail, User, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useRef, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
+import { CaptchaInput, type CaptchaInputRef } from "./captcha-input";
 
 export function RegisterForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("email");
+    const [renderedAt, setRenderedAt] = useState<number>(Date.now());
     const router = useRouter();
+
+    const emailCaptchaRef = useRef<CaptchaInputRef>(null);
+    const usernameCaptchaRef = useRef<CaptchaInputRef>(null);
+
+    useEffect(() => {
+        setRenderedAt(Date.now());
+    }, []);
 
     // 邮箱注册表单
     const {
         register: registerEmail,
         handleSubmit: handleSubmitEmail,
+        control: controlEmail,
+        setValue: setValueEmail,
         formState: { errors: emailErrors },
         reset: resetEmail,
     } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
+        defaultValues: {
+            username: "",
+            full_name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+            captchaCode: "",
+            captchaToken: "",
+            honeypot: "",
+            renderedAt: Date.now(),
+        },
     });
 
     // 用户名注册表单
     const {
         register: registerUsername,
         handleSubmit: handleSubmitUsername,
+        control: controlUsername,
+        setValue: setValueUsername,
         formState: { errors: usernameErrors },
         reset: resetUsername,
     } = useForm<UsernameRegisterFormData>({
         resolver: zodResolver(usernameRegisterSchema),
+        defaultValues: {
+            username: "",
+            full_name: "",
+            password: "",
+            confirmPassword: "",
+            captchaCode: "",
+            captchaToken: "",
+            honeypot: "",
+            renderedAt: Date.now(),
+        },
     });
 
     // 切换 Tab 时重置状态
@@ -52,54 +85,55 @@ export function RegisterForm() {
         setError(null);
         resetEmail();
         resetUsername();
+        setRenderedAt(Date.now());
     };
 
-    // 邮箱注册
+    // 邮箱注册 (经过后端安全校验 API)
     const onEmailSubmit = async (data: RegisterFormData) => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const supabase = createClient();
-
-            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-            const redirectTo = `${siteUrl}/auth/callback?next=/dashboard`;
-
-            console.log("[Auth] Registering user:", data.email);
-            console.log("[Auth] Redirect URL:", redirectTo);
-
-            const { error: authError, data: authData } = await supabase.auth.signUp({
-                email: data.email,
-                password: data.password,
-                options: {
-                    emailRedirectTo: redirectTo,
-                    data: {
-                        username: data.username,
-                        full_name: data.full_name,
-                    },
+            const res = await fetch("/api/auth/email/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
                 },
+                body: JSON.stringify({
+                    username: data.username,
+                    full_name: data.full_name,
+                    email: data.email,
+                    password: data.password,
+                    confirmPassword: data.confirmPassword,
+                    captchaCode: data.captchaCode,
+                    captchaToken: data.captchaToken,
+                    honeypot: data.honeypot,
+                    renderedAt: renderedAt,
+                }),
             });
 
-            if (authError) {
-                setError(authError.message);
-                return;
-            }
+            const result = await res.json();
 
-            if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
-                setError("该邮箱已被注册，请直接登录");
+            if (!res.ok) {
+                setError(result.error || "注册失败，请检查填写内容");
+                // 刷新验证码
+                emailCaptchaRef.current?.refresh();
+                setValueEmail("captchaCode", "");
                 return;
             }
 
             setIsSuccess(true);
             toast.success("注册成功！请检查邮箱完成验证");
         } catch {
-            setError("注册时出错，请稍后重试");
+            setError("网络异常，请稍后重试");
+            emailCaptchaRef.current?.refresh();
+            setValueEmail("captchaCode", "");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // 用户名注册
+    // 用户名注册 (经过后端安全校验 API)
     const onUsernameSubmit = async (data: UsernameRegisterFormData) => {
         setIsLoading(true);
         setError(null);
@@ -114,6 +148,11 @@ export function RegisterForm() {
                     username: data.username,
                     full_name: data.full_name,
                     password: data.password,
+                    confirmPassword: data.confirmPassword,
+                    captchaCode: data.captchaCode,
+                    captchaToken: data.captchaToken,
+                    honeypot: data.honeypot,
+                    renderedAt: renderedAt,
                 }),
             });
 
@@ -121,19 +160,23 @@ export function RegisterForm() {
 
             if (!res.ok) {
                 setError(result.error || "注册时出错，请稍后重试");
+                // 刷新验证码
+                usernameCaptchaRef.current?.refresh();
+                setValueUsername("captchaCode", "");
                 return;
             }
 
             toast.success("注册成功！");
             
             if (result.actionLink) {
-                // 如果后端成功返回了一次性登录链接，直接重定向进行登录激活会话
                 window.location.href = result.actionLink;
             } else {
                 router.push("/login?tab=username&registered=true");
             }
         } catch {
-            setError("注册时出错，请稍后重试");
+            setError("网络异常，请稍后重试");
+            usernameCaptchaRef.current?.refresh();
+            setValueUsername("captchaCode", "");
         } finally {
             setIsLoading(false);
         }
@@ -182,6 +225,16 @@ export function RegisterForm() {
                 {/* Tab 1: 邮箱注册 */}
                 <TabsContent value="email" className="space-y-4 mt-0">
                     <form onSubmit={handleSubmitEmail(onEmailSubmit)} className="space-y-4">
+                        {/* 蜜罐陷阱 (Honeypot): 对普通人类用户隐藏，Bot 爬虫自动填写会被拦截 */}
+                        <div className="hidden pointer-events-none opacity-0 select-none" aria-hidden="true">
+                            <input
+                                type="text"
+                                tabIndex={-1}
+                                autoComplete="off"
+                                {...registerEmail("honeypot")}
+                            />
+                        </div>
+
                         {/* 用户名输入 */}
                         <div className="space-y-2">
                             <Label htmlFor="email-reg-username">用户名</Label>
@@ -244,7 +297,7 @@ export function RegisterForm() {
                                 <Input
                                     id="email-reg-password"
                                     type="password"
-                                    placeholder="设置登录密码"
+                                    placeholder="设置登录密码（至少6位）"
                                     className="pl-10 h-11"
                                     {...registerEmail("password")}
                                 />
@@ -272,11 +325,29 @@ export function RegisterForm() {
                             )}
                         </div>
 
+                        {/* 人机安全验证 */}
+                        <Controller
+                            name="captchaCode"
+                            control={controlEmail}
+                            render={({ field }) => (
+                                <CaptchaInput
+                                    ref={emailCaptchaRef}
+                                    id="email-captcha-code"
+                                    label="人机安全验证"
+                                    value={field.value || ""}
+                                    onChange={(val) => field.onChange(val)}
+                                    onTokenChange={(token) => setValueEmail("captchaToken", token)}
+                                    error={emailErrors.captchaCode?.message || emailErrors.captchaToken?.message}
+                                    disabled={isLoading}
+                                />
+                            )}
+                        />
+
                         {/* 错误提示 */}
                         {error && (
                             <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-                                <Loader2 className="w-4 h-4" />
-                                {error}
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>{error}</span>
                             </div>
                         )}
 
@@ -289,7 +360,7 @@ export function RegisterForm() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    注册中...
+                                    注册验证中...
                                 </>
                             ) : (
                                 "注册账号"
@@ -301,6 +372,16 @@ export function RegisterForm() {
                 {/* Tab 2: 用户名注册 */}
                 <TabsContent value="username" className="space-y-4 mt-0">
                     <form onSubmit={handleSubmitUsername(onUsernameSubmit)} className="space-y-4">
+                        {/* 蜜罐陷阱 (Honeypot) */}
+                        <div className="hidden pointer-events-none opacity-0 select-none" aria-hidden="true">
+                            <input
+                                type="text"
+                                tabIndex={-1}
+                                autoComplete="off"
+                                {...registerUsername("honeypot")}
+                            />
+                        </div>
+
                         {/* 用户名输入 */}
                         <div className="space-y-2">
                             <Label htmlFor="uname-reg-username">用户名</Label>
@@ -345,7 +426,7 @@ export function RegisterForm() {
                                 <Input
                                     id="uname-reg-password"
                                     type="password"
-                                    placeholder="设置登录密码"
+                                    placeholder="设置登录密码（至少6位）"
                                     className="pl-10 h-11"
                                     {...registerUsername("password")}
                                 />
@@ -373,11 +454,29 @@ export function RegisterForm() {
                             )}
                         </div>
 
+                        {/* 人机安全验证 */}
+                        <Controller
+                            name="captchaCode"
+                            control={controlUsername}
+                            render={({ field }) => (
+                                <CaptchaInput
+                                    ref={usernameCaptchaRef}
+                                    id="username-captcha-code"
+                                    label="人机安全验证"
+                                    value={field.value || ""}
+                                    onChange={(val) => field.onChange(val)}
+                                    onTokenChange={(token) => setValueUsername("captchaToken", token)}
+                                    error={usernameErrors.captchaCode?.message || usernameErrors.captchaToken?.message}
+                                    disabled={isLoading}
+                                />
+                            )}
+                        />
+
                         {/* 错误提示 */}
                         {error && (
                             <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-                                <Loader2 className="w-4 h-4" />
-                                {error}
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>{error}</span>
                             </div>
                         )}
 
@@ -390,7 +489,7 @@ export function RegisterForm() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    注册中...
+                                    注册验证中...
                                 </>
                             ) : (
                                 "注册账号"

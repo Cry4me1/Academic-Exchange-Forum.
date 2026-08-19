@@ -7,35 +7,43 @@ export const loginSchema = z.object({
     password: passwordSchema.optional(), // 兼容旧的 OTP 登录
 });
 
-export const registerSchema = z.object({
-    username: z
-        .string()
-        .min(2, "用户名至少 2 个字符")
-        .max(20, "用户名最多 20 个字符")
-        .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, "用户名只能包含字母、数字、下划线或中文"),
-    full_name: z
-        .string()
-        .min(2, "真实姓名至少 2 个字符")
-        .max(30, "真实姓名最多 30 个字符"),
-    email: z.string().email("请输入有效的邮箱地址"),
-    password: passwordSchema,
-    confirmPassword: passwordSchema,
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "两次输入的密码不一致",
-    path: ["confirmPassword"],
-});
+export const registerSchema = z
+    .object({
+        username: z
+            .string()
+            .min(2, "用户名至少 2 个字符")
+            .max(20, "用户名最多 20 个字符")
+            .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, "用户名只能包含字母、数字、下划线或中文"),
+        full_name: z
+            .string()
+            .min(2, "真实姓名至少 2 个字符")
+            .max(30, "真实姓名最多 30 个字符"),
+        email: z.string().email("请输入有效的邮箱地址"),
+        password: passwordSchema,
+        confirmPassword: passwordSchema,
+        captchaCode: z.string().min(1, "请输入人机验证码"),
+        captchaToken: z.string().min(1, "缺少人机验证签名"),
+        honeypot: z.string().optional(),
+        renderedAt: z.number().optional(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+        message: "两次输入的密码不一致",
+        path: ["confirmPassword"],
+    });
 
 export const forgotPasswordSchema = z.object({
     email: z.string().email("请输入有效的邮箱地址"),
 });
 
-export const resetPasswordSchema = z.object({
-    password: passwordSchema,
-    confirmPassword: passwordSchema,
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "两次输入的密码不一致",
-    path: ["confirmPassword"],
-});
+export const resetPasswordSchema = z
+    .object({
+        password: passwordSchema,
+        confirmPassword: passwordSchema,
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+        message: "两次输入的密码不一致",
+        path: ["confirmPassword"],
+    });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
@@ -52,22 +60,28 @@ export const usernameLoginSchema = z.object({
 });
 
 // 纯用户名注册验证（无需邮箱）
-export const usernameRegisterSchema = z.object({
-    username: z
-        .string()
-        .min(2, "用户名至少 2 个字符")
-        .max(20, "用户名最多 20 个字符")
-        .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, "用户名只能包含字母、数字、下划线或中文"),
-    full_name: z
-        .string()
-        .min(2, "真实姓名至少 2 个字符")
-        .max(30, "真实姓名最多 30 个字符"),
-    password: passwordSchema,
-    confirmPassword: passwordSchema,
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "两次输入的密码不一致",
-    path: ["confirmPassword"],
-});
+export const usernameRegisterSchema = z
+    .object({
+        username: z
+            .string()
+            .min(2, "用户名至少 2 个字符")
+            .max(20, "用户名最多 20 个字符")
+            .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, "用户名只能包含字母、数字、下划线或中文"),
+        full_name: z
+            .string()
+            .min(2, "真实姓名至少 2 个字符")
+            .max(30, "真实姓名最多 30 个字符"),
+        password: passwordSchema,
+        confirmPassword: passwordSchema,
+        captchaCode: z.string().min(1, "请输入人机验证码"),
+        captchaToken: z.string().min(1, "缺少人机验证签名"),
+        honeypot: z.string().optional(),
+        renderedAt: z.number().optional(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+        message: "两次输入的密码不一致",
+        path: ["confirmPassword"],
+    });
 
 export type UsernameLoginFormData = z.infer<typeof usernameLoginSchema>;
 export type UsernameRegisterFormData = z.infer<typeof usernameRegisterSchema>;

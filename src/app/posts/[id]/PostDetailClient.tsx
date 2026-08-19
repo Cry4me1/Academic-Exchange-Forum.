@@ -25,8 +25,16 @@ import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { cn, formatDate } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+    AddToCollectionDialog,
+    PostCollectionBanner,
+    PostCollectionSidebarWidget,
+    PostCollectionFooterNav,
+    type CollectionSummary,
+} from "@/components/collections";
+import {
     ArrowLeft,
     Bookmark,
+    BookOpen,
     Calendar,
     CheckCircle2,
     Code2,
@@ -107,6 +115,7 @@ interface PostDetailClientProps {
     commentLikeStatus?: Record<string, boolean>;
     coAuthors?: CoAuthor[];
     backlinks?: BacklinkItem[];
+    collections?: CollectionSummary[];
 }
 
 // 标签颜色映射
@@ -170,6 +179,7 @@ export default function PostDetailClient({
     commentLikeStatus = {},
     coAuthors = [],
     backlinks = [],
+    collections = [],
 }: PostDetailClientProps) {
     const router = useRouter();
     const [headings, setHeadings] = useState<HeadingItem[]>([]);
@@ -182,6 +192,8 @@ export default function PostDetailClient({
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
     const [duelDialogOpen, setDuelDialogOpen] = useState(false);
+    const [addToCollectionOpen, setAddToCollectionOpen] = useState(false);
+    const [collectionsList, setCollectionsList] = useState<CollectionSummary[]>(collections);
 
     const [activeDuel, setActiveDuel] = useState<any | null>(null);
     const [relatedDuels, setRelatedDuels] = useState<any[]>([]);
@@ -533,6 +545,12 @@ export default function PostDetailClient({
                                                     编辑帖子
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
+                                                    onClick={() => setAddToCollectionOpen(true)}
+                                                >
+                                                    <BookOpen className="mr-2 h-4 w-4 text-primary" />
+                                                    收入/调整专栏
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
                                                     onClick={async () => {
                                                         if (confirm("确定要删除这篇帖子吗？此操作不可撤销。")) {
                                                             const result = await deletePost(post.id);
@@ -611,6 +629,14 @@ export default function PostDetailClient({
                         <main className="flex-1 min-w-0">
                             {/* 文章头部 */}
                             <motion.article variants={itemVariants} className="mb-8">
+                                {/* 所属专栏收录标识 */}
+                                <PostCollectionBanner
+                                    collections={collectionsList}
+                                    currentPostId={post.id}
+                                    isAuthor={currentUser?.id === post.author.id}
+                                    onManageCollections={() => setAddToCollectionOpen(true)}
+                                />
+
                                 {/* 标签 */}
                                 <div className="flex flex-wrap gap-2 mb-4">
                                     {post.tags.map((tag) => (
@@ -808,6 +834,16 @@ export default function PostDetailClient({
                                     收藏
                                 </Button>
                             </motion.div>
+
+                            {/* 专栏连载导读导航（上一篇/下一篇） */}
+                            {collectionsList.length > 0 && (
+                                <motion.div variants={itemVariants}>
+                                    <PostCollectionFooterNav
+                                        collection={collectionsList[0]}
+                                        currentPostId={post.id}
+                                    />
+                                </motion.div>
+                            )}
 
                             {/* 发起决斗引导（如果还没有决斗） */}
                             {relatedDuels.length === 0 && (!currentUser || post.author.id !== currentUser.id) && (
@@ -1040,6 +1076,16 @@ export default function PostDetailClient({
                             )}
                         >
                             <div className="sticky top-24 space-y-6 w-72">
+                                {/* 所属专栏连载导读与目录 */}
+                                {collectionsList.length > 0 && (
+                                    <motion.div variants={itemVariants}>
+                                        <PostCollectionSidebarWidget
+                                            collection={collectionsList[0]}
+                                            currentPostId={post.id}
+                                        />
+                                    </motion.div>
+                                )}
+
                                 {/* 作者其他文章 */}
                                 {authorOtherPosts.length > 0 && (
                                     <motion.div
@@ -1098,6 +1144,19 @@ export default function PostDetailClient({
                 defaultTopic={post.title}
                 postId={post.id}
             />
+
+            {/* 归入专栏对话框 */}
+            {currentUser && currentUser.id === post.author.id && (
+                <AddToCollectionDialog
+                    postId={post.id}
+                    open={addToCollectionOpen}
+                    onOpenChange={setAddToCollectionOpen}
+                    onSuccess={() => {
+                        router.refresh();
+                    }}
+                    initialCollectionIds={collectionsList.map(c => c.id)}
+                />
+            )}
         </>
     );
 }

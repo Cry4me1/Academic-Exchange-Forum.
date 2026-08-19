@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit, Settings, Clock, FileText, User } from "lucide-react";
+import { ArrowLeft, Edit, Eye, FileText, Heart, Settings, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
-import { getCollectionWithPosts } from "../actions";
-import { CollectionPostList, CreateCollectionDialog, COLLECTION_COVER_PRESETS } from "@/components/collections";
+import { getCollectionWithPosts, getCollectionFollowStatus, incrementCollectionViewCount } from "../actions";
+import { CollectionPostList, CreateCollectionDialog, FollowCollectionButton, COLLECTION_COVER_PRESETS } from "@/components/collections";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +25,7 @@ export default function CollectionDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [isFollowing, setIsFollowing] = useState(false);
     
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isManageMode, setIsManageMode] = useState(false);
@@ -40,13 +41,21 @@ export default function CollectionDetailPage() {
                     setCurrentUserId(user.id);
                 }
 
-                const result = await getCollectionWithPosts(collectionId);
+                // 并行加载：专栏数据 + 关注状态 + 记录浏览量
+                const [result, followResult] = await Promise.all([
+                    getCollectionWithPosts(collectionId),
+                    getCollectionFollowStatus(collectionId),
+                    incrementCollectionViewCount(collectionId),
+                ]);
+
                 if (result.error || !result.collection) {
                     setError(result.error || "专栏不存在");
                 } else {
                     setCollection(result.collection);
                     setPosts(result.posts);
                 }
+
+                setIsFollowing(followResult.isFollowing);
             } catch (err) {
                 console.error(err);
                 setError("加载失败");
@@ -174,21 +183,43 @@ export default function CollectionDetailPage() {
                                     </div>
 
                                     <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">
+                                        <Eye className="h-3.5 w-3.5 text-white/70" />
+                                        <span>{collection.view_count ?? 0} 浏览</span>
+                                    </div>
+
+                                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">
+                                        <Heart className="h-3.5 w-3.5 text-white/70" />
+                                        <span>{collection.follower_count ?? 0} 关注</span>
+                                    </div>
+
+                                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">
                                         <Clock className="h-3.5 w-3.5 text-white/70" />
                                         <span>{format(new Date(collection.created_at), 'yyyy-MM-dd')} 创建</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* 右侧：作者管理操作栏 */}
-                            {isAuthor && (
-                                <div className="flex items-center gap-2.5 shrink-0 bg-black/45 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-xl">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="bg-white/15 hover:bg-white/25 text-white border border-white/20 shadow-sm font-medium transition-all"
-                                        onClick={() => setIsEditOpen(true)}
-                                    >
+                            {/* 右侧：操作栏 */}
+                            <div className="flex flex-col items-end gap-3 shrink-0">
+                                {/* 非作者：关注按钮 */}
+                                {!isAuthor && currentUserId && (
+                                    <FollowCollectionButton
+                                        collectionId={collectionId}
+                                        initialFollowed={isFollowing}
+                                        followerCount={collection.follower_count ?? 0}
+                                        variant="hero"
+                                    />
+                                )}
+
+                                {/* 作者：管理操作 */}
+                                {isAuthor && (
+                                    <div className="flex items-center gap-2.5 bg-black/45 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-xl">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="bg-white/15 hover:bg-white/25 text-white border border-white/20 shadow-sm font-medium transition-all"
+                                            onClick={() => setIsEditOpen(true)}
+                                        >
                                         <Edit className="mr-1.5 h-4 w-4" />
                                         编辑专栏
                                     </Button>
@@ -206,7 +237,8 @@ export default function CollectionDetailPage() {
                                         {isManageMode ? "完成管理" : "管理帖子"}
                                     </Button>
                                 </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

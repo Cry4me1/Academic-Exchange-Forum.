@@ -22,9 +22,10 @@ interface AddToCollectionDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     initialCollectionIds?: string[];
+    onSuccess?: () => void;
 }
 
-export function AddToCollectionDialog({ postId, open, onOpenChange, initialCollectionIds = [] }: AddToCollectionDialogProps) {
+export function AddToCollectionDialog({ postId, open, onOpenChange, initialCollectionIds = [], onSuccess }: AddToCollectionDialogProps) {
     const [isPending, startTransition] = useTransition();
     const [collections, setCollections] = useState<any[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialCollectionIds));
@@ -68,6 +69,7 @@ export function AddToCollectionDialog({ postId, open, onOpenChange, initialColle
             } else {
                 toast.success("已更新所属专栏");
                 onOpenChange(false);
+                onSuccess?.();
             }
         });
     };

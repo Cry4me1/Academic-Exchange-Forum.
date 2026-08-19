@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFriends } from "@/hooks/useFriends";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { ArrowLeft, Ban, Bookmark, BookOpen, Calendar, Code2, Globe, Heart, Loader2, MapPin, MessageCircle, Sparkles, Swords, UserPlus, VolumeX } from "lucide-react";
+import { ArrowLeft, Ban, Bookmark, BookMarked, BookOpen, Calendar, Code2, Globe, Heart, Loader2, MapPin, MessageCircle, Sparkles, Swords, UserPlus, VolumeX } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -113,6 +113,7 @@ export default function UserProfilePage() {
     const [likedPosts, setLikedPosts] = useState<LikedPost[]>([]);
     const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPost[]>([]);
     const [collections, setCollections] = useState<UserCollection[]>([]);
+    const [followedCollections, setFollowedCollections] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [isFriend, setIsFriend] = useState(false);
@@ -147,31 +148,65 @@ export default function UserProfilePage() {
                 }
             }
 
-            // 获取该用户的帖子
-            const { data: postsData, error: postsError } = await supabase
+            // 获取该用户发布的帖子
+            const { data: postsData } = await supabase
                 .from("posts")
-                .select("id, title, content, created_at, like_count, comment_count")
+                .select(`
+                    id,
+                    title,
+                    content,
+                    created_at,
+                    like_count,
+                    comment_count,
+                    author_id,
+                    is_published,
+                    is_pinned
+                `)
                 .eq("author_id", userId)
                 .eq("is_published", true)
-                .eq("is_hidden", false)
+                .order("is_pinned", { ascending: false })
                 .order("created_at", { ascending: false })
                 .limit(20);
 
-            if (!postsError && postsData) {
-                setPosts(postsData);
+            if (postsData && profileData) {
+                const postsWithAuthor = postsData.map((post: any) => ({
+                    ...post,
+                    author: {
+                        id: profileData.id,
+                        username: profileData.username,
+                        avatar_url: profileData.avatar_url,
+                        full_name: profileData.full_name,
+                        is_developer: profileData.is_developer,
+                        developer_title: profileData.developer_title,
+                    },
+                }));
+                setPosts(postsWithAuthor);
             }
 
             // 获取该用户点赞的帖子
             const { data: likesData } = await supabase
-                .from("likes")
+                .from("post_likes")
                 .select(`
                     created_at,
                     post:posts!inner (
-                        id, title, content, created_at, like_count, comment_count
+                        id,
+                        title,
+                        content,
+                        created_at,
+                        like_count,
+                        comment_count,
+                        author_id,
+                        author:profiles!author_id (
+                            id,
+                            username,
+                            avatar_url,
+                            full_name,
+                            is_developer,
+                            developer_title
+                        )
                     )
                 `)
                 .eq("user_id", userId)
-                .not("post_id", "is", null)
                 .order("created_at", { ascending: false })
                 .limit(20);
 
@@ -188,14 +223,28 @@ export default function UserProfilePage() {
                 setLikedPosts(likedPostsList);
             }
 
-            // 获取该用户收藏的帖子（仅自己可见）
+            // 如果是自己的主页，获取收藏的帖子
             if (user && user.id === userId) {
                 const { data: bookmarksData } = await supabase
                     .from("bookmarks")
                     .select(`
                         created_at,
                         post:posts!inner (
-                            id, title, content, created_at, like_count, comment_count
+                            id,
+                            title,
+                            content,
+                            created_at,
+                            like_count,
+                            comment_count,
+                            author_id,
+                            author:profiles!author_id (
+                                id,
+                                username,
+                                avatar_url,
+                                full_name,
+                                is_developer,
+                                developer_title
+                            )
                         )
                     `)
                     .eq("user_id", userId)
@@ -213,6 +262,37 @@ export default function UserProfilePage() {
                             };
                         });
                     setBookmarkedPosts(bookmarkedPostsList);
+                }
+
+                // 获取自己关注的专栏
+                const { data: followRows } = await supabase
+                    .from("collection_follows")
+                    .select("collection_id, created_at")
+                    .eq("user_id", userId)
+                    .order("created_at", { ascending: false });
+
+                if (followRows && followRows.length > 0) {
+                    const followIds = followRows.map((f: any) => f.collection_id);
+                    const { data: followCols } = await supabase
+                        .from("collections")
+                        .select(`
+                            id, name, description, cover_url, cover_style,
+                            is_public, post_count, updated_at,
+                            author:profiles!author_id (id, username, full_name, avatar_url)
+                        `)
+                        .in("id", followIds);
+
+                    if (followCols) {
+                        const timeMap = new Map<string, string>(
+                            followRows.map((f: any) => [f.collection_id as string, f.created_at as string])
+                        );
+                        const sorted = followCols.sort((a: any, b: any) => {
+                            const tA = timeMap.get(a.id) || "";
+                            const tB = timeMap.get(b.id) || "";
+                            return tB.localeCompare(tA);
+                        });
+                        setFollowedCollections(sorted);
+                    }
                 }
             }
 
@@ -536,10 +616,16 @@ export default function UserProfilePage() {
                                 点赞 ({likedPosts.length})
                             </TabsTrigger>
                             {isOwnProfile && (
-                                <TabsTrigger value="bookmarks">
-                                    <Bookmark className="h-3.5 w-3.5 mr-1" />
-                                    收藏 ({bookmarkedPosts.length})
-                                </TabsTrigger>
+                                <>
+                                    <TabsTrigger value="bookmarks">
+                                        <Bookmark className="h-3.5 w-3.5 mr-1" />
+                                        收藏 ({bookmarkedPosts.length})
+                                    </TabsTrigger>
+                                    <TabsTrigger value="followed_collections">
+                                        <BookMarked className="h-3.5 w-3.5 mr-1" />
+                                        关注专栏 ({followedCollections.length})
+                                    </TabsTrigger>
+                                </>
                             )}
                         </TabsList>
 
@@ -616,19 +702,53 @@ export default function UserProfilePage() {
                         </TabsContent>
 
                         {isOwnProfile && (
-                            <TabsContent value="bookmarks">
-                                {bookmarkedPosts.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {bookmarkedPosts.map((post) =>
-                                            renderPostCard(post, { label: "收藏", time: post.bookmarked_at })
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-12">
-                                        <p className="text-muted-foreground">暂无收藏的帖子</p>
-                                    </div>
-                                )}
-                            </TabsContent>
+                            <>
+                                <TabsContent value="bookmarks">
+                                    {bookmarkedPosts.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {bookmarkedPosts.map((post) =>
+                                                renderPostCard(post, { label: "收藏", time: post.bookmarked_at })
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-muted-foreground">暂无收藏的帖子</p>
+                                        </div>
+                                    )}
+                                </TabsContent>
+
+                                <TabsContent value="followed_collections">
+                                    {followedCollections.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {followedCollections.map((col) => (
+                                                <CollectionCard
+                                                    key={col.id}
+                                                    id={col.id}
+                                                    name={col.name}
+                                                    description={col.description}
+                                                    coverUrl={col.cover_url}
+                                                    coverStyle={col.cover_style}
+                                                    postCount={col.post_count}
+                                                    isPublic={col.is_public}
+                                                    updatedAt={col.updated_at}
+                                                    authorName={col.author?.full_name || col.author?.username}
+                                                    showAuthor
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <BookMarked className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+                                            <p className="text-muted-foreground">还没有关注任何专栏</p>
+                                            <Link href="/trending">
+                                                <Button variant="outline" size="sm" className="mt-3">
+                                                    探索热门专栏
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    )}
+                                </TabsContent>
+                            </>
                         )}
                     </Tabs>
                 </motion.div>
