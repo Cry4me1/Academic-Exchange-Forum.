@@ -8,6 +8,7 @@ import { syncPostLinks } from "@/lib/post-links";
 import { generatePostEmbedding } from "@/lib/post-embed";
 import { createClient } from "@/lib/supabase/server";
 import { moderatePostContent } from "@/lib/moderation/engine";
+import { sendPendingReviewEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 // JSONContent 类型定义
@@ -34,7 +35,7 @@ export async function createPost(data: {
     // 检查用户是否被封禁或禁言
     const { data: profile } = await supabase
         .from("profiles")
-        .select("is_banned, is_muted, muted_until")
+        .select("id, username, full_name, email, is_banned, is_muted, muted_until")
         .eq("id", user.id)
         .single();
 
@@ -91,6 +92,32 @@ export async function createPost(data: {
         return { error: "创建帖子失败" };
     }
 
+    // 若进入人工待审队列（pending），发送邮件通知管理员
+    if (post?.id && moderation.reviewStatus === "pending") {
+        sendPendingReviewEmail({
+            postId: post.id,
+            title: data.title,
+            content: data.content,
+            tags: data.tags,
+            author: {
+                id: user.id,
+                username: profile?.username,
+                fullName: profile?.full_name,
+                email: profile?.email || user.email,
+            },
+            moderation: {
+                score: moderation.score,
+                riskLevel: moderation.riskLevel,
+                reason: moderation.reason,
+                suggestedTags: moderation.suggestedTags,
+                matchedSensitiveWords: moderation.matchedSensitiveWords,
+                latencyMs: moderation.latencyMs,
+            },
+        }).catch((mailErr) => {
+            console.error("[createPost] 发送待人工审核通知邮件失败:", mailErr);
+        });
+    }
+
     // 审核通过时，同步双向链接与同步生成 Embedding
     if (post?.id && isApproved) {
         await syncPostLinks(supabase, post.id, data.content).catch((err) => {
@@ -142,12 +169,16 @@ export async function updatePost(
     oldContent = oldPost.content as JSONContentNode;
 
     const updatePayload: any = { ...data };
+    let moderationResult: any = null;
+    let titleToReview = "";
+    let contentToReview: any = null;
+    let tagsToReview: string[] = [];
 
     // 若修改了标题或正文，重新走审核
     if (data.title || data.content) {
-        const titleToReview = data.title || oldPost.title;
-        const contentToReview = data.content || oldPost.content;
-        const tagsToReview = data.tags || oldPost.tags || [];
+        titleToReview = data.title || oldPost.title;
+        contentToReview = data.content || oldPost.content;
+        tagsToReview = data.tags || oldPost.tags || [];
 
         const moderation = await moderatePostContent({
             postId,
@@ -164,6 +195,7 @@ export async function updatePost(
             };
         }
 
+        moderationResult = moderation;
         const isApproved = moderation.reviewStatus === "approved";
         updatePayload.review_status = moderation.reviewStatus;
         updatePayload.is_published = isApproved;
@@ -183,6 +215,38 @@ export async function updatePost(
     if (error) {
         console.error("Update post error:", error);
         return { error: "更新帖子失败" };
+    }
+
+    // 若更新后重新进入人工审核队列（pending），发送邮件通知管理员
+    if (updatePayload.review_status === "pending" && moderationResult) {
+        const { data: authorProfile } = await supabase
+            .from("profiles")
+            .select("id, username, full_name, email")
+            .eq("id", user.id)
+            .single();
+
+        sendPendingReviewEmail({
+            postId,
+            title: titleToReview,
+            content: contentToReview,
+            tags: tagsToReview,
+            author: {
+                id: user.id,
+                username: authorProfile?.username,
+                fullName: authorProfile?.full_name,
+                email: authorProfile?.email || user.email,
+            },
+            moderation: {
+                score: moderationResult.score,
+                riskLevel: moderationResult.riskLevel,
+                reason: moderationResult.reason,
+                suggestedTags: moderationResult.suggestedTags,
+                matchedSensitiveWords: moderationResult.matchedSensitiveWords,
+                latencyMs: moderationResult.latencyMs,
+            },
+        }).catch((mailErr) => {
+            console.error("[updatePost] 发送待人工审核通知邮件失败:", mailErr);
+        });
     }
 
     // 清理被移除的图片（异步执行，不阻塞响应）
