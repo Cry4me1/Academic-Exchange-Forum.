@@ -195,6 +195,10 @@ export default function PostDetailClient({
     const [addToCollectionOpen, setAddToCollectionOpen] = useState(false);
     const [collectionsList, setCollectionsList] = useState<CollectionSummary[]>(collections);
 
+    useEffect(() => {
+        setCollectionsList(collections);
+    }, [collections]);
+
     const [activeDuel, setActiveDuel] = useState<any | null>(null);
     const [relatedDuels, setRelatedDuels] = useState<any[]>([]);
 

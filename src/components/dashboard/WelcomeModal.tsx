@@ -4,29 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+    Activity,
     ArrowRight,
     BookOpen,
     Crown,
     GitMerge,
+    Layers,
     LayoutDashboard,
     Palette,
     Rocket,
     ShieldCheck,
     Sparkles,
+    Users,
     Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// 正式版发布日期（UTC）- 升级至 v1.1.0 节点以达成 seen 状态重置
-const V1_LAUNCH_DATE = "2026-05-23T00:00:00Z";
+// 正式版发布日期（UTC）- 升级至 v1.1.5 节点以达成 seen 状态重置
+const V1_LAUNCH_DATE = "2026-07-05T00:00:00Z";
 
-// 老用户弹窗：v1.1.0 四大更新
-const v1_1Features = [
-    { icon: GitMerge, label: "双向链接与反向引用", color: "text-indigo-500" },
-    { icon: Sparkles, label: "AI 1024维语义推荐", color: "text-amber-500" },
-    { icon: Zap, label: "中国地区 5 倍爆速提速", color: "text-emerald-500" },
-    { icon: ShieldCheck, label: "高可用离线标签降级", color: "text-pink-500" },
+// 老用户弹窗：v1.1.5 四大更新
+const v1_1_5Features = [
+    { icon: Activity, label: "Desmos 渐绘数学引擎", color: "text-blue-500" },
+    { icon: Users, label: "洛谷绑定 & 用户名注册", color: "text-orange-500" },
+    { icon: Layers, label: "游客无缝免登只读预览", color: "text-emerald-500" },
+    { icon: Sparkles, label: "LaTeX 公式动态绘图展开", color: "text-violet-500" },
 ];
 
 interface WelcomeModalProps {
@@ -46,8 +49,8 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
         const newUser = createdAt >= launchDate;
 
         const storageKey = newUser
-            ? "scholarly_welcome_v1_1_seen"
-            : "scholarly_v1_1_update_seen";
+            ? "scholarly_welcome_v1_1_5_seen"
+            : "scholarly_v1_1_5_update_seen";
 
         if (localStorage.getItem(storageKey)) return;
 
@@ -78,7 +81,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                 className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none outline-none ring-0"
             >
                 <DialogTitle className="sr-only">
-                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.0 正式版上线"}
+                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.5 正式版上线"}
                 </DialogTitle>
 
                 <AnimatePresence mode="wait">
@@ -156,7 +159,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                         </motion.div>
                     ) : (
                         /* ═══════════════════════════════════════
-                         *  老用户 — v1.0.0 正式版上线通知
+                         *  老用户 — v1.1.5 正式版上线通知
                          * ═══════════════════════════════════════ */
                         <motion.div
                             key="existing-user"
@@ -188,7 +191,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.3 }}
                                     className="text-2xl font-bold tracking-tight text-foreground"
                                 >
-                                    v1.1.0 织网学术图谱已上线
+                                    v1.1.5 交互数学引擎已上线
                                 </motion.h2>
                                 <motion.p
                                     initial={{ opacity: 0, y: 10 }}
@@ -196,7 +199,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.4 }}
                                     className="mt-2 text-sm text-muted-foreground"
                                 >
-                                    历经打磨，全新学术图谱与5倍爆速访问时代震撼开启
+                                    手绘渐现数学图像、洛谷绑定、用户名注册与游客无缝预览
                                 </motion.p>
                             </div>
 
@@ -208,7 +211,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.45 }}
                                     className="grid grid-cols-2 gap-2.5"
                                 >
-                                    {v1_1Features.map((feature, i) => (
+                                    {v1_1_5Features.map((feature, i) => (
                                         <motion.div
                                             key={feature.label}
                                             initial={{ opacity: 0, y: 10 }}

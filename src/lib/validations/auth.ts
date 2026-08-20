@@ -23,6 +23,7 @@ export const registerSchema = z
         confirmPassword: passwordSchema,
         captchaCode: z.string().min(1, "请输入人机验证码"),
         captchaToken: z.string().min(1, "缺少人机验证签名"),
+        inviteCode: z.string().optional(),
         honeypot: z.string().optional(),
         renderedAt: z.number().optional(),
     })
@@ -75,6 +76,7 @@ export const usernameRegisterSchema = z
         confirmPassword: passwordSchema,
         captchaCode: z.string().min(1, "请输入人机验证码"),
         captchaToken: z.string().min(1, "缺少人机验证签名"),
+        inviteCode: z.string().optional(),
         honeypot: z.string().optional(),
         renderedAt: z.number().optional(),
     })
@@ -85,4 +87,17 @@ export const usernameRegisterSchema = z
 
 export type UsernameLoginFormData = z.infer<typeof usernameLoginSchema>;
 export type UsernameRegisterFormData = z.infer<typeof usernameRegisterSchema>;
+
+// 邀请码批量生成 Schema (仅 super_admin Hansszh 账号)
+export const generateInviteCodesSchema = z.object({
+    prefix: z.string().max(16, "前缀最多16个字符").default("SCHOLAR"),
+    count: z.number().int().min(1, "至少生成1个").max(500, "单次最多生成500个").default(1),
+    usageLimit: z.number().int().min(1, "单码使用次数至少为1").max(99999, "次数过大").default(1),
+    validDays: z.number().int().min(0, "有效天数不能为负数").max(3650, "最多有效10年").optional(), // 0 或 null 代表永久有效
+    note: z.string().max(100, "备注最多100字").default("Hansszh 签发"),
+});
+
+export type GenerateInviteCodesFormData = z.infer<typeof generateInviteCodesSchema>;
+
+
 

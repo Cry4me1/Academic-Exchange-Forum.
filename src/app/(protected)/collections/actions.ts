@@ -343,28 +343,28 @@ export async function getMyCollections() {
 export async function getPostCollections(postId: string) {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    // 1. 获取关联记录
+    const { data: colPosts, error: colError } = await supabase
         .from("collection_posts")
-        .select(`
-            collection_id,
-            collection:collections!collection_id (
-                id,
-                name,
-                cover_style,
-                cover_url,
-                is_public
-            )
-        `)
+        .select("collection_id")
         .eq("post_id", postId);
 
-    if (error) {
-        console.error("Get post collections error:", error);
+    if (colError || !colPosts || colPosts.length === 0) {
         return { collections: [] };
     }
 
-    const collections = (data || [])
-        .filter((item: any) => item.collection)
-        .map((item: any) => item.collection);
+    const collectionIds = Array.from(new Set(colPosts.map((cp) => cp.collection_id)));
+
+    // 2. 获取专栏主体信息
+    const { data: collections, error } = await supabase
+        .from("collections")
+        .select("id, name, description, cover_style, cover_url, is_public, post_count, follower_count, view_count")
+        .in("id", collectionIds);
+
+    if (error || !collections) {
+        console.error("Get post collections error:", error);
+        return { collections: [] };
+    }
 
     return { collections };
 }

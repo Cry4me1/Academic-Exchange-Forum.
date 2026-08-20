@@ -105,10 +105,10 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
               <div className="space-y-1">
                 <h4 className="font-bold text-base text-foreground flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                  查看更详尽的 v1.1.0 联合更新日志
+                  查看更详尽的 v1.1.5 联合更新日志
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  内含双向链接织网、1024维语义推荐与中国地区 5 倍爆速提速底层的交互图解。
+                  内含 Desmos 手绘渐现数学图像、洛谷绑定、用户名注册与游客无缝预览等特性的交互图解。
                 </p>
               </div>
               <Link href="/updates">

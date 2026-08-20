@@ -4,10 +4,16 @@ import { NextResponse } from "next/server";
 import { registerSchema } from "@/lib/validations/auth";
 import { registerLimiter } from "@/lib/rate-limit";
 import { verifyCaptcha } from "@/lib/captcha";
+import {
+    getRegistrationMode,
+    validateInviteCodeServer,
+    consumeInviteCodeServer,
+} from "@/lib/invite/service";
 
 export async function POST(request: Request) {
     try {
         const forwarded = request.headers.get("x-forwarded-for");
+        const userAgent = request.headers.get("user-agent") || "";
         const ip = forwarded?.split(",")[0]?.trim() || "unknown";
 
         // 1. IP 限流检查
@@ -21,7 +27,7 @@ export async function POST(request: Request) {
 
         const body = await request.json();
 
-        // 2. 蜜罐检测 (Honeypot): 正常用户不会填写该隐藏字段，自动化脚本常会自动填充
+        // 2. 蜜罐检测 (Honeypot)
         if (body.honeypot && String(body.honeypot).trim().length > 0) {
             console.warn(`[Bot Detected] Honeypot triggered from IP: ${ip}`);
             return NextResponse.json(
@@ -30,7 +36,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // 3. 表单提交时间差检测 (防秒提脚本)
+        // 3. 表单提交时间差检测
         if (body.renderedAt && typeof body.renderedAt === "number") {
             const timeDiff = Date.now() - body.renderedAt;
             if (timeDiff < 1200) {
@@ -50,9 +56,40 @@ export async function POST(request: Request) {
             );
         }
 
-        const { username, full_name, email, password, captchaToken, captchaCode } = validated.data;
+        const { username, full_name, email, password, captchaToken, captchaCode, inviteCode } = validated.data;
 
-        // 5. 服务端人机验证码校验 (防重放、防篡改、防超时)
+        // 5. 系统注册模式策略判定（严格邀请制）
+        const regMode = await getRegistrationMode();
+        if (regMode === "CLOSED") {
+            return NextResponse.json(
+                { error: "Scholarly 学术论坛当前暂停新用户注册，请关注官方公告" },
+                { status: 403 }
+            );
+        }
+
+        const trimmedInviteCode = inviteCode?.trim() || "";
+
+        if (regMode === "INVITE_ONLY") {
+            if (!trimmedInviteCode) {
+                return NextResponse.json(
+                    { error: "当前社区处于邀请制研讨阶段，请输入有效的学术邀请码" },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 预检邀请码合法性
+        if (trimmedInviteCode) {
+            const validation = await validateInviteCodeServer(trimmedInviteCode);
+            if (!validation.valid) {
+                return NextResponse.json(
+                    { error: validation.error || "邀请码无效或已失效" },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 6. 服务端人机验证码校验
         const captchaResult = verifyCaptcha(captchaToken, captchaCode);
         if (!captchaResult.success) {
             return NextResponse.json(
@@ -63,7 +100,7 @@ export async function POST(request: Request) {
 
         const adminClient = createAdminClient();
 
-        // 6. 检查用户名是否已被注册
+        // 7. 检查用户名是否已被注册
         const { data: existingProfile } = await adminClient
             .from("profiles")
             .select("id")
@@ -77,7 +114,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // 7. 发起 Supabase 邮箱注册
+        // 8. 发起 Supabase 邮箱注册
         const supabase = await createClient();
         const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
         const redirectTo = `${origin}/auth/callback?next=/dashboard`;
@@ -89,8 +126,11 @@ export async function POST(request: Request) {
                 emailRedirectTo: redirectTo,
                 data: {
                     username,
-                    full_name,
+                    full_name: full_name || username,
+                    name: full_name || username,
+                    display_name: full_name || username,
                     auth_provider: "email",
+                    invite_code: trimmedInviteCode || undefined,
                 },
             },
         });
@@ -105,6 +145,24 @@ export async function POST(request: Request) {
                 { error: "该邮箱已被注册，请直接登录" },
                 { status: 400 }
             );
+        }
+
+        const userId = authData.user?.id;
+
+        // 9. 原子核销邀请码
+        if (userId && trimmedInviteCode) {
+            const consumeRes = await consumeInviteCodeServer({
+                code: trimmedInviteCode,
+                userId: userId,
+                username: username,
+                email: email,
+                ip: ip,
+                userAgent: userAgent,
+            });
+
+            if (!consumeRes.success) {
+                console.warn(`[Email Register API] Consume invite code warning for user ${userId}:`, consumeRes.error);
+            }
         }
 
         return NextResponse.json({

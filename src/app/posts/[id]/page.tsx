@@ -284,41 +284,47 @@ async function getPostCollections(postId: string) {
 
         const collectionIds = Array.from(new Set(colPosts.map((cp) => cp.collection_id)));
 
-        // 2. 获取专栏详情
+        // 2. 获取专栏详情（公开专栏或当前作者专栏）
         const { data: collections, error: collectionsError } = await supabase
             .from("collections")
-            .select("id, name, description, cover_url, cover_style, is_public, post_count, author_id, created_at, updated_at")
+            .select("id, name, description, cover_url, cover_style, is_public, post_count, follower_count, view_count, author_id, created_at, updated_at")
             .in("id", collectionIds);
 
         if (collectionsError || !collections || collections.length === 0) {
             return [];
         }
 
-        // 3. 批量获取各专栏下的所有篇目（按 position 升序）
+        // 3. 批量获取各专栏下的所有篇目关联（按 position 升序）
         const { data: allColPosts, error: allColError } = await supabase
             .from("collection_posts")
-            .select(`
-                collection_id,
-                position,
-                post:posts!post_id (
-                    id,
-                    title,
-                    created_at
-                )
-            `)
+            .select("collection_id, post_id, position")
             .in("collection_id", collectionIds)
             .order("position", { ascending: true });
 
         const postsByCollectionId = new Map<string, Array<{ id: string; title: string; position: number; created_at: string }>>();
-        if (!allColError && allColPosts) {
-            allColPosts.forEach((item: any) => {
-                if (!item.post) return;
+
+        if (!allColError && allColPosts && allColPosts.length > 0) {
+            const allPostIds = Array.from(new Set(allColPosts.map((item) => item.post_id)));
+            
+            // 批量查询所有相关帖子的公开信息
+            const { data: postsList } = await supabase
+                .from("posts")
+                .select("id, title, created_at")
+                .in("id", allPostIds)
+                .eq("is_published", true)
+                .eq("is_hidden", false);
+
+            const postMap = new Map((postsList || []).map((p) => [p.id, p]));
+
+            allColPosts.forEach((item) => {
+                const postInfo = postMap.get(item.post_id);
+                if (!postInfo) return;
                 const list = postsByCollectionId.get(item.collection_id) || [];
                 list.push({
-                    id: item.post.id,
-                    title: item.post.title,
+                    id: postInfo.id,
+                    title: postInfo.title,
                     position: item.position ?? 0,
-                    created_at: item.post.created_at,
+                    created_at: postInfo.created_at,
                 });
                 postsByCollectionId.set(item.collection_id, list);
             });
@@ -331,6 +337,8 @@ async function getPostCollections(postId: string) {
             cover_url: col.cover_url,
             cover_style: col.cover_style,
             post_count: col.post_count,
+            follower_count: col.follower_count,
+            view_count: col.view_count,
             posts: postsByCollectionId.get(col.id) || [],
         }));
     } catch (error) {

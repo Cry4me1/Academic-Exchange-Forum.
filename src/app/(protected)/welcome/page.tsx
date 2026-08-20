@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import {
+    Activity,
     ArrowLeft,
     ArrowRight,
     BookOpen,
@@ -11,6 +12,7 @@ import {
     Crown,
     GitMerge,
     GraduationCap,
+    Layers,
     LayoutDashboard,
     MessageSquare,
     MessageSquareHeart,
@@ -20,6 +22,7 @@ import {
     ShieldCheck,
     Sparkles,
     Swords,
+    Users,
     Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -58,35 +61,35 @@ const tutorials = [
     },
 ];
 
-// ─── v1.1.0 正式版三大支柱黄金特性 ─────────────────────────────
-const v1_1CoreFeatures = [
+// ─── v1.1.5 正式版核心特性 ─────────────────────────────
+const v1_1_5CoreFeatures = [
     {
-        icon: GitMerge,
-        title: "双向链接与反向引用",
-        desc: "[[WikiLink]] 精致跨帖织网，编辑器双括号实时联想与底部引用脉络",
-        color: "text-indigo-500",
-        bg: "bg-indigo-500/8",
+        icon: Activity,
+        title: "Desmos 渐绘数学引擎",
+        desc: "识别 LaTeX 表达式一键拉开画板，自左向右实体画笔般动态渐显函数图像",
+        color: "text-blue-500",
+        bg: "bg-blue-500/8",
     },
     {
-        icon: Sparkles,
-        title: "AI 1024维语义相似推荐",
-        desc: "对接豆包与 Cohere 模型，提炼 #数论 #算法 共鸣概念，拒绝相似黑盒",
-        color: "text-amber-500",
-        bg: "bg-amber-500/8",
+        icon: Users,
+        title: "洛谷绑定 & 用户名注册",
+        desc: "全面开放自定义用户名注册，并特别支持一键关联绑定洛谷 (Luogu) 凭证",
+        color: "text-orange-500",
+        bg: "bg-orange-500/8",
     },
     {
-        icon: Zap,
-        title: "中国地区访问 5倍提速",
-        desc: "unstable_cache 云端高性能缓存，本地化 Geist 字体与流光骨架屏",
+        icon: Layers,
+        title: "游客免登录无缝预览",
+        desc: "公开学术精选帖子开放游客免登只读模式，降低准入门槛，大幅提升知识传播",
         color: "text-emerald-500",
         bg: "bg-emerald-500/8",
     },
     {
-        icon: ShieldCheck,
-        title: "高可用标签优雅降级防线",
-        desc: "API Key 异常时无感降级为 100% 离线和免费的本地标签交集相似度搜索",
-        color: "text-pink-500",
-        bg: "bg-pink-500/8",
+        icon: GitMerge,
+        title: "双向知识图谱与 AI 推荐",
+        desc: "[[WikiLink]] 双括号跨帖织网与 1024 维语义向量模型提炼交叉共鸣概念",
+        color: "text-indigo-500",
+        bg: "bg-indigo-500/8",
     },
 ];
 
@@ -97,7 +100,7 @@ const platformFeatures = [
     { icon: Crown, label: "VIP 会员徽章与特权", color: "text-amber-500" },
     { icon: Palette, label: "个人主页配色方案自定义", color: "text-pink-500" },
     { icon: Code2, label: "LaTeX 公式方程式渲染", color: "text-indigo-500" },
-    { icon: Zap, label: "Mermaid 学术流程图图表", color: "text-teal-500" },
+    { icon: Zap, label: "中国地区访问 5 倍提速", color: "text-teal-500" },
     { icon: MessageSquare, label: "实时私信与 CF R2 存储", color: "text-purple-500" },
     { icon: Swords, label: "学术决斗场竞技模式", color: "text-rose-500" },
 ];
@@ -183,7 +186,7 @@ export default function WelcomePage() {
             </section>
 
             {/* ╔══════════════════════════════════════════════╗ */}
-            {/* ║  Section 2 — v1.0.0 特性介绍                 ║ */}
+            {/* ║  Section 2 — v1.1.5 特性介绍                 ║ */}
             {/* ╚══════════════════════════════════════════════╝ */}
             <section className="max-w-3xl mx-auto px-6 py-16">
                 <motion.div
@@ -196,19 +199,19 @@ export default function WelcomePage() {
                     <motion.div variants={fadeUp} className="text-center mb-10">
                         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-4">
                             <Rocket className="h-3.5 w-3.5" />
-                            v1.1.0 正式版
+                            v1.1.5 最新版
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                            织网图谱 & 爆速提速，大版本震撼上线
+                            交互数学引擎 & 快捷学术准入
                         </h2>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            v1.1.0 正式大版本带来的三大支柱黄金升级
+                            v1.1.5 版本带来的核心视觉与跨渠道准入升级
                         </p>
                     </motion.div>
 
                     {/* Core features grid */}
                     <div className="grid sm:grid-cols-2 gap-4 mb-12">
-                        {v1_1CoreFeatures.map((feature) => (
+                        {v1_1_5CoreFeatures.map((feature) => (
                             <motion.div
                                 key={feature.title}
                                 variants={fadeUp}

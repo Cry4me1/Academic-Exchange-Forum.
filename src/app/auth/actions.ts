@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getUsernamePseudoEmail } from '@/lib/auth-utils'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -120,7 +121,7 @@ export async function loginWithUsername(formData: FormData) {
     const password = formData.get('password') as string
     
     // 用户名注册时使用伪邮箱
-    const pseudoEmail = `${username.toLowerCase()}@scholarly.org`
+    const pseudoEmail = getUsernamePseudoEmail(username)
     
     const { error } = await supabase.auth.signInWithPassword({
         email: pseudoEmail,
@@ -143,7 +144,7 @@ export async function signupWithUsername(formData: FormData) {
     const password = formData.get('password') as string
     
     // 用户名注册使用伪邮箱
-    const pseudoEmail = `${username.toLowerCase()}@scholarly.org`
+    const pseudoEmail = getUsernamePseudoEmail(username)
     
     const { error, data: authData } = await supabase.auth.signUp({
         email: pseudoEmail,

@@ -96,7 +96,6 @@ export default function ProfileSettingsPage() {
         const file = e.target.files?.[0];
         if (!file || !profile) return;
 
-        // 验证文件类型和大小
         if (!file.type.startsWith("image/")) {
             toast.error("请选择图片文件");
             return;
@@ -110,21 +109,17 @@ export default function ProfileSettingsPage() {
         try {
             const fileExt = file.name.split(".").pop();
             const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
-            const filePath = `avatars/${fileName}`;
 
-            // 上传到 Supabase Storage
             const { error: uploadError } = await supabase.storage
                 .from("avatars")
                 .upload(fileName, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
-            // 获取公开URL
             const { data: { publicUrl } } = supabase.storage
                 .from("avatars")
                 .getPublicUrl(fileName);
 
-            // 更新 profile
             const { error: updateError } = await supabase
                 .from("profiles")
                 .update({ avatar_url: publicUrl })
@@ -182,7 +177,6 @@ export default function ProfileSettingsPage() {
     }
 
     const initials = (formData.full_name || formData.username || profile?.email || "U").charAt(0).toUpperCase();
-
     const currentGradient = bannerGradients.find(g => g.id === profile?.banner_style)?.class || bannerGradients[0].class;
 
     return (
@@ -206,7 +200,7 @@ export default function ProfileSettingsPage() {
                     </Link>
                 </div>
 
-                <Card className="shadow-lg border-border/30 bg-white/80 backdrop-blur-sm">
+                <Card className="shadow-lg border-border/30 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
                     <CardHeader className="pb-4">
                         {/* 头像和基本信息 */}
                         <div className="flex items-center justify-between">

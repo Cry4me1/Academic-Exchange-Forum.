@@ -3,10 +3,17 @@ import { NextResponse } from "next/server";
 import { usernameRegisterSchema } from "@/lib/validations/auth";
 import { registerLimiter } from "@/lib/rate-limit";
 import { verifyCaptcha } from "@/lib/captcha";
+import {
+    getRegistrationMode,
+    validateInviteCodeServer,
+    consumeInviteCodeServer,
+} from "@/lib/invite/service";
+import { getUsernamePseudoEmail } from "@/lib/auth-utils";
 
 export async function POST(request: Request) {
     try {
         const forwarded = request.headers.get("x-forwarded-for");
+        const userAgent = request.headers.get("user-agent") || "";
         const ip = forwarded?.split(",")[0]?.trim() || "unknown";
 
         // 1. IP 限流检查
@@ -20,7 +27,7 @@ export async function POST(request: Request) {
 
         const body = await request.json();
 
-        // 2. 蜜罐检测 (Honeypot): 正常用户不可见，自动化脚本常会自动填充
+        // 2. 蜜罐检测 (Honeypot)
         if (body.honeypot && String(body.honeypot).trim().length > 0) {
             console.warn(`[Bot Detected] Honeypot triggered on username register from IP: ${ip}`);
             return NextResponse.json(
@@ -29,7 +36,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // 3. 表单提交时间差检测 (防秒提脚本)
+        // 3. 表单提交时间差检测
         if (body.renderedAt && typeof body.renderedAt === "number") {
             const timeDiff = Date.now() - body.renderedAt;
             if (timeDiff < 1200) {
@@ -49,9 +56,40 @@ export async function POST(request: Request) {
             );
         }
 
-        const { username, full_name, password, captchaToken, captchaCode } = validated.data;
+        const { username, full_name, password, captchaToken, captchaCode, inviteCode } = validated.data;
 
-        // 5. 服务端人机验证码校验 (防重放、防篡改、防超时)
+        // 5. 注册策略判定 (严格邀请制)
+        const regMode = await getRegistrationMode();
+        if (regMode === "CLOSED") {
+            return NextResponse.json(
+                { error: "Scholarly 学术论坛当前暂停新用户注册，请关注官方公告" },
+                { status: 403 }
+            );
+        }
+
+        const trimmedInviteCode = inviteCode?.trim() || "";
+
+        if (regMode === "INVITE_ONLY") {
+            if (!trimmedInviteCode) {
+                return NextResponse.json(
+                    { error: "当前社区处于邀请制研讨阶段，用户名注册请输入学术邀请码" },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 预检邀请码有效性
+        if (trimmedInviteCode) {
+            const validation = await validateInviteCodeServer(trimmedInviteCode);
+            if (!validation.valid) {
+                return NextResponse.json(
+                    { error: validation.error || "邀请码无效或已失效" },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 6. 服务端人机验证码校验
         const captchaResult = verifyCaptcha(captchaToken, captchaCode);
         if (!captchaResult.success) {
             return NextResponse.json(
@@ -62,7 +100,7 @@ export async function POST(request: Request) {
 
         const adminClient = createAdminClient();
 
-        // 6. 检查用户名是否已被注册
+        // 7. 检查用户名是否已被注册
         const { data: existingProfile } = await adminClient
             .from("profiles")
             .select("id")
@@ -76,18 +114,21 @@ export async function POST(request: Request) {
             );
         }
 
-        // 7. 生成合法的 TLD 虚拟邮箱以绕过 TLD 校验且避免触发验证邮件发送限制
-        const pseudoEmail = `${username.toLowerCase()}@scholarly.org`;
+        // 8. 生成合法的 ASCII 虚拟邮箱 (完美兼容中英文用户名)
+        const pseudoEmail = getUsernamePseudoEmail(username);
 
-        // 8. 在服务端通过 Admin API 注册用户（自动标记 email_confirm 为 true）
+        // 9. 在服务端通过 Admin API 注册用户
         const { data: authData, error: createError } = await adminClient.auth.admin.createUser({
             email: pseudoEmail,
             password: password,
             email_confirm: true,
             user_metadata: {
                 username: username,
-                full_name: full_name,
+                full_name: full_name || username,
+                name: full_name || username,
+                display_name: full_name || username,
                 auth_provider: "username",
+                invite_code: trimmedInviteCode || undefined,
             }
         });
 
@@ -104,14 +145,33 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "注册失败，无法创建用户" }, { status: 500 });
         }
 
-        // 强更新 profile 的 is_verified 字段，将其设为已验证状态
+        // 强更新 profile 确保 username、email 与 metadata 完全一致
         await adminClient
             .from("profiles")
             .update({
+                username: username,
+                full_name: full_name,
+                email: pseudoEmail,
                 is_verified: false,
                 auth_provider: "username",
             })
             .eq("id", userId);
+
+        // 10. 原子核销邀请码
+        if (trimmedInviteCode) {
+            const consumeRes = await consumeInviteCodeServer({
+                code: trimmedInviteCode,
+                userId: userId,
+                username: username,
+                email: pseudoEmail,
+                ip: ip,
+                userAgent: userAgent,
+            });
+
+            if (!consumeRes.success) {
+                console.warn(`[Username Register API] Consume invite code warning for user ${userId}:`, consumeRes.error);
+            }
+        }
 
         return NextResponse.json({
             success: true,

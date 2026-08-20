@@ -14,6 +14,7 @@ import {
   ScrollText,
   Settings,
   Shield,
+  Ticket,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -53,6 +54,12 @@ const navItems: NavItem[] = [
     label: "积分管理",
     href: "/admin/credits",
     icon: <Coins className="h-5 w-5" />,
+  },
+  {
+    label: "邀请码管理",
+    href: "/admin/invites",
+    icon: <Ticket className="h-5 w-5" />,
+    minRole: "super_admin",
   },
   {
     label: "对决管理",

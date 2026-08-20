@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { loginSchema, type LoginFormData, usernameLoginSchema, type UsernameLoginFormData } from "@/lib/validations/auth";
+import { getUsernamePseudoEmail } from "@/lib/auth-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle, KeyRound, Loader2, Mail, User, Copy, ExternalLink, HelpCircle } from "lucide-react";
 import Link from "next/link";
@@ -32,6 +33,17 @@ export function LoginForm() {
     const [luoguHtml, setLuoguHtml] = useState("");
 
     useEffect(() => {
+        const tabParam = searchParams.get("tab");
+        if (tabParam && ["magic-link", "password", "username", "luogu"].includes(tabParam)) {
+            setActiveTab(tabParam);
+        }
+
+        const registered = searchParams.get("registered");
+        if (registered === "true") {
+            setActiveTab("username");
+            toast.success("账号注册成功，请使用刚设置的用户名和密码登录");
+        }
+
         const error = searchParams.get("error");
         const errorDescription = searchParams.get("error_description");
         if (error) {
@@ -190,23 +202,26 @@ export function LoginForm() {
                 console.log("[Auth] Magic link sent successfully");
                 setIsSuccess(true);
             } else {
-                // 密码登录
-                if (!data.password) {
-                    setError("请输入密码");
-                    setIsLoading(false);
+                const next = searchParams.get("next") || "/dashboard";
+
+                const res = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        identifier: data.email,
+                        password: data.password,
+                    }),
+                });
+
+                const result = await res.json();
+
+                if (!res.ok || !result.success) {
+                    setError(result.error || "邮箱/用户名或密码错误");
                     return;
                 }
 
-                const { error: authError } = await supabase.auth.signInWithPassword({
-                    email: data.email,
-                    password: data.password,
-                });
-
-                if (authError) throw authError;
-
-                // 登录成功跳转
-                router.push("/dashboard");
-                router.refresh();
+                // 登录成功整页跳转（保证服务端识别最新 Cookie）
+                window.location.replace(next);
             }
         } catch (err: any) {
             setError(err.message || "登录请求出错，请稍后重试");
@@ -219,23 +234,28 @@ export function LoginForm() {
     const onUsernameSubmit = async (data: UsernameLoginFormData) => {
         setIsLoading(true);
         setError(null);
-        const supabase = createClient();
 
         try {
-            const pseudoEmail = `${data.username.toLowerCase()}@scholarly.org`;
+            const next = searchParams.get("next") || "/dashboard";
 
-            const { error: authError } = await supabase.auth.signInWithPassword({
-                email: pseudoEmail,
-                password: data.password,
+            const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    identifier: data.username,
+                    password: data.password,
+                }),
             });
 
-            if (authError) {
-                setError("用户名或密码错误");
+            const result = await res.json();
+
+            if (!res.ok || !result.success) {
+                setError(result.error || "用户名或密码错误");
                 return;
             }
 
-            router.push("/dashboard");
-            router.refresh();
+            // 登录成功整页跳转
+            window.location.replace(next);
         } catch {
             setError("登录请求出错，请稍后重试");
         } finally {
