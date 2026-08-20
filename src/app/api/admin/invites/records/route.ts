@@ -46,27 +46,7 @@ export async function GET(request: NextRequest) {
 
         let query = adminClient
             .from("invitation_records")
-            .select(`
-                id,
-                code,
-                code_id,
-                invitee_username,
-                invitee_email,
-                ip_address,
-                used_at,
-                inviter:inviter_id (
-                    id,
-                    username,
-                    full_name,
-                    avatar_url
-                ),
-                invitee:invitee_id (
-                    id,
-                    username,
-                    full_name,
-                    avatar_url
-                )
-            `, { count: "exact" });
+            .select("id, code, code_id, invitee_username, invitee_email, ip_address, used_at, inviter_id, invitee_id", { count: "exact" });
 
         if (search) {
             query = query.or(`code.ilike.%${search}%,invitee_username.ilike.%${search}%,invitee_email.ilike.%${search}%`);
@@ -75,17 +55,51 @@ export async function GET(request: NextRequest) {
         const from = (page - 1) * pageSize;
         const to = from + pageSize - 1;
 
-        const { data: records, count, error } = await query
+        const { data: rawRecords, count, error } = await query
             .order("used_at", { ascending: false })
             .range(from, to);
 
         if (error) {
             console.error("[Admin Invites Records API] Query error:", error);
-            return NextResponse.json({ error: "查询核销记录失败" }, { status: 500 });
+            return NextResponse.json({ error: error.message || "查询核销记录失败" }, { status: 500 });
         }
 
+        const userIds = Array.from(
+            new Set(
+                (rawRecords || [])
+                    .flatMap((r) => [r.inviter_id, r.invitee_id])
+                    .filter(Boolean)
+            )
+        ) as string[];
+
+        const profileMap = new Map<string, { id: string; username: string | null; full_name: string | null; avatar_url: string | null }>();
+
+        if (userIds.length > 0) {
+            const { data: profiles } = await adminClient
+                .from("profiles")
+                .select("id, username, full_name, avatar_url")
+                .in("id", userIds);
+
+            (profiles || []).forEach((p) => {
+                profileMap.set(p.id, p);
+            });
+        }
+
+        const formattedRecords = (rawRecords || []).map((r) => ({
+            ...r,
+            inviter: r.inviter_id ? profileMap.get(r.inviter_id) || null : null,
+            invitee: r.invitee_id
+                ? profileMap.get(r.invitee_id) || {
+                      id: r.invitee_id,
+                      username: r.invitee_username || "受邀学者",
+                      full_name: null,
+                      avatar_url: null,
+                  }
+                : null,
+        }));
+
         return NextResponse.json({
-            records: records || [],
+            records: formattedRecords,
             total: count || 0,
             page,
             pageSize,

@@ -46,7 +46,7 @@ export function RegisterForm() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("email");
-    const [renderedAt, setRenderedAt] = useState<number>(Date.now());
+    const [renderedAt, setRenderedAt] = useState<number>(0);
     const [registrationMode, setRegistrationMode] = useState<string>("INVITE_ONLY");
     const [inviteCheck, setInviteCheck] = useState<InviteCheckState>({ status: "idle" });
 
@@ -77,7 +77,7 @@ export function RegisterForm() {
             captchaToken: "",
             inviteCode: initialInviteCode,
             honeypot: "",
-            renderedAt: Date.now(),
+            renderedAt: 0,
         },
     });
 
@@ -101,7 +101,7 @@ export function RegisterForm() {
             captchaToken: "",
             inviteCode: initialInviteCode,
             honeypot: "",
-            renderedAt: Date.now(),
+            renderedAt: 0,
         },
     });
 
@@ -222,7 +222,7 @@ export function RegisterForm() {
                     captchaToken: data.captchaToken,
                     inviteCode: data.inviteCode?.trim(),
                     honeypot: data.honeypot,
-                    renderedAt: renderedAt,
+                    renderedAt: renderedAt || Date.now(),
                 }),
             });
 
@@ -266,7 +266,7 @@ export function RegisterForm() {
                     captchaToken: data.captchaToken,
                     inviteCode: data.inviteCode?.trim(),
                     honeypot: data.honeypot,
-                    renderedAt: renderedAt,
+                    renderedAt: renderedAt || Date.now(),
                 }),
             });
 
@@ -393,6 +393,14 @@ export function RegisterForm() {
                                         <span className="text-xs text-muted-foreground font-normal">(高校邮箱可免填)</span>
                                     )}
                                 </Label>
+                                <Link
+                                    href="/invite-820"
+                                    target="_blank"
+                                    className="text-xs text-orange-600 dark:text-amber-400 hover:underline flex items-center gap-0.5 font-medium"
+                                >
+                                    <span>获取 820 公开通行码</span>
+                                    <span className="text-[10px]">↗</span>
+                                </Link>
                             </div>
                             <div className="relative">
                                 <Input
@@ -595,11 +603,21 @@ export function RegisterForm() {
 
                         {/* 学术邀请码输入 */}
                         <div className="space-y-2">
-                            <Label htmlFor="uname-reg-invite" className="flex items-center gap-1.5 font-medium">
-                                <Ticket className="w-4 h-4 text-orange-500 dark:text-amber-400" />
-                                <span>学术邀请码</span>
-                                <span className="text-destructive text-xs font-normal">* 必填</span>
-                            </Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="uname-reg-invite" className="flex items-center gap-1.5 font-medium">
+                                    <Ticket className="w-4 h-4 text-orange-500 dark:text-amber-400" />
+                                    <span>学术邀请码</span>
+                                    <span className="text-destructive text-xs font-normal">* 必填</span>
+                                </Label>
+                                <Link
+                                    href="/invite-820"
+                                    target="_blank"
+                                    className="text-xs text-orange-600 dark:text-amber-400 hover:underline flex items-center gap-0.5 font-medium"
+                                >
+                                    <span>获取 820 公开通行码</span>
+                                    <span className="text-[10px]">↗</span>
+                                </Link>
+                            </div>
                             <div className="relative">
                                 <Input
                                     id="uname-reg-invite"

@@ -248,23 +248,34 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                         animate="visible"
                         className="lg:col-span-7 text-center lg:text-left"
                     >
-                        {/* 学术社群活跃徽章 */}
+                        {/* 学术社群活跃徽章与 820 通行码活动入口 */}
                         <motion.div
                             variants={itemVariants}
-                            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full mb-8 bg-white/80 dark:bg-white/[0.05] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-xs hover:border-amber-500/40 transition-all duration-300 group cursor-default"
+                            className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 mb-8"
                         >
-                            <span className="flex h-2 w-2 relative">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                            </span>
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                                汇聚前沿思想 · 已有{" "}
-                                <span className="text-orange-600 dark:text-amber-400 font-bold">
-                                    <UserCount />
-                                </span>{" "}
-                                位学者在此研讨
-                            </span>
-                            <Sparkles className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-12 transition-transform" />
+                            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/80 dark:bg-white/[0.05] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-xs hover:border-amber-500/40 transition-all duration-300 group cursor-default">
+                                <span className="flex h-2 w-2 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                                </span>
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                                    汇聚前沿思想 · 已有{" "}
+                                    <span className="text-orange-600 dark:text-amber-400 font-bold">
+                                        <UserCount />
+                                    </span>{" "}
+                                    位学者在此研讨
+                                </span>
+                                <Sparkles className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-12 transition-transform" />
+                            </div>
+
+                            <Link
+                                href="/invite-820"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-amber-400 border border-orange-500/30 text-xs font-semibold shadow-xs transition-all hover:scale-105"
+                            >
+                                <span className="text-sm">🎟️</span>
+                                <span>820 邀请码先到先得看板</span>
+                                <ArrowRight className="w-3 h-3 ml-0.5" />
+                            </Link>
                         </motion.div>
 
                         {/* 主品牌与标题 */}

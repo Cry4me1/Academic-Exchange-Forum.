@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Table,
@@ -22,6 +23,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
     Ticket,
     CheckCircle2,
     Users,
@@ -33,6 +42,8 @@ import {
     RefreshCw,
     Download,
     Check,
+    AlertTriangle,
+    X,
 } from "lucide-react";
 import { BatchGenerateDialog } from "./BatchGenerateDialog";
 import { InviteRecordsTab } from "./InviteRecordsTab";
@@ -77,6 +88,12 @@ export function InvitesManagementClient() {
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    // 批量选中管理
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+    const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false);
+
     const pageSize = 15;
 
     const fetchCodes = useCallback(async () => {
@@ -110,6 +127,75 @@ export function InvitesManagementClient() {
         fetchCodes();
     }, [fetchCodes]);
 
+    // 切换单个选择
+    const handleToggleSelectOne = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    // 全选/取消当前页
+    const isAllCurrentPageSelected = items.length > 0 && items.every((item) => selectedIds.has(item.id));
+    const isSomeCurrentPageSelected = items.some((item) => selectedIds.has(item.id)) && !isAllCurrentPageSelected;
+
+    const handleToggleSelectAllCurrentPage = () => {
+        if (isAllCurrentPageSelected) {
+            // 取消当前页全部选中
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                items.forEach((item) => next.delete(item.id));
+                return next;
+            });
+        } else {
+            // 选中当前页全部
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                items.forEach((item) => next.add(item.id));
+                return next;
+            });
+        }
+    };
+
+    // 清空全部选中
+    const handleClearSelection = () => {
+        setSelectedIds(new Set());
+    };
+
+    // 批量删除处理
+    const handleExecuteBatchDelete = async () => {
+        if (selectedIds.size === 0) return;
+
+        setIsBatchDeleting(true);
+        try {
+            const res = await fetch("/api/admin/invites", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: Array.from(selectedIds) }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error || "批量删除失败");
+                return;
+            }
+
+            toast.success(`成功批量删除 ${data.deletedCount || selectedIds.size} 个邀请码`);
+            setSelectedIds(new Set());
+            setShowBatchDeleteDialog(false);
+            fetchCodes();
+        } catch {
+            toast.error("网络异常，批量删除失败");
+        } finally {
+            setIsBatchDeleting(false);
+        }
+    };
+
     // 切换启用状态
     const handleToggleActive = async (id: string, currentActive: boolean) => {
         try {
@@ -130,7 +216,7 @@ export function InvitesManagementClient() {
         }
     };
 
-    // 删除邀请码
+    // 删除单条邀请码
     const handleDelete = async (id: string, code: string) => {
         if (!confirm(`确定要彻底删除邀请码 [${code}] 吗？`)) return;
 
@@ -144,6 +230,12 @@ export function InvitesManagementClient() {
                 return;
             }
             toast.success("邀请码已删除");
+            // 若选集中包含该项，同步移除
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
             fetchCodes();
         } catch {
             toast.error("网络异常");
@@ -314,11 +406,60 @@ export function InvitesManagementClient() {
                         </div>
                     </div>
 
+                    {/* 批量操作控制条（当有选中项时出现） */}
+                    {selectedIds.size > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-xs animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-orange-600 dark:text-amber-400">
+                                    已勾选 {selectedIds.size} 个邀请码
+                                </span>
+                                <span className="text-muted-foreground">|</span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                    onClick={handleToggleSelectAllCurrentPage}
+                                >
+                                    {isAllCurrentPageSelected ? "取消全选本页" : "全选本页"}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                    onClick={handleClearSelection}
+                                >
+                                    清空选择
+                                </Button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="h-8 gap-1.5 shadow-sm"
+                                    onClick={() => setShowBatchDeleteDialog(true)}
+                                    disabled={isBatchDeleting}
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    批量彻底删除 ({selectedIds.size})
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* 表格 */}
                     <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
                         <Table>
                             <TableHeader className="bg-muted/40">
                                 <TableRow>
+                                    <TableHead className="w-12 text-center">
+                                        <Checkbox
+                                            checked={isAllCurrentPageSelected ? true : isSomeCurrentPageSelected ? "indeterminate" : false}
+                                            onCheckedChange={handleToggleSelectAllCurrentPage}
+                                            aria-label="全选当前页"
+                                            disabled={items.length === 0 || isLoading}
+                                        />
+                                    </TableHead>
                                     <TableHead className="font-semibold">邀请码</TableHead>
                                     <TableHead className="font-semibold">签发人</TableHead>
                                     <TableHead className="font-semibold">使用进度 (已用/上限)</TableHead>
@@ -331,7 +472,7 @@ export function InvitesManagementClient() {
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="h-40 text-center">
+                                        <TableCell colSpan={8} className="h-40 text-center">
                                             <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                                 <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
                                                 <span className="text-xs">加载邀请码库中...</span>
@@ -340,7 +481,7 @@ export function InvitesManagementClient() {
                                     </TableRow>
                                 ) : items.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
+                                        <TableCell colSpan={8} className="h-40 text-center text-muted-foreground">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <Ticket className="w-8 h-8 text-muted-foreground/50" />
                                                 <span>暂无匹配的邀请码</span>
@@ -351,9 +492,25 @@ export function InvitesManagementClient() {
                                     items.map((item) => {
                                         const isExpired = item.expires_at ? new Date(item.expires_at) < new Date() : false;
                                         const isExhausted = item.used_count >= item.usage_limit;
+                                        const isSelected = selectedIds.has(item.id);
 
                                         return (
-                                            <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                                            <TableRow
+                                                key={item.id}
+                                                className={`transition-colors ${
+                                                    isSelected
+                                                        ? "bg-orange-500/10 dark:bg-orange-950/20 hover:bg-orange-500/15"
+                                                        : "hover:bg-muted/30"
+                                                }`}
+                                            >
+                                                <TableCell className="text-center">
+                                                    <Checkbox
+                                                        checked={isSelected}
+                                                        onCheckedChange={() => handleToggleSelectOne(item.id)}
+                                                        aria-label={`选择 ${item.code}`}
+                                                    />
+                                                </TableCell>
+
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-mono font-bold tracking-wider text-xs px-2 py-1 bg-muted rounded border border-border/50 text-foreground">
@@ -446,6 +603,51 @@ export function InvitesManagementClient() {
                             </TableBody>
                         </Table>
                     </div>
+
+                    {/* 批量删除确认弹窗 */}
+                    <Dialog open={showBatchDeleteDialog} onOpenChange={setShowBatchDeleteDialog}>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <div className="flex items-center gap-2 text-destructive font-semibold">
+                                    <AlertTriangle className="w-5 h-5" />
+                                    <DialogTitle>确认批量删除邀请码？</DialogTitle>
+                                </div>
+                                <DialogDescription asChild>
+                                    <div className="space-y-2 pt-2 text-sm text-muted-foreground">
+                                        <div>
+                                            您即将彻底删除已勾选的 <strong className="font-bold text-foreground">{selectedIds.size}</strong> 个学术通行邀请码。
+                                        </div>
+                                        <div className="text-destructive text-xs bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 mt-2">
+                                            ⚠️ 警告：该操作将同步级联删除这批邀请码在历史中关联的所有核销记录，且操作不可逆，请谨慎确认！
+                                        </div>
+                                    </div>
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="mt-4 flex flex-row items-center justify-end gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowBatchDeleteDialog(false)}
+                                    disabled={isBatchDeleting}
+                                >
+                                    取消
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleExecuteBatchDelete}
+                                    disabled={isBatchDeleting}
+                                >
+                                    {isBatchDeleting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            正在删除...
+                                        </>
+                                    ) : (
+                                        `确认删除 (${selectedIds.size} 项)`
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
                     {/* 分页 */}
                     {totalPages > 1 && (

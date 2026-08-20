@@ -137,6 +137,17 @@ export async function auditSingleImage(
       };
     }
 
+    // 百度接口错误处理（如 QPS 超限、未开通服务等）
+    if (data.error_code) {
+      console.warn(`[ImageModerator] 百度图片审核返回错误 (code: ${data.error_code}, msg: ${data.error_msg})，已自动降级放行`);
+      return {
+        imageUrl,
+        isSafe: true,
+        isSensitive: false,
+        isDangerous: false,
+      };
+    }
+
     // 其他情况默认为安全或服务返回异常
     return {
       imageUrl,

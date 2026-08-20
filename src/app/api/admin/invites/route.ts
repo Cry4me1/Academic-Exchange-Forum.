@@ -80,22 +80,7 @@ export async function GET(request: NextRequest) {
         // 2. 分页查询列表
         let query = adminClient
             .from("invitation_codes")
-            .select(`
-                id,
-                code,
-                usage_limit,
-                used_count,
-                expires_at,
-                is_active,
-                note,
-                created_at,
-                creator:creator_id (
-                    id,
-                    username,
-                    full_name,
-                    avatar_url
-                )
-            `, { count: "exact" });
+            .select("id, code, usage_limit, used_count, expires_at, is_active, note, created_at, creator_id", { count: "exact" });
 
         if (search) {
             query = query.or(`code.ilike.%${search}%,note.ilike.%${search}%`);
@@ -110,14 +95,49 @@ export async function GET(request: NextRequest) {
         const from = (page - 1) * pageSize;
         const to = from + pageSize - 1;
 
-        const { data: items, count, error: listError } = await query
+        const { data: rawItems, count, error: listError } = await query
             .order("created_at", { ascending: false })
             .range(from, to);
 
         if (listError) {
             console.error("[Admin Invites API] List query error:", listError);
-            return NextResponse.json({ error: "查询邀请码列表失败" }, { status: 500 });
+            return NextResponse.json({ error: listError.message || "查询邀请码列表失败" }, { status: 500 });
         }
+
+        // 3. 安全补全 creator 信息（避免 PostgREST 脆弱的嵌套关系报错）
+        const creatorIds = Array.from(
+            new Set((rawItems || []).map((i) => i.creator_id).filter(Boolean))
+        ) as string[];
+
+        const profileMap = new Map<string, { id: string; username: string | null; full_name: string | null; avatar_url: string | null }>();
+
+        if (creatorIds.length > 0) {
+            const { data: profiles } = await adminClient
+                .from("profiles")
+                .select("id, username, full_name, avatar_url")
+                .in("id", creatorIds);
+
+            (profiles || []).forEach((p) => {
+                profileMap.set(p.id, p);
+            });
+        }
+
+        const formattedItems = (rawItems || []).map((item) => ({
+            ...item,
+            creator: item.creator_id
+                ? profileMap.get(item.creator_id) || {
+                      id: item.creator_id,
+                      username: "Hansszh",
+                      full_name: "超级管理员",
+                      avatar_url: null,
+                  }
+                : {
+                      id: "system",
+                      username: "Hansszh",
+                      full_name: "超级管理员",
+                      avatar_url: null,
+                  },
+        }));
 
         return NextResponse.json({
             stats: {
@@ -126,7 +146,7 @@ export async function GET(request: NextRequest) {
                 totalRemaining,
                 activeCount,
             },
-            items: items || [],
+            items: formattedItems,
             total: count || 0,
             page,
             pageSize,
@@ -220,3 +240,53 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
     }
 }
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const auth = await verifySuperAdminAuth();
+        if (!auth) {
+            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权批量删除邀请码" }, { status: 403 });
+        }
+
+        const body = await request.json();
+        const ids: string[] = Array.isArray(body.ids) ? body.ids : body.id ? [body.id] : [];
+
+        if (!ids || ids.length === 0) {
+            return NextResponse.json({ error: "未指定要删除的邀请码 ID 列表" }, { status: 400 });
+        }
+
+        const adminClient = createAdminClient();
+
+        // 执行批量删除（由于外键设置了 ON DELETE CASCADE，关联的 records 会级联清除）
+        const { error: deleteError, count } = await adminClient
+            .from("invitation_codes")
+            .delete({ count: "exact" })
+            .in("id", ids);
+
+        if (deleteError) {
+            console.error("[Admin Invites API] Batch delete error:", deleteError);
+            return NextResponse.json({ error: deleteError.message || "批量删除邀请码失败" }, { status: 500 });
+        }
+
+        await logAdminAction({
+            actionType: "batch_delete_invitation_codes",
+            targetType: "invitation_codes",
+            details: {
+                deletedCount: count || ids.length,
+                deletedIds: ids,
+                operator: auth.username,
+            },
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: `成功删除 ${count || ids.length} 个邀请码`,
+            deletedCount: count || ids.length,
+        });
+
+    } catch (error: any) {
+        console.error("[Admin Invites API] Batch delete exception:", error);
+        return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
+    }
+}
+
