@@ -7,6 +7,7 @@ import { deleteImages, extractImageUrls, findRemovedImages } from "@/lib/storage
 import { syncPostLinks } from "@/lib/post-links";
 import { generatePostEmbedding } from "@/lib/post-embed";
 import { createClient } from "@/lib/supabase/server";
+import { moderatePostContent } from "@/lib/moderation/engine";
 import { revalidatePath } from "next/cache";
 
 // JSONContent 类型定义
@@ -48,6 +49,24 @@ export async function createPost(data: {
         }
     }
 
+    // 执行 AI + 敏感词内容初审
+    const moderation = await moderatePostContent({
+        authorId: user.id,
+        title: data.title,
+        content: data.content,
+        tags: data.tags,
+    });
+
+    // 若触发直接拦截（违规敏感词或高危严重违规）
+    if (moderation.reviewStatus === "rejected") {
+        return {
+            error: moderation.errorMessage || "内容未通过平台安全审核规范，请修改后重试",
+            moderation,
+        };
+    }
+
+    const isApproved = moderation.reviewStatus === "approved";
+
     const { data: post, error } = await supabase
         .from("posts")
         .insert({
@@ -56,9 +75,15 @@ export async function createPost(data: {
             content: data.content,
             tags: data.tags,
             is_help_wanted: data.is_help_wanted || false,
-            is_published: true,
+            is_published: isApproved,
+            review_status: moderation.reviewStatus,
+            ai_score: moderation.score,
+            ai_risk_level: moderation.riskLevel,
+            ai_reason: moderation.reason,
+            ai_suggested_tags: moderation.suggestedTags,
+            matched_sensitive_words: moderation.matchedSensitiveWords,
         })
-        .select("id")
+        .select("id, review_status, ai_score, ai_risk_level")
         .single();
 
     if (error) {
@@ -66,8 +91,8 @@ export async function createPost(data: {
         return { error: "创建帖子失败" };
     }
 
-    // 同步双向链接与同步生成 Embedding
-    if (post?.id) {
+    // 审核通过时，同步双向链接与同步生成 Embedding
+    if (post?.id && isApproved) {
         await syncPostLinks(supabase, post.id, data.content).catch((err) => {
             console.error("[createPost] 同步双向链接失败:", err);
         });
@@ -77,7 +102,11 @@ export async function createPost(data: {
     }
 
     revalidatePath("/dashboard");
-    return { data: post };
+    return {
+        data: post,
+        reviewStatus: moderation.reviewStatus,
+        message: moderation.errorMessage || (isApproved ? "发布成功" : "已提交审核"),
+    };
 }
 
 // 更新帖子
@@ -97,24 +126,57 @@ export async function updatePost(
         return { error: "请先登录" };
     }
 
-    // 如果内容被更新，先获取旧内容用于对比图片
+    // 如果内容被更新，先获取旧内容用于对比图片与标题
     let oldContent: JSONContentNode | null = null;
-    if (data.content) {
-        const { data: oldPost } = await supabase
-            .from("posts")
-            .select("content")
-            .eq("id", postId)
-            .eq("author_id", user.id)
-            .single();
+    const { data: oldPost } = await supabase
+        .from("posts")
+        .select("title, content, tags, review_status")
+        .eq("id", postId)
+        .eq("author_id", user.id)
+        .single();
 
-        if (oldPost) {
-            oldContent = oldPost.content as JSONContentNode;
+    if (!oldPost) {
+        return { error: "帖子不存在或无权修改" };
+    }
+
+    oldContent = oldPost.content as JSONContentNode;
+
+    const updatePayload: any = { ...data };
+
+    // 若修改了标题或正文，重新走审核
+    if (data.title || data.content) {
+        const titleToReview = data.title || oldPost.title;
+        const contentToReview = data.content || oldPost.content;
+        const tagsToReview = data.tags || oldPost.tags || [];
+
+        const moderation = await moderatePostContent({
+            postId,
+            authorId: user.id,
+            title: titleToReview,
+            content: contentToReview,
+            tags: tagsToReview,
+        });
+
+        if (moderation.reviewStatus === "rejected") {
+            return {
+                error: moderation.errorMessage || "修改后的内容未通过安全审核规范",
+                moderation,
+            };
         }
+
+        const isApproved = moderation.reviewStatus === "approved";
+        updatePayload.review_status = moderation.reviewStatus;
+        updatePayload.is_published = isApproved;
+        updatePayload.ai_score = moderation.score;
+        updatePayload.ai_risk_level = moderation.riskLevel;
+        updatePayload.ai_reason = moderation.reason;
+        updatePayload.ai_suggested_tags = moderation.suggestedTags;
+        updatePayload.matched_sensitive_words = moderation.matchedSensitiveWords;
     }
 
     const { error } = await supabase
         .from("posts")
-        .update(data)
+        .update(updatePayload)
         .eq("id", postId)
         .eq("author_id", user.id);
 
@@ -151,7 +213,10 @@ export async function updatePost(
 
     revalidatePath(`/posts/${postId}`);
     revalidatePath("/dashboard");
-    return { success: true };
+    return {
+        success: true,
+        reviewStatus: updatePayload.review_status || oldPost.review_status,
+    };
 }
 
 // 删除帖子
@@ -230,6 +295,7 @@ export async function getPosts(options: {
             is_solved,
             is_help_wanted,
             is_pinned,
+            review_status,
             created_at,
             author:profiles!author_id (
                 id,
@@ -243,6 +309,7 @@ export async function getPosts(options: {
         `)
         .eq("is_published", true)
         .eq("is_hidden", false)
+        .eq("review_status", "approved")
         .range(offset, offset + limit - 1);
 
     // 默认情况：所有查询优先考虑 is_pinned，然后才是业务排序

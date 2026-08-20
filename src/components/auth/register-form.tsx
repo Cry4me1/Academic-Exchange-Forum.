@@ -767,12 +767,12 @@ export function RegisterForm() {
             {/* 服务条款 */}
             <p className="text-center text-xs text-muted-foreground">
                 受邀注册即表示您同意恪守本站{" "}
-                <Link href="#" className="text-orange-500 dark:text-amber-400 hover:underline">
-                    学术伦理规范
+                <Link href="/rules?tab=terms" target="_blank" className="text-orange-500 dark:text-amber-400 hover:underline font-medium">
+                    用户协议与隐私条款
                 </Link>
                 {" "}与{" "}
-                <Link href="#" className="text-orange-500 dark:text-amber-400 hover:underline">
-                    同行评审章程
+                <Link href="/rules?tab=guidelines" target="_blank" className="text-orange-500 dark:text-amber-400 hover:underline font-medium">
+                    社区公约
                 </Link>
             </p>
 

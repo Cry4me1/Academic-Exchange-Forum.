@@ -68,11 +68,11 @@ export function Footer() {
                         <span>Made with ❤️ by 邵卓翰</span>
                     </div>
                     <div className="flex items-center gap-6 text-sm">
-                        <Link href="#" className="text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/70 transition-colors">
-                            隐私政策
+                        <Link href="/rules?tab=terms" className="text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/70 transition-colors">
+                            用户协议
                         </Link>
-                        <Link href="#" className="text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/70 transition-colors">
-                            服务条款
+                        <Link href="/rules?tab=guidelines" className="text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/70 transition-colors">
+                            社区公约
                         </Link>
                     </div>
                 </div>

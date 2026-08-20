@@ -55,6 +55,8 @@ import {
     Trash2,
     ArrowRight,
     Trophy,
+    AlertTriangle,
+    ShieldAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -98,6 +100,11 @@ interface PostDetailClientProps {
         is_help_wanted?: boolean;
         is_pinned?: boolean;
         is_locked?: boolean;
+        review_status?: string;
+        ai_score?: number | null;
+        ai_risk_level?: string | null;
+        ai_reason?: string | null;
+        reviewer_note?: string | null;
     };
     comments: CommentData[];
     authorOtherPosts: {
@@ -640,6 +647,45 @@ export default function PostDetailClient({
                                     isAuthor={currentUser?.id === post.author.id}
                                     onManageCollections={() => setAddToCollectionOpen(true)}
                                 />
+
+                                {/* 审核状态横幅（作者/管理员可见） */}
+                                {post.review_status === "pending" && (
+                                    <div className="mb-6 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-sm">
+                                        <div className="p-1 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                                            <AlertTriangle className="h-5 w-5" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h4 className="font-semibold text-sm flex items-center gap-2">
+                                                内容人工审核中
+                                                <Badge variant="outline" className="text-amber-600 border-amber-500/30 text-[10px]">
+                                                    仅您与管理员可见
+                                                </Badge>
+                                            </h4>
+                                            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                                                您的帖子已成功提交并进入管理员审稿队列（AI 评分：{post.ai_score ?? 100} 分）。审核通过后将自动对全站公开展出并建立知识图谱索引。
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {post.review_status === "rejected" && (
+                                    <div className="mb-6 p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200 flex items-start gap-3 shadow-sm">
+                                        <div className="p-1 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5">
+                                            <ShieldAlert className="h-5 w-5" />
+                                        </div>
+                                        <div className="space-y-1 flex-1">
+                                            <h4 className="font-semibold text-sm flex items-center gap-2">
+                                                审核未通过 / 已拦截
+                                                <Badge variant="destructive" className="text-[10px]">
+                                                    未公开发布
+                                                </Badge>
+                                            </h4>
+                                            <p className="text-xs text-red-800 dark:text-red-300 leading-relaxed">
+                                                驳回理由：{post.reviewer_note || post.ai_reason || "内容未符合学术社区安全规范"}。您可以点击右上角「编辑帖子」修改后重新提交。
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* 标签 */}
                                 <div className="flex flex-wrap gap-2 mb-4">

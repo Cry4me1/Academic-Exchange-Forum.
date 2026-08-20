@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { getMyCollections, getPostCollections, syncPostCollections } from "@/app/(protected)/collections/actions";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, HelpCircle, Loader2, Plus, Save, Sparkles, X } from "lucide-react";
+import { ArrowLeft, BookOpen, HelpCircle, Loader2, Plus, Save, Sparkles, X, AlertTriangle, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { type JSONContent } from "novel";
@@ -69,6 +69,8 @@ export default function EditPostPage() {
     const [myCollections, setMyCollections] = useState<Array<{ id: string; name: string; post_count?: number }>>([]);
     const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
     const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
+    const [postReviewStatus, setPostReviewStatus] = useState<string | null>(null);
+    const [reviewerNote, setReviewerNote] = useState<string | null>(null);
 
     const loadCollectionsData = useCallback(async () => {
         const { collections } = await getMyCollections();
@@ -110,6 +112,8 @@ export default function EditPostPage() {
         setContentJson(post.content as JSONContent);
         setSelectedTags(post.tags || []);
         setIsHelpWanted(post.is_help_wanted || false);
+        setPostReviewStatus(post.review_status || null);
+        setReviewerNote(post.reviewer_note || post.ai_reason || null);
         setContent("valid");
         setLoading(false);
     }, [postId, router]);
@@ -257,6 +261,48 @@ export default function EditPostPage() {
             {/* 主内容 */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="space-y-8">
+                    {/* 审核状态提醒横幅 */}
+                    {postReviewStatus === "rejected" && (
+                        <motion.div
+                            variants={itemVariants}
+                            className="p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200 flex items-start gap-3 shadow-sm"
+                        >
+                            <div className="p-1 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5">
+                                <ShieldAlert className="h-5 w-5" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-semibold text-sm flex items-center gap-2">
+                                    文章未通过审核（需修改重新提交）
+                                    <Badge variant="destructive" className="text-[10px]">
+                                        已驳回
+                                    </Badge>
+                                </h4>
+                                <p className="text-xs text-red-800 dark:text-red-300 leading-relaxed">
+                                    驳回理由：{reviewerNote || "内容未符合学术社区安全规范"}。请根据审核意见修改文章后点击右上角「保存」，系统将重新初审并提交发布。
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {postReviewStatus === "pending" && (
+                        <motion.div
+                            variants={itemVariants}
+                            className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-sm"
+                        >
+                            <div className="p-1 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                                <AlertTriangle className="h-5 w-5" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-semibold text-sm">
+                                    当前文章正在人工审核中
+                                </h4>
+                                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                                    您可以在此继续完善内容并保存，保存后将更新待审版本。
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+
                     {/* 标题输入 */}
                     <motion.div variants={itemVariants} className="space-y-2">
                         <Label htmlFor="title" className="text-sm font-medium">
@@ -444,13 +490,21 @@ export default function EditPostPage() {
                     {/* 提示信息 */}
                     <motion.div
                         variants={itemVariants}
-                        className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4"
+                        className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 space-y-2"
                     >
-                        <h3 className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">
-                            编辑提示
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                编辑提示与社区规范
+                            </h3>
+                            <Link href="/rules" target="_blank" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                                查看社区规则 ↗
+                            </Link>
+                        </div>
                         <p className="text-sm text-muted-foreground">
-                            修改帖子后，旧版本将自动保存。读者可以通过"查看历史"功能查看修订记录。
+                            • 修改帖子后，旧版本将自动保存。读者可以通过“查看历史”功能查看修订记录。
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            • <strong>图片内容责任</strong>：用户上传的图片需由本人承担全部内容与版权法律责任，严禁上传未经授权或违规图片。
                         </p>
                     </motion.div>
                 </div>

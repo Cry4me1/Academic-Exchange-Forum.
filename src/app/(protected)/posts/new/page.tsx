@@ -54,6 +54,8 @@ const itemVariants = {
     },
 };
 
+const DRAFT_STORAGE_KEY = "scholarly_new_post_draft_v1";
+
 export default function NewPostPage() {
     const router = useRouter();
     const [title, setTitle] = useState("");
@@ -65,16 +67,72 @@ export default function NewPostPage() {
     const [myCollections, setMyCollections] = useState<Array<{ id: string; name: string; post_count?: number }>>([]);
     const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
     const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
+    const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
 
     const loadCollectionsData = useCallback(async () => {
         const { collections } = await getMyCollections();
         setMyCollections(collections || []);
     }, []);
 
-    // 加载用户的专栏列表
+    // 页面加载：恢复未发布的本地草稿
     useEffect(() => {
         loadCollectionsData();
+
+        try {
+            const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+            if (savedDraft) {
+                const parsed = JSON.parse(savedDraft);
+                if (parsed.title) setTitle(parsed.title);
+                if (parsed.tags) setSelectedTags(parsed.tags);
+                if (parsed.isHelpWanted) setIsHelpWanted(parsed.isHelpWanted);
+                if (parsed.contentJson) {
+                    setContentJson(parsed.contentJson);
+                    setContent("valid");
+                }
+                setHasRestoredDraft(true);
+                toast.info("已自动恢复您上次未发布的草稿内容");
+            }
+        } catch (e) {
+            console.error("Failed to restore draft from localStorage:", e);
+        }
     }, [loadCollectionsData]);
+
+    // 自动暂存草稿到 localStorage (防抖)
+    useEffect(() => {
+        if (!title && !contentJson && selectedTags.length === 0) return;
+
+        const timer = setTimeout(() => {
+            try {
+                localStorage.setItem(
+                    DRAFT_STORAGE_KEY,
+                    JSON.stringify({
+                        title,
+                        contentJson,
+                        tags: selectedTags,
+                        isHelpWanted,
+                        updatedAt: Date.now(),
+                    })
+                );
+            } catch (e) {
+                console.error("Failed to save draft:", e);
+            }
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, [title, contentJson, selectedTags, isHelpWanted]);
+
+    const handleClearDraft = () => {
+        if (confirm("确定要清空当前草稿内容吗？")) {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+            setTitle("");
+            setContent("");
+            setContentJson(undefined);
+            setSelectedTags([]);
+            setIsHelpWanted(false);
+            setHasRestoredDraft(false);
+            toast.success("草稿已清空");
+        }
+    };
 
     const handleTagToggle = (tag: string) => {
         if (selectedTags.includes(tag)) {
@@ -125,6 +183,13 @@ export default function NewPostPage() {
                 return;
             }
 
+            // 发帖成功，清除本地草稿
+            try {
+                localStorage.removeItem(DRAFT_STORAGE_KEY);
+            } catch (e) {
+                console.error("Clear draft error:", e);
+            }
+
             // 同步帖子的专栏归属
             if (result.data?.id && selectedCollectionIds.length > 0) {
                 await syncPostCollections(result.data.id, selectedCollectionIds).catch((err) => {
@@ -132,7 +197,14 @@ export default function NewPostPage() {
                 });
             }
 
-            toast.success("发布成功！");
+            if (result.reviewStatus === "pending") {
+                toast.warning("帖子已提交！由于包含学术敏感探讨，已进入人工审核队列，审核通过后将对全站公开展示。", {
+                    duration: 5000,
+                });
+            } else {
+                toast.success("发布成功！");
+            }
+
             router.push(`/posts/${result.data?.id}`);
         } catch (error) {
             toast.error("发布失败，请重试");
@@ -412,13 +484,18 @@ export default function NewPostPage() {
                         variants={itemVariants}
                         className="bg-muted/50 rounded-lg p-4 border border-border/50"
                     >
-                        <h3 className="text-sm font-medium text-foreground mb-2">发布提示</h3>
-                        <ul className="text-sm text-muted-foreground space-y-1">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-sm font-medium text-foreground">发布提示与社区规范</h3>
+                            <Link href="/rules" target="_blank" className="text-xs text-primary hover:underline">
+                                查看社区公约 ↗
+                            </Link>
+                        </div>
+                        <ul className="text-sm text-muted-foreground space-y-1.5">
                             <li>• 请确保内容符合学术规范，尊重他人知识产权</li>
+                            <li>• <strong>图片内容责任</strong>：<strong className="text-foreground">用户上传的图片需由本人承担全部内容与版权法律责任</strong>，严禁上传侵权或违规图片</li>
                             <li>• <strong>数学公式</strong>：输入 LaTeX 文本后，选中并点击工具栏 <span className="font-mono bg-muted px-1 rounded">Σ</span> 按钮渲染</li>
                             <li>• <strong>代码块</strong>：输入 <span className="font-mono bg-muted px-1 rounded">/代码块</span> 插入，支持语法高亮</li>
-                            <li>• <strong>图片上传</strong>：输入 <span className="font-mono bg-muted px-1 rounded">/上传图片</span> 或直接粘贴/拖放</li>
-                            <li>• 图片大小限制 2MB，支持 JPEG、PNG、GIF、WebP 格式</li>
+                            <li>• <strong>图片上传</strong>：输入 <span className="font-mono bg-muted px-1 rounded">/上传图片</span> 或直接粘贴/拖放（限制 2MB，支持 JPEG、PNG、GIF、WebP）</li>
                         </ul>
                     </motion.div>
                 </div>

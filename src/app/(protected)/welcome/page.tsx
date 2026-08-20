@@ -31,6 +31,7 @@ import Link from "next/link";
 const tutorials = [
     {
         id: "f145e71e-4f4c-4907-99cc-b086567c543d",
+        href: "/posts/f145e71e-4f4c-4907-99cc-b086567c543d",
         title: "新手上路：Scholarly 编辑器使用指南",
         description:
             "学习如何使用 Scholarly 的强大编辑器，包括 Slash 命令、Markdown 语法、LaTeX 公式等核心功能。",
@@ -38,9 +39,11 @@ const tutorials = [
         gradient: "from-blue-500 to-cyan-500",
         bgGradient: "from-blue-500/8 to-cyan-500/4",
         borderHover: "hover:border-blue-500/30",
+        badge: "功能指南",
     },
     {
         id: "c481e458-1b13-4f52-85ca-3c894e066588",
+        href: "/posts/c481e458-1b13-4f52-85ca-3c894e066588",
         title: "Scholarly 平台使用指南",
         description:
             "全面了解 Scholarly 平台的各项功能，包括个人资料设置、浏览发现、社交互动和实时通知。",
@@ -48,9 +51,23 @@ const tutorials = [
         gradient: "from-violet-500 to-pink-500",
         bgGradient: "from-violet-500/8 to-pink-500/4",
         borderHover: "hover:border-violet-500/30",
+        badge: "操作全解",
+    },
+    {
+        id: "rules-and-guidelines",
+        href: "/rules",
+        title: "社区合规：用户服务协议与社区公约",
+        description:
+            "查阅免责声明、图片责任自负原则、数据留存政策（文字消息永久保存，文件7天自动删除）与行为准则公约。",
+        icon: ShieldCheck,
+        gradient: "from-emerald-500 to-teal-500",
+        bgGradient: "from-emerald-500/8 to-teal-500/4",
+        borderHover: "hover:border-emerald-500/30",
+        badge: "必读公约",
     },
     {
         id: "ac254d3c-f45a-4dcc-b4c8-3fc86fc4d2e1",
+        href: "/posts/ac254d3c-f45a-4dcc-b4c8-3fc86fc4d2e1",
         title: "致 Scholarly 首批用户的一封信",
         description:
             "了解 Scholarly 的愿景与初心，以及我们为学术交流社区带来的全新体验。",
@@ -58,6 +75,7 @@ const tutorials = [
         gradient: "from-amber-500 to-orange-500",
         bgGradient: "from-amber-500/8 to-orange-500/4",
         borderHover: "hover:border-amber-500/30",
+        badge: "学者初心",
     },
 ];
 
@@ -275,7 +293,7 @@ export default function WelcomePage() {
                     <div className="space-y-4">
                         {tutorials.map((tutorial) => (
                             <motion.div key={tutorial.id} variants={fadeUp}>
-                                <Link href={`/posts/${tutorial.id}`}>
+                                <Link href={tutorial.href}>
                                     <div
                                         className={`group relative rounded-2xl bg-gradient-to-br ${tutorial.bgGradient} border border-border/50 ${tutorial.borderHover} p-6 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] cursor-pointer`}
                                     >
@@ -290,9 +308,16 @@ export default function WelcomePage() {
                                             {/* Text */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-3">
-                                                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                                                        {tutorial.title}
-                                                    </h3>
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                                                            {tutorial.title}
+                                                        </h3>
+                                                        {tutorial.badge && (
+                                                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
+                                                                {tutorial.badge}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                                                 </div>
                                                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
@@ -317,11 +342,21 @@ export default function WelcomePage() {
                                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                             </Button>
                         </Link>
-                        <div className="mt-8 space-y-2 text-center pb-8">
+                        <div className="mt-8 space-y-2.5 text-center pb-8">
+                            <div className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 flex-wrap">
+                                <span>入驻研讨即表示同意遵守平台</span>
+                                <Link href="/rules?tab=terms" className="text-primary hover:underline font-medium">
+                                    《用户服务协议》
+                                </Link>
+                                <span>与</span>
+                                <Link href="/rules?tab=guidelines" className="text-primary hover:underline font-medium">
+                                    《社区行为公约》
+                                </Link>
+                            </div>
                             <p className="text-xs text-muted-foreground/60">
                                 有任何问题？随时可以通过私信联系管理员
                             </p>
-                            <p className="text-sm font-medium text-muted-foreground/80 mt-6">
+                            <p className="text-sm font-medium text-muted-foreground/80 mt-4">
                                 Made with ❤️ by 邵卓翰
                             </p>
                             <p className="text-xs text-muted-foreground/60">

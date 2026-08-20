@@ -19,6 +19,7 @@ import {
     Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 // 正式版发布日期（UTC）- 升级至 v1.1.5 节点以达成 seen 状态重置
@@ -148,12 +149,31 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                         开始探索
                                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                                     </Button>
-                                    <button
-                                        onClick={() => setIsOpen(false)}
-                                        className="w-full mt-3 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                                    >
-                                        稍后再看
-                                    </button>
+                                    <div className="mt-3 flex items-center justify-center gap-2.5 text-[11px] text-muted-foreground/70">
+                                        <Link
+                                            href="/rules?tab=terms"
+                                            onClick={() => setIsOpen(false)}
+                                            className="hover:text-primary hover:underline transition-colors"
+                                        >
+                                            用户协议
+                                        </Link>
+                                        <span>•</span>
+                                        <Link
+                                            href="/rules?tab=guidelines"
+                                            onClick={() => setIsOpen(false)}
+                                            className="hover:text-primary hover:underline transition-colors"
+                                        >
+                                            社区公约
+                                        </Link>
+                                        <span>•</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsOpen(false)}
+                                            className="hover:text-foreground transition-colors"
+                                        >
+                                            稍后再看
+                                        </button>
+                                    </div>
                                 </motion.div>
                             </div>
                         </motion.div>

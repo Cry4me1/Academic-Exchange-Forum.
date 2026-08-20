@@ -50,6 +50,10 @@ interface Post {
     created_at: string;
     like_count: number;
     comment_count: number;
+    review_status?: string;
+    reviewer_note?: string;
+    ai_reason?: string;
+    is_published?: boolean;
 }
 
 interface LikedPost extends Post {
@@ -149,7 +153,7 @@ export default function UserProfilePage() {
             }
 
             // 获取该用户发布的帖子
-            const { data: postsData } = await supabase
+            let postsQuery = supabase
                 .from("posts")
                 .select(`
                     id,
@@ -160,13 +164,22 @@ export default function UserProfilePage() {
                     comment_count,
                     author_id,
                     is_published,
-                    is_pinned
+                    is_pinned,
+                    review_status,
+                    reviewer_note,
+                    ai_reason
                 `)
-                .eq("author_id", userId)
-                .eq("is_published", true)
+                .eq("author_id", userId);
+
+            // 如果不是本人查看，仅展示已发布且审核通过的帖子
+            if (!user || user.id !== userId) {
+                postsQuery = postsQuery.eq("is_published", true).eq("review_status", "approved");
+            }
+
+            const { data: postsData } = await postsQuery
                 .order("is_pinned", { ascending: false })
                 .order("created_at", { ascending: false })
-                .limit(20);
+                .limit(30);
 
             if (postsData && profileData) {
                 const postsWithAuthor = postsData.map((post: any) => ({
@@ -382,16 +395,35 @@ export default function UserProfilePage() {
     // 渲染帖子卡片
     const renderPostCard = (post: Post, extraInfo?: { label: string; time: string }) => (
         <Card key={post.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-4">
-                <Link href={`/posts/${post.id}`}>
-                    <h3 className="font-semibold hover:text-primary transition-colors line-clamp-1">
-                        <MathText text={post.title} inlineOnly />
-                    </h3>
-                </Link>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+            <CardContent className="pt-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                    <Link href={`/posts/${post.id}`} className="flex-1">
+                        <h3 className="font-semibold hover:text-primary transition-colors line-clamp-1 text-base">
+                            <MathText text={post.title} inlineOnly />
+                        </h3>
+                    </Link>
+                    {isOwnProfile && post.review_status === "pending" && (
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-[11px] shrink-0">
+                            待审核
+                        </Badge>
+                    )}
+                    {isOwnProfile && post.review_status === "rejected" && (
+                        <Badge variant="destructive" className="text-[11px] shrink-0">
+                            已驳回 / 需修改
+                        </Badge>
+                    )}
+                </div>
+
+                {isOwnProfile && post.review_status === "rejected" && (
+                    <div className="p-2 rounded-md bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400">
+                        驳回原因：{post.reviewer_note || post.ai_reason || "未符合学术社区安全规范"}
+                    </div>
+                )}
+
+                <p className="text-sm text-muted-foreground line-clamp-2">
                     <MathText text={extractTextFromContent(post.content).substring(0, 150) + "..."} inlineOnly />
                 </p>
-                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-4 pt-1 text-xs text-muted-foreground">
                     <span>{new Date(post.created_at).toLocaleDateString("zh-CN")}</span>
                     <span className="flex items-center gap-1">
                         <Heart className="h-3 w-3" /> {post.like_count || 0}

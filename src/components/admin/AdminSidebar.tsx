@@ -17,6 +17,9 @@ import {
   Ticket,
   ChevronLeft,
   ChevronRight,
+  FileCheck,
+  ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -36,14 +39,24 @@ const navItems: NavItem[] = [
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
   {
-    label: "用户管理",
-    href: "/admin/users",
-    icon: <Users className="h-5 w-5" />,
+    label: "审核工作台",
+    href: "/admin/review",
+    icon: <FileCheck className="h-5 w-5" />,
+  },
+  {
+    label: "敏感词库",
+    href: "/admin/sensitive-words",
+    icon: <ShieldAlert className="h-5 w-5" />,
   },
   {
     label: "内容管理",
     href: "/admin/posts",
     icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    label: "用户管理",
+    href: "/admin/users",
+    icon: <Users className="h-5 w-5" />,
   },
   {
     label: "举报处理",
@@ -70,6 +83,11 @@ const navItems: NavItem[] = [
     label: "公告管理",
     href: "/admin/announcements",
     icon: <Megaphone className="h-5 w-5" />,
+  },
+  {
+    label: "AI 审核日志",
+    href: "/admin/logs/moderation",
+    icon: <Sparkles className="h-5 w-5" />,
   },
   {
     label: "操作日志",

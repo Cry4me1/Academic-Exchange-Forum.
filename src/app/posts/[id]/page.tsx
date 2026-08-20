@@ -12,6 +12,7 @@ interface PageProps {
 // 获取帖子详情
 async function getPost(id: string) {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     const { data: post, error } = await supabase
         .from("posts")
@@ -33,12 +34,30 @@ async function getPost(id: string) {
             )
         `)
         .eq("id", id)
-        .eq("is_published", true)
-        .eq("is_hidden", false)
-        .single();
+        .maybeSingle();
 
     if (error || !post) {
         return null;
+    }
+
+    const isApproved = post.review_status === "approved" && post.is_published && !post.is_hidden;
+    const isAuthor = user?.id && user.id === post.author_id;
+
+    if (!isApproved && !isAuthor) {
+        // 检查是否具备管理员权限
+        let isAdmin = false;
+        if (user) {
+            const { data: adminRole } = await supabase
+                .from("admin_roles")
+                .select("role")
+                .eq("user_id", user.id)
+                .maybeSingle();
+            isAdmin = !!adminRole;
+        }
+
+        if (!isAdmin) {
+            return null;
+        }
     }
 
     return post;

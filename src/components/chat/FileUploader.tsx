@@ -243,10 +243,13 @@ export function FileUploader({
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    <div className="flex flex-col items-center gap-4 p-8 border-2 border-dashed border-primary rounded-xl bg-card">
+                    <div className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-primary rounded-xl bg-card max-w-md text-center">
                         <Upload className="h-12 w-12 text-primary" />
                         <p className="text-lg font-medium">释放文件以上传</p>
-                        <p className="text-sm text-muted-foreground">支持图片、视频、文档等</p>
+                        <p className="text-sm text-muted-foreground">支持图片、视频、文档等附件</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-md border border-amber-500/20">
+                            提示：上传的文件将在7天后自动删除，请及时保存重要内容
+                        </p>
                     </div>
                 </div>
             )}
