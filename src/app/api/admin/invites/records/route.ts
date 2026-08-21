@@ -9,14 +9,13 @@ async function verifySuperAdminAuth() {
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("username, email, full_name")
+        .select("username, email")
         .eq("id", user.id)
         .maybeSingle();
 
     const isHansszhUser = 
         profile?.username?.toLowerCase() === "hansszh" || 
-        user.email?.toLowerCase().includes("hansszh") ||
-        profile?.full_name?.toLowerCase().includes("hansszh");
+        user.email?.toLowerCase().includes("hansszh");
 
     const { data: adminRole } = await supabase
         .from("admin_roles")
@@ -72,12 +71,12 @@ export async function GET(request: NextRequest) {
             )
         ) as string[];
 
-        const profileMap = new Map<string, { id: string; username: string | null; full_name: string | null; avatar_url: string | null }>();
+        const profileMap = new Map<string, { id: string; username: string | null; avatar_url: string | null }>();
 
         if (userIds.length > 0) {
             const { data: profiles } = await adminClient
                 .from("profiles")
-                .select("id, username, full_name, avatar_url")
+                .select("id, username, avatar_url")
                 .in("id", userIds);
 
             (profiles || []).forEach((p) => {
@@ -92,7 +91,6 @@ export async function GET(request: NextRequest) {
                 ? profileMap.get(r.invitee_id) || {
                       id: r.invitee_id,
                       username: r.invitee_username || "受邀学者",
-                      full_name: null,
                       avatar_url: null,
                   }
                 : null,

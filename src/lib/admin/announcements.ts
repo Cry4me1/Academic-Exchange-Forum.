@@ -17,7 +17,7 @@ export interface SystemAnnouncement {
   created_at: string;
   updated_at: string;
   created_by: string | null;
-  creator?: { full_name: string | null } | null;
+  creator?: { username: string | null } | null;
 }
 
 export async function getAnnouncements() {
@@ -28,7 +28,7 @@ export async function getAnnouncements() {
     .from("system_announcements")
     .select(`
       *,
-      creator:profiles!system_announcements_created_by_fkey(full_name)
+      creator:profiles!system_announcements_created_by_fkey(username)
     `)
     .order("created_at", { ascending: false });
 
@@ -71,7 +71,7 @@ export async function createAnnouncement(data: {
     })
     .select(`
       *,
-      creator:profiles!system_announcements_created_by_fkey(full_name)
+      creator:profiles!system_announcements_created_by_fkey(username)
     `)
     .single();
 
@@ -117,7 +117,7 @@ export async function updateAnnouncement(
     .eq("id", id)
     .select(`
       *,
-      creator:profiles!system_announcements_created_by_fkey(full_name)
+      creator:profiles!system_announcements_created_by_fkey(username)
     `)
     .single();
 

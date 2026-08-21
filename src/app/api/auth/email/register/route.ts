@@ -56,7 +56,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const { username, full_name, email, password, captchaToken, captchaCode, inviteCode } = validated.data;
+        const { username, email, password, captchaToken, captchaCode, inviteCode } = validated.data;
 
         // 5. 系统注册模式策略判定（严格邀请制）
         const regMode = await getRegistrationMode();
@@ -126,9 +126,6 @@ export async function POST(request: Request) {
                 emailRedirectTo: redirectTo,
                 data: {
                     username,
-                    full_name: full_name || username,
-                    name: full_name || username,
-                    display_name: full_name || username,
                     auth_provider: "email",
                     invite_code: trimmedInviteCode || undefined,
                 },

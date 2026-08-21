@@ -7,7 +7,6 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 export interface LabPresenceUser {
     id: string;
     username: string;
-    fullName?: string;
     avatarUrl?: string;
     isOnline: boolean;
     scrollPosition?: {
@@ -21,7 +20,6 @@ interface UseLabPresenceOptions {
     roomId: string;
     userId: string;
     username: string;
-    fullName?: string;
     avatarUrl?: string;
     enabled?: boolean;
 }
@@ -36,7 +34,6 @@ export function useLabPresence({
     roomId,
     userId,
     username,
-    fullName,
     avatarUrl,
     enabled = true,
 }: UseLabPresenceOptions): UseLabPresenceReturn {
@@ -67,7 +64,6 @@ export function useLabPresence({
                     members.push({
                         id: key,
                         username: latest.username || key,
-                        fullName: latest.fullName,
                         avatarUrl: latest.avatarUrl,
                         isOnline: true,
                         scrollPosition: latest.scrollPosition,
@@ -85,7 +81,6 @@ export function useLabPresence({
                     setIsConnected(true);
                     await channel.track({
                         username,
-                        fullName,
                         avatarUrl,
                         online_at: new Date().toISOString(),
                     });
@@ -100,20 +95,19 @@ export function useLabPresence({
             setIsConnected(false);
             setOnlineMembers([]);
         };
-    }, [roomId, userId, username, fullName, avatarUrl, enabled]);
+    }, [roomId, userId, username, avatarUrl, enabled]);
 
     const broadcastScrollPosition = useCallback(
         (postId: string, scrollTop: number, scrollPercent: number) => {
             if (!channelRef.current) return;
             channelRef.current.track({
                 username,
-                fullName,
                 avatarUrl,
                 online_at: new Date().toISOString(),
                 scrollPosition: { postId, scrollTop, scrollPercent },
             });
         },
-        [username, fullName, avatarUrl]
+        [username, avatarUrl]
     );
 
     return {

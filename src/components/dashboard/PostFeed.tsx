@@ -39,7 +39,6 @@ interface PostData {
     author: {
         id: string;
         username: string;
-        full_name?: string;
         avatar_url?: string;
         special_title?: string | null;
         badges?: string[] | null;
@@ -259,7 +258,7 @@ export function PostFeed({ filter }: PostFeedProps) {
                                     id={post.id}
                                     author={{
                                         id: post.author.id,
-                                        name: post.author.full_name || post.author.username,
+                                        name: post.author.username || "学者",
                                         avatar: post.author.avatar_url,
                                         initials: (post.author.username || "?").slice(0, 2).toUpperCase(),
                                         special_title: post.author.special_title,

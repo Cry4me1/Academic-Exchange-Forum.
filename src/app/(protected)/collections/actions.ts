@@ -297,7 +297,6 @@ export async function getCollectionsByUser(userId: string) {
             author:profiles!author_id (
                 id,
                 username,
-                full_name,
                 avatar_url
             )
         `)
@@ -394,7 +393,6 @@ export async function getCollectionWithPosts(collectionId: string) {
             author:profiles!author_id (
                 id,
                 username,
-                full_name,
                 avatar_url,
                 vip_level
             )
@@ -428,7 +426,6 @@ export async function getCollectionWithPosts(collectionId: string) {
                 author:profiles!author_id (
                     id,
                     username,
-                    full_name,
                     avatar_url,
                     vip_level
                 )
@@ -560,7 +557,7 @@ export async function getFollowedCollections() {
             is_public, post_count, follower_count, view_count,
             created_at, updated_at,
             author:profiles!author_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             )
         `)
         .in("id", collectionIds);

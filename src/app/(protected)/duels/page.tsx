@@ -22,10 +22,10 @@ async function getActiveDuels() {
             max_rounds,
             created_at,
             challenger:profiles!challenger_id (
-                id, username, full_name, avatar_url, reputation_score
+                id, username, avatar_url, reputation_score
             ),
             opponent:profiles!opponent_id (
-                id, username, full_name, avatar_url, reputation_score
+                id, username, avatar_url, reputation_score
             )
         `)
         .eq("status", "active")
@@ -57,10 +57,10 @@ async function getRecentCompletedDuels() {
             ko_type,
             ended_at,
             challenger:profiles!challenger_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             ),
             opponent:profiles!opponent_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             ),
             winner:profiles!winner_id (
                 id, username
@@ -100,10 +100,10 @@ async function getMyDuels() {
             current_turn_user_id,
             created_at,
             challenger:profiles!challenger_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             ),
             opponent:profiles!opponent_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             )
         `)
         .or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`)
@@ -136,7 +136,7 @@ async function getPendingInvitations() {
                 challenger_position,
                 max_rounds,
                 challenger:profiles!challenger_id (
-                    id, username, full_name, avatar_url, reputation_score
+                    id, username, avatar_url, reputation_score
                 )
             )
         `)

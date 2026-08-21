@@ -85,7 +85,6 @@ interface PostDetailClientProps {
         author: {
             id: string;
             username: string;
-            full_name?: string;
             avatar_url?: string;
             bio?: string;
             reputation_score?: number;
@@ -251,7 +250,7 @@ export default function PostDetailClient({
     const readingProgress = useReadingProgress();
 
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
-    const authorDisplayName = post.author.full_name || post.author.username;
+    const authorDisplayName = post.author.username || "未知学者";
 
     // 从 DOM 中提取 heading 并注入 id 属性
     useEffect(() => {

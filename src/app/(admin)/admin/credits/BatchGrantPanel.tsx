@@ -49,7 +49,7 @@ interface Props {
 
 interface UserOption {
   id: string;
-  full_name: string | null;
+  username: string | null;
   email: string | null;
   avatar_url: string | null;
   vip_level: number;
@@ -158,7 +158,7 @@ export function BatchGrantPanel({ initialGrants }: Props) {
     ? allUsers.filter(
         (u) =>
           !selectedUsers.find((s) => s.id === u.id) &&
-          (u.full_name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+          (u.username?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
             u.email?.toLowerCase().includes(userSearchQuery.toLowerCase()))
       )
     : allUsers.filter((u) => !selectedUsers.find((s) => s.id === u.id));
@@ -374,10 +374,10 @@ export function BatchGrantPanel({ initialGrants }: Props) {
                           <Avatar className="h-4 w-4">
                             <AvatarImage src={user.avatar_url ?? undefined} />
                             <AvatarFallback className="text-[8px]">
-                              {user.full_name?.charAt(0) ?? "?"}
+                              {(user.username ?? "?").slice(0, 1).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span>{user.full_name ?? user.email ?? "未知"}</span>
+                          <span>{user.username ?? user.email ?? "未知学者"}</span>
                           <button
                             onClick={() => removeUser(user.id)}
                             className="ml-0.5 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
@@ -433,12 +433,12 @@ export function BatchGrantPanel({ initialGrants }: Props) {
                                   src={user.avatar_url ?? undefined}
                                 />
                                 <AvatarFallback className="text-[10px]">
-                                  {user.full_name?.charAt(0) ?? "?"}
+                                  {(user.username ?? "?").slice(0, 1).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">
-                                  {user.full_name || "未设置昵称"}
+                                  {user.username || "未知学者"}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground truncate">
                                   {user.email} · V{user.vip_level} · 余额{" "}

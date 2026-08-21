@@ -40,7 +40,7 @@ export async function submitReport(data: ReportData) {
         if (data.type === "post") {
             const { data: post } = await supabase
                 .from("posts")
-                .select("id, title, content, author_id, tags, created_at, profiles!posts_author_id_fkey(full_name, username)")
+                .select("id, title, content, author_id, tags, created_at, profiles!posts_author_id_fkey(username)")
                 .eq("id", data.targetId)
                 .single();
             if (post) {
@@ -59,7 +59,7 @@ export async function submitReport(data: ReportData) {
         } else if (data.type === "comment") {
             const { data: comment } = await supabase
                 .from("comments")
-                .select("id, content, author_id, post_id, created_at, profiles!comments_author_id_fkey(full_name, username)")
+                .select("id, content, author_id, post_id, created_at, profiles!comments_author_id_fkey(username)")
                 .eq("id", data.targetId)
                 .single();
             if (comment) {
@@ -77,13 +77,12 @@ export async function submitReport(data: ReportData) {
         } else if (data.type === "user") {
             const { data: targetUser } = await supabase
                 .from("profiles")
-                .select("id, full_name, username, avatar_url, email")
+                .select("id, username, avatar_url, email")
                 .eq("id", data.targetId)
                 .single();
             if (targetUser) {
                 contentSnapshot = {
                     ...contentSnapshot,
-                    user_full_name: targetUser.full_name,
                     user_username: targetUser.username,
                     user_avatar_url: targetUser.avatar_url,
                 };

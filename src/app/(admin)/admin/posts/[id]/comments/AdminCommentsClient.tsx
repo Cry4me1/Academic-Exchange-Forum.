@@ -21,7 +21,6 @@ interface AdminComment {
   author: {
     id: string;
     username: string | null;
-    full_name: string | null;
     avatar_url: string | null;
   } | null;
 }
@@ -83,7 +82,7 @@ export function AdminCommentsClient({ postId, comments }: AdminCommentsClientPro
                   </Avatar>
                   <div className="sm:hidden flex-1">
                     <p className="font-semibold text-sm">
-                      {comment.author?.full_name || comment.author?.username || "未知用户"}
+                      {comment.author?.username || "学者"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(comment.created_at))}
@@ -94,7 +93,7 @@ export function AdminCommentsClient({ postId, comments }: AdminCommentsClientPro
                 <div className="flex-1 min-w-0">
                   <div className="hidden sm:flex items-center gap-2 mb-2">
                     <p className="font-semibold text-sm">
-                      {comment.author?.full_name || comment.author?.username || "未知用户"}
+                      {comment.author?.username || "学者"}
                     </p>
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(comment.created_at))}

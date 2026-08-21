@@ -60,7 +60,6 @@ interface PostItem {
   created_at: string | null;
   profile: {
     id: string;
-    full_name: string | null;
     username: string | null;
     avatar_url: string | null;
     email: string | null;
@@ -353,10 +352,10 @@ export function ReviewClient({
                         <Avatar className="h-5 w-5">
                           <AvatarImage src={author?.avatar_url || undefined} />
                           <AvatarFallback className="text-[10px]">
-                            {author?.full_name?.charAt(0) || "U"}
+                            {(author?.username || "U").slice(0, 1).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span>{author?.full_name || author?.username || "未知作者"}</span>
+                        <span>{author?.username || "学者"}</span>
                       </div>
                       <span>•</span>
                       <span>
@@ -451,7 +450,7 @@ export function ReviewClient({
               {previewPost?.title}
             </DialogTitle>
             <DialogDescription>
-              作者：{previewPost?.profile?.full_name || previewPost?.profile?.username || "未知"} |
+              作者：{previewPost?.profile?.username || "学者"} |
               提交时间：{previewPost?.created_at ? new Date(previewPost.created_at).toLocaleString("zh-CN") : ""}
             </DialogDescription>
           </DialogHeader>

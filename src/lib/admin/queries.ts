@@ -28,7 +28,6 @@ export interface TrendDataPoint {
 
 export interface RecentUser {
   id: string;
-  full_name: string | null;
   username: string | null;
   avatar_url: string | null;
   email: string | null;
@@ -217,7 +216,7 @@ export async function getRecentUsers(limit: number = 5): Promise<RecentUser[]> {
   const { data } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, username, avatar_url, email, created_at, vip_level, is_banned"
+      "id, username, avatar_url, email, created_at, vip_level, is_banned"
     )
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -236,7 +235,7 @@ export async function getRecentPosts(
   const { data } = await supabase
     .from("posts")
     .select(
-      "id, title, author_id, created_at, view_count, like_count, comment_count, is_hidden, profiles!posts_author_id_fkey(full_name)"
+      "id, title, author_id, created_at, view_count, like_count, comment_count, is_hidden, profiles!posts_author_id_fkey(username)"
     )
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -245,8 +244,8 @@ export async function getRecentPosts(
     id: post.id,
     title: post.title,
     author_id: post.author_id,
-    author_name: (post.profiles as unknown as { full_name: string | null })
-      ?.full_name ?? null,
+    author_name: (post.profiles as unknown as { username: string | null })
+      ?.username ?? null,
     created_at: post.created_at!,
     view_count: post.view_count ?? 0,
     like_count: post.like_count ?? 0,
@@ -277,11 +276,11 @@ export async function getRecentReports(
   const reporterIds = [...new Set(data.map((r) => r.reporter_id))];
   const { data: reporters } = await supabase
     .from("profiles")
-    .select("id, full_name")
+    .select("id, username")
     .in("id", reporterIds);
 
   const reporterMap = new Map(
-    (reporters ?? []).map((r) => [r.id, r.full_name])
+    (reporters ?? []).map((r) => [r.id, r.username])
   );
 
   return data.map((report) => ({

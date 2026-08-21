@@ -26,7 +26,6 @@ interface ProfileData {
     id: string;
     email: string | null;
     username: string | null;
-    full_name: string | null;
     avatar_url: string | null;
     gender: string | null;
     bio: string | null;
@@ -47,7 +46,6 @@ export default function ProfileSettingsPage() {
 
     // 表单状态
     const [formData, setFormData] = useState({
-        full_name: "",
         username: "",
         gender: "",
         bio: "",
@@ -77,7 +75,6 @@ export default function ProfileSettingsPage() {
             } else if (data) {
                 setProfile(data);
                 setFormData({
-                    full_name: data.full_name || "",
                     username: data.username || "",
                     gender: data.gender || "",
                     bio: data.bio || "",
@@ -146,7 +143,6 @@ export default function ProfileSettingsPage() {
             const { error } = await supabase
                 .from("profiles")
                 .update({
-                    full_name: formData.full_name || null,
                     username: formData.username || null,
                     gender: formData.gender || null,
                     bio: formData.bio || null,
@@ -176,7 +172,7 @@ export default function ProfileSettingsPage() {
         );
     }
 
-    const initials = (formData.full_name || formData.username || profile?.email || "U").charAt(0).toUpperCase();
+    const initials = (formData.username || profile?.email || "U").charAt(0).toUpperCase();
     const currentGradient = bannerGradients.find(g => g.id === profile?.banner_style)?.class || bannerGradients[0].class;
 
     return (
@@ -219,7 +215,7 @@ export default function ProfileSettingsPage() {
                                         className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                     >
                                         {uploading ? (
-                                            <Loader2 className="h-6 w-6 animate-spin text-white" />
+                                             <Loader2 className="h-6 w-6 animate-spin text-white" />
                                         ) : (
                                             <Camera className="h-6 w-6 text-white" />
                                         )}
@@ -234,7 +230,7 @@ export default function ProfileSettingsPage() {
                                 </div>
                                 <div>
                                     <h1 className="text-xl font-bold">
-                                        {formData.full_name || formData.username || "未设置姓名"}
+                                        {formData.username || "未设置用户名"}
                                     </h1>
                                     <p className="text-sm text-muted-foreground">{profile?.email}</p>
                                 </div>
@@ -253,23 +249,12 @@ export default function ProfileSettingsPage() {
                     <CardContent className="space-y-6">
                         {/* 表单字段 - 两列布局 */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* 真实姓名 */}
-                            <div className="space-y-2">
-                                <Label htmlFor="full_name">真实姓名</Label>
-                                <Input
-                                    id="full_name"
-                                    placeholder="请输入您的真实姓名"
-                                    value={formData.full_name}
-                                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                                />
-                            </div>
-
                             {/* 用户名/昵称 */}
                             <div className="space-y-2">
-                                <Label htmlFor="username">用户名 (昵称)</Label>
+                                <Label htmlFor="username">学者用户名 / 匿名标识</Label>
                                 <Input
                                     id="username"
-                                    placeholder="请输入您的用户名"
+                                    placeholder="请输入您的学者用户名"
                                     value={formData.username}
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                 />

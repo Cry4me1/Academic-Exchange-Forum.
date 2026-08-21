@@ -21,7 +21,6 @@ async function getPost(id: string) {
             author:profiles!author_id (
                 id,
                 username,
-                full_name,
                 avatar_url,
                 bio,
                 reputation_score,
@@ -107,7 +106,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const post = await getPost(id);
     if (!post) return {};
 
-    const authorName = post.author?.full_name || post.author?.username || 'Unknown';
+    const authorName = post.author?.username || '未知学者';
     const description = extractTextFromJSONContent(post.content).substring(0, 150);
 
     return {
@@ -142,7 +141,6 @@ async function getComments(postId: string) {
             author:profiles!author_id (
                 id,
                 username,
-                full_name,
                 avatar_url,
                 special_title,
                 badges,
@@ -167,7 +165,6 @@ async function getComments(postId: string) {
             author:profiles!author_id (
                 id,
                 username,
-                full_name,
                 avatar_url,
                 special_title,
                 badges,
@@ -228,7 +225,6 @@ async function getCoAuthors(postId: string) {
             lab_room_id,
             user:profiles!user_id(
                 id,
-                full_name,
                 username,
                 avatar_url
             )

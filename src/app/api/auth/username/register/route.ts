@@ -56,7 +56,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const { username, full_name, password, captchaToken, captchaCode, inviteCode } = validated.data;
+        const { username, password, captchaToken, captchaCode, inviteCode } = validated.data;
 
         // 5. 注册策略判定 (严格邀请制)
         const regMode = await getRegistrationMode();
@@ -124,9 +124,6 @@ export async function POST(request: Request) {
             email_confirm: true,
             user_metadata: {
                 username: username,
-                full_name: full_name || username,
-                name: full_name || username,
-                display_name: full_name || username,
                 auth_provider: "username",
                 invite_code: trimmedInviteCode || undefined,
             }
@@ -150,7 +147,6 @@ export async function POST(request: Request) {
             .from("profiles")
             .update({
                 username: username,
-                full_name: full_name,
                 email: pseudoEmail,
                 is_verified: false,
                 auth_provider: "username",

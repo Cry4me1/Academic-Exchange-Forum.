@@ -96,7 +96,7 @@ export function ChatWindow({
 
         // 如果内容为空但有文件，设置默认提示文本
         if ((!content || content === "<p></p>") && pendingFiles.length > 0) {
-            const isAllImages = pendingFiles.every(f => f.type.startsWith("image/"));
+            const isAllImages = pendingFiles.every(f => f.type?.startsWith("image/"));
             content = isAllImages ? "[图片]" : "[文件]";
         }
 

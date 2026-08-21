@@ -63,7 +63,7 @@ interface PostRow {
   is_locked: boolean | null;
   is_hidden: boolean | null;
   tags: string[] | null;
-  profiles: { full_name: string | null; username: string | null; avatar_url: string | null } | null;
+  profiles: { username: string | null; avatar_url: string | null } | null;
 }
 
 interface PostsClientProps {
@@ -239,7 +239,7 @@ export function PostsClient({
             </thead>
             <tbody className="divide-y divide-border/30">
               {posts.map((post) => {
-                const profile = post.profiles as { full_name: string | null; username: string | null; avatar_url: string | null } | null;
+                const profile = post.profiles as { username: string | null; avatar_url: string | null } | null;
 
                 return (
                   <tr
@@ -271,11 +271,11 @@ export function PostsClient({
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={profile?.avatar_url ?? undefined} />
                           <AvatarFallback className="text-[10px] bg-gradient-to-br from-violet-500 to-purple-600 text-white">
-                            {profile?.full_name?.charAt(0) ?? "?"}
+                            {(profile?.username ?? "?").slice(0, 1).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-sm text-muted-foreground">
-                          {profile?.full_name ?? "匿名"}
+                          {profile?.username ?? "学者"}
                         </span>
                       </div>
                     </td>

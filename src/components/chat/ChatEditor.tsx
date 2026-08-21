@@ -20,6 +20,7 @@ import {
     Quote,
     Strikethrough,
 } from "lucide-react";
+import { MathText } from "@/components/ui/math-text";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 // 使用 TipTap 核心库创建轻量级编辑器
@@ -323,45 +324,55 @@ export function ChatContentViewer({ content, className }: ChatContentViewerProps
 
     // DOMPurify 清洗：仅保留 TipTap 富文本安全标签与 KaTeX 相关属性
     const sanitizedContent = useMemo(() => {
-        return DOMPurify.sanitize(content, {
-            ALLOWED_TAGS: [
-                "p", "br", "strong", "b", "em", "i", "u", "s", "del",
-                "h1", "h2", "h3", "h4", "h5", "h6",
-                "ul", "ol", "li",
-                "blockquote", "pre", "code",
-                "a", "img",
-                "table", "thead", "tbody", "tr", "th", "td",
-                "span", "div", "sub", "sup", "mark",
-                "hr",
-            ],
-            ALLOWED_ATTR: [
-                "href", "target", "rel", "src", "alt", "title", "width", "height",
-                "class", "data-tex", "data-type", "data-language",
-                "colspan", "rowspan",
-            ],
-            ALLOW_DATA_ATTR: false,
-        });
+        if (!content) return "";
+        try {
+            return DOMPurify.sanitize(content, {
+                ALLOWED_TAGS: [
+                    "p", "br", "strong", "b", "em", "i", "u", "s", "del",
+                    "h1", "h2", "h3", "h4", "h5", "h6",
+                    "ul", "ol", "li",
+                    "blockquote", "pre", "code",
+                    "a", "img",
+                    "table", "thead", "tbody", "tr", "th", "td",
+                    "span", "div", "sub", "sup", "mark",
+                    "hr",
+                ],
+                ALLOWED_ATTR: [
+                    "href", "target", "rel", "src", "alt", "title", "width", "height",
+                    "class", "data-tex", "data-type", "data-language",
+                    "colspan", "rowspan",
+                ],
+                ALLOW_DATA_ATTR: false,
+            });
+        } catch {
+            return content || "";
+        }
     }, [content]);
 
     useEffect(() => {
-        if (containerRef.current) {
+        if (typeof window === "undefined") return;
+        if (containerRef.current && sanitizedContent) {
             // 使用 KaTeX 自动渲染容器内的 LaTeX 公式
             try {
-                renderMathInElement(containerRef.current, {
-                    delimiters: [
-                        { left: "$$", right: "$$", display: true },
-                        { left: "$", right: "$", display: false },
-                        { left: "\\(", right: "\\)", display: false },
-                        { left: "\\[", right: "\\]", display: true },
-                    ],
-                    throwOnError: false,
-                    output: "html",
-                });
+                if (typeof renderMathInElement === "function") {
+                    renderMathInElement(containerRef.current, {
+                        delimiters: [
+                            { left: "$$", right: "$$", display: true },
+                            { left: "$", right: "$", display: false },
+                            { left: "\\(", right: "\\)", display: false },
+                            { left: "\\[", right: "\\]", display: true },
+                        ],
+                        throwOnError: false,
+                        output: "html",
+                    });
+                }
             } catch (e) {
                 console.error("KaTeX rendering error:", e);
             }
         }
     }, [sanitizedContent]);
+
+    if (!sanitizedContent) return null;
 
     return (
         <div
@@ -376,43 +387,23 @@ export function ChatContentViewer({ content, className }: ChatContentViewerProps
     );
 }
 
-// 纯文本 + LaTeX 渲染器 (安全，防 XSS)
+// 纯文本 + LaTeX 渲染器 (使用独立的 MathText，安全，防 XSS，无 DOM 冲突)
 interface ChatTextMathViewerProps {
     content: string;
     className?: string;
 }
 
 export function ChatTextMathViewer({ content, className }: ChatTextMathViewerProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (containerRef.current) {
-            try {
-                renderMathInElement(containerRef.current, {
-                    delimiters: [
-                        { left: "$$", right: "$$", display: true },
-                        { left: "$", right: "$", display: false },
-                        { left: "\\(", right: "\\)", display: false },
-                        { left: "\\[", right: "\\]", display: true },
-                    ],
-                    throwOnError: false,
-                    output: "html",
-                });
-            } catch (e) {
-                console.error("KaTeX rendering error:", e);
-            }
-        }
-    }, [content]);
+    if (!content) return null;
 
     return (
         <div
-            ref={containerRef}
             className={cn(
-                "whitespace-pre-wrap break-words",
+                "whitespace-pre-wrap break-words leading-relaxed",
                 className
             )}
         >
-            {content}
+            <MathText text={content} />
         </div>
     );
 }

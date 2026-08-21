@@ -60,7 +60,6 @@ export async function getPendingReviewPosts(options: {
       created_at,
       profiles!posts_author_id_fkey (
         id,
-        full_name,
         username,
         avatar_url,
         email
@@ -251,7 +250,7 @@ export async function getModerationLogsList(options: {
       is_cached,
       created_at,
       post:posts!content_moderation_logs_post_id_fkey(title),
-      profile:profiles!content_moderation_logs_author_id_fkey(full_name, username, avatar_url)
+      profile:profiles!content_moderation_logs_author_id_fkey(username, avatar_url)
     `,
       { count: "exact" }
     );

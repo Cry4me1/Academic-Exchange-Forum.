@@ -13,7 +13,6 @@ export interface CoAuthor {
     lab_room_id?: string;
     user: {
         id: string;
-        full_name?: string;
         username?: string;
         avatar_url?: string;
     };
@@ -70,7 +69,7 @@ export function CoAuthorPanel({ coAuthors, labRoomName, labRoomId, className }: 
                                 <div className="flex items-center gap-2">
                                     <Link href={`/user/${ca.user.username || ca.user.id}`}>
                                         <span className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                                            {ca.user.full_name || ca.user.username}
+                                            {ca.user.username || "学者"}
                                         </span>
                                     </Link>
                                     <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", config.color)}>

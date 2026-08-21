@@ -63,7 +63,7 @@ export default async function AdminUserDetailPage({
   if (reporterIds.length > 0) {
     const { data: reporters } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url")
+      .select("id, username, avatar_url")
       .in("id", reporterIds);
     reportersMap = Object.fromEntries((reporters ?? []).map((r) => [r.id, r]));
   }
@@ -82,7 +82,7 @@ export default async function AdminUserDetailPage({
   if (adminIds.length > 0) {
     const { data: admins } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url")
+      .select("id, username, avatar_url")
       .in("id", adminIds);
     adminsMap = Object.fromEntries((admins ?? []).map((a) => [a.id, a]));
   }

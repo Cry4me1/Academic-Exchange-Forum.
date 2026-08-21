@@ -35,7 +35,6 @@ interface TrendingPost {
 interface WeeklyTopPoster {
     id: string;
     username: string;
-    full_name?: string;
     avatar_url?: string;
     post_count: number;
 }
@@ -78,7 +77,7 @@ export function StoryBanner() {
                     .limit(5),
                 supabase
                     .from("posts")
-                    .select("author_id, author:profiles!author_id(id, username, full_name, avatar_url)")
+                    .select("author_id, author:profiles!author_id(id, username, avatar_url)")
                     .eq("is_published", true)
                     .gte("created_at", weekStart),
             ]);
@@ -118,8 +117,7 @@ export function StoryBanner() {
                         type: "topPoster",
                         data: {
                             id: a?.id || "",
-                            username: a?.username || "未知",
-                            full_name: a?.full_name,
+                            username: a?.username || "未知学者",
                             avatar_url: a?.avatar_url,
                             post_count: val.count,
                         },
@@ -273,7 +271,7 @@ function TrendingSlide({ post }: { post: TrendingPost }) {
 }
 
 function TopPosterSlide({ user }: { user: WeeklyTopPoster }) {
-    const displayName = user.full_name || user.username;
+    const displayName = user.username || "学者";
     return (
         <Link href={`/user/${user.id}`}>
             <div className="w-44 h-28 rounded-xl border border-border/40 bg-gradient-to-br from-amber-500/5 to-orange-500/5 p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300">

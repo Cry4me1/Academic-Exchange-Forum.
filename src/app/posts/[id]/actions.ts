@@ -231,7 +231,6 @@ export async function createComment(data: {
             author:profiles!author_id (
                 id,
                 username,
-                full_name,
                 avatar_url
             )
         `)
@@ -384,7 +383,7 @@ export async function getCommentsSorted(
         .select(`
             *,
             author:profiles!author_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             )
         `)
         .eq("post_id", postId)
@@ -397,7 +396,7 @@ export async function getCommentsSorted(
         .select(`
             *,
             author:profiles!author_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             )
         `)
         .eq("post_id", postId)

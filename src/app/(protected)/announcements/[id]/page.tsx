@@ -32,7 +32,7 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
     .from("system_announcements")
     .select(`
       *,
-      creator:profiles!system_announcements_created_by_fkey(full_name, avatar_url)
+      creator:profiles!system_announcements_created_by_fkey(username, avatar_url)
     `)
     .eq("id", id)
     .single();
@@ -46,7 +46,7 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
   const Icon = style.icon;
   
   const creator = Array.isArray(announcement.creator) ? announcement.creator[0] : announcement.creator;
-  const creatorName = creator?.full_name || "系统管理员";
+  const creatorName = creator?.username || "系统管理员";
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-screen">

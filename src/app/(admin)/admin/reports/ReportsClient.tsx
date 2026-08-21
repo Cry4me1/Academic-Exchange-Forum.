@@ -58,7 +58,7 @@ interface ReportRow {
 
 interface ProfileInfo {
   id: string;
-  full_name: string | null;
+  username: string | null;
   avatar_url: string | null;
 }
 
@@ -258,7 +258,6 @@ export function ReportsClient({
                       >
                         <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                         {String(report.content_snapshot?.user_username ||
-                         report.content_snapshot?.user_full_name ||
                          `用户 ${report.target_id.slice(0, 8)}...`)}
                       </a>
                     )}
@@ -281,11 +280,11 @@ export function ReportsClient({
                     <Avatar className="h-5 w-5">
                       <AvatarImage src={reporter?.avatar_url ?? undefined} />
                       <AvatarFallback className="text-[8px] bg-muted">
-                        {reporter?.full_name?.charAt(0) ?? "?"}
+                        {(reporter?.username ?? "?").slice(0, 1).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <span>
-                      {reporter?.full_name ?? "未知用户"} 举报于{" "}
+                      {reporter?.username ?? "学者"} 举报于{" "}
                       {formatDistanceToNow(report.created_at)}
                     </span>
                   </div>
@@ -295,7 +294,7 @@ export function ReportsClient({
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
                       <span>
-                        {handler.full_name ?? "管理员"} 处理于{" "}
+                        {handler.username ?? "管理员"} 处理于{" "}
                         {report.handled_at
                           ? formatDistanceToNow(report.handled_at)
                           : "—"}

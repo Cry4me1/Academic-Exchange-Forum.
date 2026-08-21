@@ -20,8 +20,10 @@ export function ChatList({
 }: ChatListProps) {
     const { isOnline } = usePresenceContext();
 
-    const formatTime = (dateString: string) => {
+    const formatTime = (dateString?: string) => {
+        if (!dateString) return "";
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "";
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
@@ -86,7 +88,7 @@ export function ChatList({
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2">
                                         <p className="font-semibold text-sm truncate">
-                                            {conv.partnerUsername || conv.partnerEmail.split("@")[0]}
+                                            {conv.partnerUsername || (conv.partnerEmail ? conv.partnerEmail.split("@")[0] : "未知用户")}
                                         </p>
                                         <span className="text-[10px] text-muted-foreground flex-shrink-0">
                                             {formatTime(conv.lastMessageTime)}

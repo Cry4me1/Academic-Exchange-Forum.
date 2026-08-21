@@ -160,7 +160,7 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
                 {announcement.content}
               </p>
               <div className="text-xs text-muted-foreground space-y-1">
-                <div>发布者: {announcement.creator?.full_name || "未知"}</div>
+                <div>发布者: {announcement.creator?.username || "未知"}</div>
                 <div>开始: {format(new Date(announcement.start_time), "yyyy-MM-dd HH:mm")}</div>
                 {announcement.end_time && (
                   <div>结束: {format(new Date(announcement.end_time), "yyyy-MM-dd HH:mm")}</div>

@@ -53,7 +53,7 @@ export function UserDetailClient({
   const [specialTitle, setSpecialTitle] = useState(profile.special_title || "");
   const [badgesInput, setBadgesInput] = useState((profile.badges || []).join(", "));
 
-  const displayName = profile.full_name || profile.username || profile.email?.split("@")[0] || "未知用户";
+  const displayName = profile.username || profile.email?.split("@")[0] || "学者";
 
   const handleBan = () => {
     if (!reason.trim()) return toast.error("请输入封禁原因");
@@ -369,9 +369,9 @@ export function UserDetailClient({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
                           <Avatar className="h-5 w-5">
                             <AvatarImage src={reportersMap[report.reporter_id]?.avatar_url} />
-                            <AvatarFallback>{reportersMap[report.reporter_id]?.full_name?.charAt(0) || "?"}</AvatarFallback>
+                            <AvatarFallback>{(reportersMap[report.reporter_id]?.username || "?").slice(0, 1).toUpperCase()}</AvatarFallback>
                           </Avatar>
-                          <span>举报人：{reportersMap[report.reporter_id]?.full_name || "未知"}</span>
+                          <span>举报人：{reportersMap[report.reporter_id]?.username || "学者"}</span>
                         </div>
                       </div>
                     ))}
@@ -408,7 +408,7 @@ export function UserDetailClient({
                             {log.details?.reason && <p>原因: {log.details.reason}</p>}
                             {log.details?.duration_hours && <p>时长: {log.details.duration_hours} 小时</p>}
                             <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border text-xs">
-                              <User className="h-3 w-3" /> 操作人: {adminsMap[log.admin_id]?.full_name || "管理员"}
+                              <User className="h-3 w-3" /> 操作人: {adminsMap[log.admin_id]?.username || "管理员"}
                             </div>
                           </div>
                         </div>

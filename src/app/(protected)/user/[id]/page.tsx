@@ -22,7 +22,6 @@ interface UserProfile {
     id: string;
     email: string | null;
     username: string | null;
-    full_name: string | null;
     avatar_url: string | null;
     gender: string | null;
     bio: string | null;
@@ -188,7 +187,6 @@ export default function UserProfilePage() {
                         id: profileData.id,
                         username: profileData.username,
                         avatar_url: profileData.avatar_url,
-                        full_name: profileData.full_name,
                         is_developer: profileData.is_developer,
                         developer_title: profileData.developer_title,
                     },
@@ -213,7 +211,6 @@ export default function UserProfilePage() {
                             id,
                             username,
                             avatar_url,
-                            full_name,
                             is_developer,
                             developer_title
                         )
@@ -254,7 +251,6 @@ export default function UserProfilePage() {
                                 id,
                                 username,
                                 avatar_url,
-                                full_name,
                                 is_developer,
                                 developer_title
                             )
@@ -291,7 +287,7 @@ export default function UserProfilePage() {
                         .select(`
                             id, name, description, cover_url, cover_style,
                             is_public, post_count, updated_at,
-                            author:profiles!author_id (id, username, full_name, avatar_url)
+                            author:profiles!author_id (id, username, avatar_url)
                         `)
                         .in("id", followIds);
 
@@ -388,7 +384,7 @@ export default function UserProfilePage() {
         );
     }
 
-    const displayName = profile.full_name || profile.username || profile.email?.split("@")[0] || "未知用户";
+    const displayName = profile.username || profile.email?.split("@")[0] || "未知学者";
     const initials = displayName.charAt(0).toUpperCase();
     const isOwnProfile = currentUserId === userId;
 
@@ -538,9 +534,6 @@ export default function UserProfilePage() {
                                             />
                                         )}
                                     </div>
-                                    {profile.username && profile.full_name && (
-                                        <p className="text-muted-foreground mt-1">@{profile.username}</p>
-                                    )}
 
                                     {/* 个人简介 */}
                                     {profile.bio && (
@@ -763,7 +756,7 @@ export default function UserProfilePage() {
                                                     postCount={col.post_count}
                                                     isPublic={col.is_public}
                                                     updatedAt={col.updated_at}
-                                                    authorName={col.author?.full_name || col.author?.username}
+                                                    authorName={col.author?.username || "未知学者"}
                                                     showAuthor
                                                 />
                                             ))}

@@ -30,7 +30,7 @@ interface LogRow {
 
 interface ProfileInfo {
   id: string;
-  full_name: string | null;
+  username: string | null;
   avatar_url: string | null;
 }
 
@@ -137,13 +137,13 @@ export function LogsClient({
               <Avatar className="h-8 w-8 mt-0.5 shrink-0">
                 <AvatarImage src={admin?.avatar_url ?? undefined} />
                 <AvatarFallback className="text-xs bg-gradient-to-br from-violet-500 to-purple-600 text-white">
-                  {admin?.full_name?.charAt(0) ?? "A"}
+                  {(admin?.username ?? "A").slice(0, 1).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium">
-                    {admin?.full_name ?? "管理员"}
+                    {admin?.username ?? "管理员"}
                   </span>
                   <Badge className={`text-[10px] border-0 ${config.color}`}>
                     {config.label}

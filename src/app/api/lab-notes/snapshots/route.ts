@@ -44,12 +44,12 @@ export async function GET(request: NextRequest) {
 
     // 获取创建者信息
     const userIds = [...new Set((data || []).map((s) => s.created_by).filter(Boolean))];
-    let profileMap: Record<string, { full_name?: string; username?: string; avatar_url?: string }> = {};
+    let profileMap: Record<string, { username?: string; avatar_url?: string }> = {};
 
     if (userIds.length > 0) {
         const { data: profiles } = await supabase
             .from("profiles")
-            .select("id, full_name, username, avatar_url")
+            .select("id, username, avatar_url")
             .in("id", userIds);
 
         if (profiles) {

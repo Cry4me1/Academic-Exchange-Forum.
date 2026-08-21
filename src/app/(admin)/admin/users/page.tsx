@@ -19,13 +19,13 @@ export default async function AdminUsersPage({
   let query = supabase
     .from("profiles")
     .select(
-      "id, full_name, username, avatar_url, email, created_at, vip_level, is_banned, is_muted, muted_until, reputation_score, is_developer, email_verified",
+      "id, username, avatar_url, email, created_at, vip_level, is_banned, is_muted, muted_until, reputation_score, is_developer, email_verified",
       { count: "exact" }
     );
 
   if (search) {
     query = query.or(
-      `full_name.ilike.%${search}%,username.ilike.%${search}%,email.ilike.%${search}%`
+      `username.ilike.%${search}%,email.ilike.%${search}%`
     );
   }
 

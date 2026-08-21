@@ -174,7 +174,7 @@ export default function CollectionDetailPage() {
                                                 <User className="h-3 w-3" />
                                             </AvatarFallback>
                                         </Avatar>
-                                        <span className="font-medium">{collection.author?.full_name || collection.author?.username || '未知作者'}</span>
+                                        <span className="font-medium">{collection.author?.username || '未知学者'}</span>
                                     </div>
 
                                     <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">

@@ -249,13 +249,13 @@ export async function getCreditTransactions(
     const userIds = [...new Set(transactions.map((t) => t.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, full_name, email, avatar_url")
+      .select("id, username, email, avatar_url")
       .in("id", userIds);
 
     const profileMap = new Map(
       (profiles ?? []).map((p) => [
         p.id,
-        { name: p.full_name, email: p.email, avatar: p.avatar_url },
+        { name: p.username, email: p.email, avatar: p.avatar_url },
       ])
     );
 
@@ -431,11 +431,11 @@ export async function getBatchGrants(): Promise<BatchGrant[]> {
     const creatorIds = [...new Set(grants.map((g) => g.created_by))];
     const { data: creators } = await supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, username")
       .in("id", creatorIds);
 
     const creatorMap = new Map(
-      (creators ?? []).map((c) => [c.id, c.full_name])
+      (creators ?? []).map((c) => [c.id, c.username])
     );
 
     for (const grant of grants) {
@@ -522,7 +522,7 @@ export async function updateVipLevelConfig(
 export async function getUserCreditsOverview(): Promise<
   {
     id: string;
-    full_name: string | null;
+    username: string | null;
     email: string | null;
     avatar_url: string | null;
     vip_level: number;
@@ -534,7 +534,7 @@ export async function getUserCreditsOverview(): Promise<
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, email, avatar_url, vip_level")
+    .select("id, username, email, avatar_url, vip_level")
     .order("created_at", { ascending: false });
 
   if (!profiles || profiles.length === 0) return [];
@@ -552,7 +552,7 @@ export async function getUserCreditsOverview(): Promise<
 
   return profiles.map((p) => ({
     id: p.id,
-    full_name: p.full_name,
+    username: p.username,
     email: p.email,
     avatar_url: p.avatar_url,
     vip_level: p.vip_level ?? 1,

@@ -120,7 +120,7 @@ export default function FollowedCollectionsPage() {
                                     postCount={col.post_count}
                                     isPublic={col.is_public}
                                     updatedAt={col.updated_at}
-                                    authorName={col.author?.full_name || col.author?.username}
+                                    authorName={col.author?.username || "未知学者"}
                                     showAuthor
                                 />
 

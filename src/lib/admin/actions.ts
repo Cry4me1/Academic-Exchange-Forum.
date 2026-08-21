@@ -726,7 +726,6 @@ export async function getAdminComments(postId: string) {
       author:profiles!author_id(
         id,
         username,
-        full_name,
         avatar_url
       )
     `)

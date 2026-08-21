@@ -13,14 +13,13 @@ async function verifySuperAdminAuth() {
     // 1. 检查 profiles 表中的用户名/邮箱
     const { data: profile } = await supabase
         .from("profiles")
-        .select("username, email, full_name")
+        .select("username, email")
         .eq("id", user.id)
         .maybeSingle();
 
     const isHansszhUser = 
         profile?.username?.toLowerCase() === "hansszh" || 
-        user.email?.toLowerCase().includes("hansszh") ||
-        profile?.full_name?.toLowerCase().includes("hansszh");
+        user.email?.toLowerCase().includes("hansszh");
 
     // 2. 检查 admin_roles 表
     const { data: adminRole } = await supabase
@@ -109,12 +108,12 @@ export async function GET(request: NextRequest) {
             new Set((rawItems || []).map((i) => i.creator_id).filter(Boolean))
         ) as string[];
 
-        const profileMap = new Map<string, { id: string; username: string | null; full_name: string | null; avatar_url: string | null }>();
+        const profileMap = new Map<string, { id: string; username: string | null; avatar_url: string | null }>();
 
         if (creatorIds.length > 0) {
             const { data: profiles } = await adminClient
                 .from("profiles")
-                .select("id, username, full_name, avatar_url")
+                .select("id, username, avatar_url")
                 .in("id", creatorIds);
 
             (profiles || []).forEach((p) => {
@@ -128,13 +127,11 @@ export async function GET(request: NextRequest) {
                 ? profileMap.get(item.creator_id) || {
                       id: item.creator_id,
                       username: "Hansszh",
-                      full_name: "超级管理员",
                       avatar_url: null,
                   }
                 : {
                       id: "system",
                       username: "Hansszh",
-                      full_name: "超级管理员",
                       avatar_url: null,
                   },
         }));

@@ -65,7 +65,7 @@ export const getCachedLatestPosts = unstable_cache(
         `
         id, title, content, tags, created_at, updated_at,
         view_count, like_count, comment_count,
-        author:profiles!author_id (id, username, full_name, avatar_url, special_title, badges)
+        author:profiles!author_id (id, username, avatar_url, special_title, badges)
       `
       )
       .eq("is_published", true)

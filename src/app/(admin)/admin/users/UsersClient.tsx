@@ -43,7 +43,6 @@ import Link from "next/link";
 
 interface UserRow {
   id: string;
-  full_name: string | null;
   username: string | null;
   avatar_url: string | null;
   email: string | null;
@@ -244,7 +243,7 @@ export function UsersClient({
             <tbody className="divide-y divide-border/30">
               {users.map((user) => {
                 const displayName =
-                  user.full_name ?? user.username ?? "未设置昵称";
+                  user.username ?? user.email ?? "未知学者";
                 const isMutedNow =
                   user.is_muted &&
                   user.muted_until &&
@@ -263,7 +262,7 @@ export function UsersClient({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={user.avatar_url ?? undefined} />
                           <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white text-xs">
-                            {displayName.charAt(0)}
+                            {(user.username ?? "?").slice(0, 1).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>

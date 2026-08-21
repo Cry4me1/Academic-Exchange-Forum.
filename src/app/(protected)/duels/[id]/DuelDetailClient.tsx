@@ -47,7 +47,6 @@ import { Progress } from "@/components/ui/progress";
 interface Profile {
     id: string;
     username: string;
-    full_name?: string;
     avatar_url?: string;
     reputation_score?: number;
     duel_wins?: number;
@@ -181,10 +180,10 @@ export default function DuelDetailClient({
                 .select(`
                     *,
                     challenger:profiles!challenger_id(
-                        id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                        id, username, avatar_url, reputation_score, duel_wins, duel_losses
                     ),
                     opponent:profiles!opponent_id(
-                        id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                        id, username, avatar_url, reputation_score, duel_wins, duel_losses
                     ),
                     winner:profiles!winner_id(
                         id, username
@@ -241,7 +240,7 @@ export default function DuelDetailClient({
                         .select(`
                             *,
                             author:profiles!author_id (
-                                id, username, full_name, avatar_url
+                                id, username, avatar_url
                             )
                         `)
                         .eq("id", payload.new.id)
@@ -280,10 +279,10 @@ export default function DuelDetailClient({
                     .select(`
                         *,
                         challenger:profiles!challenger_id(
-                            id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                            id, username, avatar_url, reputation_score, duel_wins, duel_losses
                         ),
                         opponent:profiles!opponent_id(
-                            id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                            id, username, avatar_url, reputation_score, duel_wins, duel_losses
                         ),
                         winner:profiles!winner_id(
                             id, username
@@ -810,7 +809,7 @@ export default function DuelDetailClient({
                                         )}
                                     </div>
                                     <p className="font-semibold text-base sm:text-lg">
-                                        {currentDuel.challenger?.full_name || currentDuel.challenger?.username}
+                                        {currentDuel.challenger?.username || "学者"}
                                     </p>
                                     <Badge variant="outline" className="mt-1 bg-blue-500/5 border-blue-500/30 text-blue-600 text-xs sm:text-sm">
                                         {currentDuel.challenger_position}
@@ -871,7 +870,7 @@ export default function DuelDetailClient({
                                                 )}
                                             </div>
                                             <p className="font-semibold text-base sm:text-lg">
-                                                {currentDuel.opponent?.full_name || currentDuel.opponent?.username}
+                                                {currentDuel.opponent?.username || "学者"}
                                             </p>
                                             <Badge variant="outline" className="mt-1 bg-red-500/5 border-red-500/30 text-red-600 text-xs sm:text-sm">
                                                 {currentDuel.opponent_position}
@@ -973,7 +972,7 @@ export default function DuelDetailClient({
                                                         </Avatar>
                                                         <div>
                                                             <p className="font-medium">
-                                                                {round.author?.full_name || round.author?.username}
+                                                                {round.author?.username || "学者"}
                                                             </p>
                                                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                                 <Badge

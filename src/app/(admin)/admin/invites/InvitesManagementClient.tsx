@@ -61,7 +61,6 @@ interface InviteCodeItem {
     creator: {
         id: string;
         username: string | null;
-        full_name: string | null;
         avatar_url: string | null;
     } | null;
 }
@@ -534,7 +533,7 @@ export function InvitesManagementClient() {
 
                                                 <TableCell>
                                                     <div className="text-xs font-medium text-foreground">
-                                                        {item.creator?.full_name || item.creator?.username || "Hansszh"}
+                                                        {item.creator?.username || "Hansszh"}
                                                     </div>
                                                 </TableCell>
 

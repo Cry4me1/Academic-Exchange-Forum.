@@ -69,7 +69,6 @@ export function RegisterForm() {
         resolver: zodResolver(registerSchema),
         defaultValues: {
             username: "",
-            full_name: "",
             email: "",
             password: "",
             confirmPassword: "",
@@ -94,7 +93,6 @@ export function RegisterForm() {
         resolver: zodResolver(usernameRegisterSchema),
         defaultValues: {
             username: "",
-            full_name: "",
             password: "",
             confirmPassword: "",
             captchaCode: "",
@@ -214,7 +212,6 @@ export function RegisterForm() {
                 },
                 body: JSON.stringify({
                     username: data.username,
-                    full_name: data.full_name,
                     email: data.email,
                     password: data.password,
                     confirmPassword: data.confirmPassword,
@@ -259,7 +256,6 @@ export function RegisterForm() {
                 },
                 body: JSON.stringify({
                     username: data.username,
-                    full_name: data.full_name,
                     password: data.password,
                     confirmPassword: data.confirmPassword,
                     captchaCode: data.captchaCode,
@@ -472,24 +468,6 @@ export function RegisterForm() {
                             )}
                         </div>
 
-                        {/* 真实姓名 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="email-reg-full-name">学者真实姓名 / 署名</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    id="email-reg-full-name"
-                                    type="text"
-                                    placeholder="如：张明 (Prof. Zhang)"
-                                    className="pl-10 h-11"
-                                    {...registerEmail("full_name")}
-                                />
-                            </div>
-                            {emailErrors.full_name && (
-                                <p className="text-sm text-destructive">{emailErrors.full_name.message}</p>
-                            )}
-                        </div>
-
                         {/* 邮箱输入 */}
                         <div className="space-y-2">
                             <Label htmlFor="email-reg-email">学术 / 个人邮箱</Label>
@@ -680,24 +658,6 @@ export function RegisterForm() {
                             </div>
                             {usernameErrors.username && (
                                 <p className="text-sm text-destructive">{usernameErrors.username.message}</p>
-                            )}
-                        </div>
-
-                        {/* 真实姓名 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="uname-reg-full-name">学者真实姓名 / 署名</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    id="uname-reg-full-name"
-                                    type="text"
-                                    placeholder="如：张明 (Prof. Zhang)"
-                                    className="pl-10 h-11"
-                                    {...registerUsername("full_name")}
-                                />
-                            </div>
-                            {usernameErrors.full_name && (
-                                <p className="text-sm text-destructive">{usernameErrors.full_name.message}</p>
                             )}
                         </div>
 

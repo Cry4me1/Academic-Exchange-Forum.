@@ -19,7 +19,7 @@ export default async function AdminPostsPage({
   let query = supabase
     .from("posts")
     .select(
-      "id, title, author_id, created_at, updated_at, view_count, like_count, comment_count, is_published, is_pinned, is_locked, is_hidden, tags, profiles!posts_author_id_fkey(full_name, username, avatar_url)",
+      "id, title, author_id, created_at, updated_at, view_count, like_count, comment_count, is_published, is_pinned, is_locked, is_hidden, tags, profiles!posts_author_id_fkey(username, avatar_url)",
       { count: "exact" }
     );
 

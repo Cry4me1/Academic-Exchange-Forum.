@@ -31,7 +31,7 @@ export default async function AdminLogsPage({
   const adminIds = [...new Set((logs ?? []).map((l) => l.admin_id))];
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url")
+    .select("id, username, avatar_url")
     .in("id", adminIds);
 
   const profileMap = Object.fromEntries(

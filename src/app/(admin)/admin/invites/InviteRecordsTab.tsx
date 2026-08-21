@@ -26,13 +26,11 @@ interface RecordItem {
     inviter: {
         id: string;
         username: string | null;
-        full_name: string | null;
         avatar_url: string | null;
     } | null;
     invitee: {
         id: string;
         username: string | null;
-        full_name: string | null;
         avatar_url: string | null;
     } | null;
 }
@@ -151,7 +149,7 @@ export function InviteRecordsTab() {
                                             </Avatar>
                                             <div>
                                                 <div className="text-xs font-semibold text-foreground">
-                                                    {r.invitee?.full_name || r.invitee_username || "未命论学者"}
+                                                    {r.invitee?.username || r.invitee_username || "受邀学者"}
                                                 </div>
                                                 <div className="text-[11px] text-muted-foreground">
                                                     {r.invitee_email || `@${r.invitee_username}`}
@@ -169,7 +167,7 @@ export function InviteRecordsTab() {
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <span className="text-xs font-medium text-foreground">
-                                                    {r.inviter.full_name || r.inviter.username}
+                                                    {r.inviter.username || "Hansszh"}
                                                 </span>
                                             </div>
                                         ) : (

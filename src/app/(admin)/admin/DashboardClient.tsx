@@ -186,12 +186,12 @@ export function DashboardClient({
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user.avatar_url ?? undefined} />
                   <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white text-xs">
-                    {user.full_name?.charAt(0) ?? "?"}
+                    {(user.username ?? "?").slice(0, 1).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-                    {user.full_name ?? user.username ?? "未设置昵称"}
+                    {user.username ?? "未知学者"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatDistanceToNow(user.created_at)}

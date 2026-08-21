@@ -82,14 +82,14 @@ export async function getLabRoom(roomId: string) {
                 role,
                 joined_at,
                 last_seen_at,
-                user:profiles(id, full_name, username, avatar_url)
+                user:profiles(id, username, avatar_url)
             ),
             lab_post_links(
                 id,
                 sort_order,
                 created_at,
                 post:posts(id, title, content, tags, author_id, like_count, comment_count, created_at,
-                    author:profiles(id, full_name, username, avatar_url)
+                    author:profiles(id, username, avatar_url)
                 )
             )
         `)
@@ -196,7 +196,7 @@ export async function searchPostsForRoom(query: string, roomId: string) {
     // 搜索帖子
     let queryBuilder = supabase
         .from("posts")
-        .select("id, title, tags, like_count, comment_count, created_at, author:profiles(id, full_name, username, avatar_url)")
+        .select("id, title, tags, like_count, comment_count, created_at, author:profiles(id, username, avatar_url)")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -245,7 +245,7 @@ export async function addPostToRoom(roomId: string, postId: string) {
             sort_order,
             created_at,
             post:posts(id, title, content, tags, author_id, like_count, comment_count, created_at,
-                author:profiles(id, full_name, username, avatar_url)
+                author:profiles(id, username, avatar_url)
             )
         `)
         .single();

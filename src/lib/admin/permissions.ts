@@ -74,14 +74,14 @@ export async function requireAdmin(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url, email")
+    .select("username, avatar_url, email")
     .eq("id", user.id)
     .single();
 
   return {
     id: user.id,
     role: adminRole.role as AdminRole,
-    fullName: profile?.full_name ?? null,
+    fullName: profile?.username ?? "管理员",
     avatarUrl: profile?.avatar_url ?? null,
     email: profile?.email ?? user.email ?? null,
   };

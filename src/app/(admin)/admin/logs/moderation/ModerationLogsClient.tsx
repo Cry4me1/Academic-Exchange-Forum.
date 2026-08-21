@@ -41,7 +41,6 @@ interface ModerationLogItem {
   created_at: string;
   post: { title: string } | null;
   profile: {
-    full_name: string | null;
     username: string | null;
     avatar_url: string | null;
   } | null;
@@ -199,11 +198,11 @@ export function ModerationLogsClient({
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={author?.avatar_url || undefined} />
                             <AvatarFallback className="text-[10px]">
-                              {author?.full_name?.charAt(0) || "U"}
+                              {(author?.username || "U").slice(0, 1).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-xs text-muted-foreground">
-                            {author?.full_name || author?.username || "未知"}
+                            {author?.username || "学者"}
                           </span>
                         </div>
                       </td>

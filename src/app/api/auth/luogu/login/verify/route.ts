@@ -107,7 +107,6 @@ export async function POST(request: Request) {
                     email_confirm: true, // 洛谷注册用户直接验证邮箱状态
                     user_metadata: {
                         username: luoguUsername,
-                        full_name: luoguUsername,
                         auth_provider: "luogu",
                     }
                 });

@@ -136,8 +136,9 @@ export function useNotifications(currentUserId: string | null): UseNotifications
     useEffect(() => {
         if (!currentUserId) return;
 
+        const channelName = `notifications-realtime:${currentUserId}`;
         const channel = supabase
-            .channel("notifications-realtime")
+            .channel(channelName)
             .on(
                 "postgres_changes",
                 {
@@ -177,7 +178,8 @@ export function useNotifications(currentUserId: string | null): UseNotifications
         channelRef.current = channel;
 
         return () => {
-            channel.unsubscribe();
+            supabase.removeChannel(channel);
+            channelRef.current = null;
         };
     }, [currentUserId, supabase]);
 

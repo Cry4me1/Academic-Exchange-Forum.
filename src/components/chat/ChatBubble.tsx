@@ -39,8 +39,10 @@ export function ChatBubble({
 }: ChatBubbleProps) {
     const [isRevoking, setIsRevoking] = useState(false);
 
-    const formatTime = (dateString: string) => {
+    const formatTime = (dateString?: string | null) => {
+        if (!dateString) return "";
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "";
         return date.toLocaleTimeString("zh-CN", {
             hour: "2-digit",
             minute: "2-digit",
@@ -264,11 +266,17 @@ export function ChatMessages({
     const groupedMessages = messages.reduce<
         { date: string; messages: Message[] }[]
     >((groups, message) => {
-        const date = new Date(message.created_at).toLocaleDateString("zh-CN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
+        let date = "今天";
+        if (message.created_at) {
+            const parsed = new Date(message.created_at);
+            if (!isNaN(parsed.getTime())) {
+                date = parsed.toLocaleDateString("zh-CN", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                });
+            }
+        }
 
         const lastGroup = groups[groups.length - 1];
         if (lastGroup && lastGroup.date === date) {

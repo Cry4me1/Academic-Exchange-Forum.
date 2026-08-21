@@ -10,14 +10,13 @@ async function verifySuperAdminAuth() {
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("username, email, full_name")
+        .select("username, email")
         .eq("id", user.id)
         .maybeSingle();
 
     const isHansszhUser = 
         profile?.username?.toLowerCase() === "hansszh" || 
-        user.email?.toLowerCase().includes("hansszh") ||
-        profile?.full_name?.toLowerCase().includes("hansszh");
+        user.email?.toLowerCase().includes("hansszh");
 
     const { data: adminRole } = await supabase
         .from("admin_roles")

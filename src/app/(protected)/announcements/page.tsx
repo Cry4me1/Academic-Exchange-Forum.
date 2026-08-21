@@ -23,7 +23,7 @@ export default async function AnnouncementsPage() {
     .from("system_announcements")
     .select(`
       *,
-      creator:profiles!system_announcements_created_by_fkey(full_name)
+      creator:profiles!system_announcements_created_by_fkey(username)
     `)
     .eq("is_active", true)
     .lte("start_time", now)

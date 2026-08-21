@@ -319,8 +319,9 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
     useEffect(() => {
         if (!currentUserId) return;
 
+        const channelName = `friendships-changes:${currentUserId}`;
         const channel = supabase
-            .channel("friendships-changes")
+            .channel(channelName)
             .on(
                 "postgres_changes",
                 {
@@ -344,7 +345,7 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
             .subscribe();
 
         return () => {
-            channel.unsubscribe();
+            supabase.removeChannel(channel);
         };
     }, [currentUserId, supabase, fetchFriends]);
 

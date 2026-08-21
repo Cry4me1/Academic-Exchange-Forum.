@@ -24,7 +24,6 @@ interface PostResult {
     created_at: string;
     author: {
         id: string;
-        full_name?: string;
         username?: string;
         avatar_url?: string;
     };
@@ -133,7 +132,7 @@ export function PostSearchDialog({ open, onOpenChange, roomId, onPostAdded }: Po
                                         {post.title}
                                     </p>
                                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                        <span>{post.author.full_name || post.author.username}</span>
+                                        <span>{post.author.username || "学者"}</span>
                                         <span className="flex items-center gap-0.5">
                                             <Heart className="h-3 w-3" /> {post.like_count}
                                         </span>

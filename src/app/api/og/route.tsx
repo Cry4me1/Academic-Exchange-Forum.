@@ -88,7 +88,6 @@ export async function GET(request: NextRequest) {
                 tags,
                 author:profiles!author_id (
                     username,
-                    full_name,
                     avatar_url
                 )
             `)
@@ -104,8 +103,8 @@ export async function GET(request: NextRequest) {
         const summary = generateSimpleSummary(textContent, 80);
 
         // 作者信息
-        const author = post.author as { username?: string; full_name?: string; avatar_url?: string } | null;
-        const authorName = author?.full_name || author?.username || "匿名用户";
+        const author = post.author as { username?: string; avatar_url?: string } | null;
+        const authorName = author?.username || "学者";
         const authorInitials = (author?.username || "?").slice(0, 2).toUpperCase();
         const title = post.title.length > 60 ? post.title.slice(0, 57) + "..." : post.title;
         const tags = (post.tags || []).slice(0, 3);

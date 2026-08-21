@@ -35,7 +35,7 @@ export async function createPost(data: {
     // 检查用户是否被封禁或禁言
     const { data: profile } = await supabase
         .from("profiles")
-        .select("id, username, full_name, email, is_banned, is_muted, muted_until")
+        .select("id, username, email, is_banned, is_muted, muted_until")
         .eq("id", user.id)
         .single();
 
@@ -102,7 +102,6 @@ export async function createPost(data: {
             author: {
                 id: user.id,
                 username: profile?.username,
-                fullName: profile?.full_name,
                 email: profile?.email || user.email,
             },
             moderation: {
@@ -221,7 +220,7 @@ export async function updatePost(
     if (updatePayload.review_status === "pending" && moderationResult) {
         const { data: authorProfile } = await supabase
             .from("profiles")
-            .select("id, username, full_name, email")
+            .select("id, username, email")
             .eq("id", user.id)
             .single();
 
@@ -233,7 +232,6 @@ export async function updatePost(
             author: {
                 id: user.id,
                 username: authorProfile?.username,
-                fullName: authorProfile?.full_name,
                 email: authorProfile?.email || user.email,
             },
             moderation: {
@@ -364,7 +362,6 @@ export async function getPosts(options: {
             author:profiles!author_id (
                 id,
                 username,
-                full_name,
                 avatar_url,
                 vip_level,
                 special_title,

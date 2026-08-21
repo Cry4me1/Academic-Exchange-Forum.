@@ -35,7 +35,6 @@ interface Member {
     role: string;
     user: {
         id: string;
-        full_name?: string;
         username?: string;
         avatar_url?: string;
     };
@@ -189,7 +188,7 @@ export function LabSettingsDialog({
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">
-                                            {member.user.full_name || member.user.username}
+                                            {member.user.username || "学者"}
                                         </p>
                                     </div>
                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">

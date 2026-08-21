@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // Types
@@ -55,7 +56,6 @@ interface PostLink {
         created_at: string;
         author: {
             id: string;
-            full_name?: string;
             username?: string;
             avatar_url?: string;
         };
@@ -67,7 +67,6 @@ interface Member {
     role: string;
     user: {
         id: string;
-        full_name?: string;
         username?: string;
         avatar_url?: string;
     };
@@ -86,7 +85,6 @@ interface LabRoomClientProps {
     };
     currentUserId: string;
     currentUsername: string;
-    currentFullName?: string;
     currentAvatarUrl?: string;
 }
 
@@ -101,7 +99,6 @@ export default function LabRoomClient({
     room,
     currentUserId,
     currentUsername,
-    currentFullName,
     currentAvatarUrl,
 }: LabRoomClientProps) {
     const [selectedPostIndex, setSelectedPostIndex] = useState(0);
@@ -115,49 +112,41 @@ export default function LabRoomClient({
     const selectedPost = postLinks[selectedPostIndex]?.post;
     const members = useMemo(() => room.lab_members || [], [room.lab_members]);
     const currentMember = members.find((m) => m.user.id === currentUserId);
-    const isOwnerOrAdmin = currentMember?.role === "owner" || currentMember?.role === "admin";
+    const isOwner = currentMember?.role === "owner";
+    const isOwnerOrAdmin = isOwner || currentMember?.role === "admin";
+    const canEdit = ["owner", "admin", "editor"].includes(currentMember?.role || "");
+
     const router = useRouter();
 
-    // 实时监听成员 + 帖子列表变化
+    // 监听实时更新（如被踢出房间）
     useEffect(() => {
         const supabase = createClient();
         const channel = supabase
-            .channel(`lab-data:${room.id}`)
+            .channel(`lab-room-${room.id}`)
             .on(
                 "postgres_changes",
                 {
-                    event: "*",
+                    event: "DELETE",
                     schema: "public",
                     table: "lab_members",
                     filter: `room_id=eq.${room.id}`,
                 },
-                () => { router.refresh(); }
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "lab_post_links",
-                    filter: `room_id=eq.${room.id}`,
-                },
-                () => { router.refresh(); }
+                (payload: any) => {
+                    if (payload.old?.user_id === currentUserId) {
+                        toast.error("你已被移出该研究室");
+                        router.push("/lab");
+                    }
+                }
             )
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [room.id, router]);
+    }, [room.id, router, currentUserId]);
 
     // Yjs 协作（基于 Supabase Realtime broadcast + Awareness）
-    // 解析显示名称：如果 username 像 UUID，则用 full_name 或友好缩写
-    const displayName = (() => {
-        if (currentFullName) return currentFullName;
-        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}/i;
-        if (currentUsername && !uuidPattern.test(currentUsername)) return currentUsername;
-        return `用户${currentUserId.slice(-4)}`;
-    })();
+    const displayName = currentUsername || `学者${currentUserId.slice(-4)}`;
 
     const {
         ydoc, awarenessProvider, isConnected: yjsConnected, connectedPeers,
@@ -177,7 +166,6 @@ export default function LabRoomClient({
         roomId: room.id,
         userId: currentUserId,
         username: currentUsername,
-        fullName: currentFullName,
         avatarUrl: currentAvatarUrl,
     });
 
@@ -215,7 +203,7 @@ export default function LabRoomClient({
             .filter((m) => m.user.id !== currentUserId)
             .map((m) => ({
                 id: m.user.id,
-                name: m.user.full_name || m.user.username || "unknown",
+                name: m.user.username || "学者",
                 avatarUrl: m.user.avatar_url,
             }));
     }, [members, currentUserId]);
@@ -298,7 +286,7 @@ export default function LabRoomClient({
                                                 <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-background" />
                                             </div>
                                         </TooltipTrigger>
-                                        <TooltipContent>{om.fullName || om.username} (在线)</TooltipContent>
+                                        <TooltipContent>{om.username} (在线)</TooltipContent>
                                     </Tooltip>
                                 ))}
                                 {onlineMembers.length > 5 && (
@@ -376,7 +364,7 @@ export default function LabRoomClient({
                                         <div>
                                             <h2 className="font-semibold text-foreground">{selectedPost.title}</h2>
                                             <p className="text-xs text-muted-foreground mt-0.5">
-                                                作者: {selectedPost.author.full_name || selectedPost.author.username}
+                                                作者: {selectedPost.author.username || "学者"}
                                                 {selectedPost.tags?.length > 0 && ` · ${selectedPost.tags.join(", ")}`}
                                             </p>
                                         </div>
@@ -508,7 +496,7 @@ export default function LabRoomClient({
                                                 "text-xs truncate",
                                                 isOnlineNow ? "text-foreground" : "text-muted-foreground"
                                             )}>
-                                                {member.user.full_name || member.user.username}
+                                                {member.user.username || "学者"}
                                             </span>
                                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-auto">
                                                 {roleLabels[member.role] || member.role}

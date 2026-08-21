@@ -15,10 +15,10 @@ async function getDuel(id: string) {
         .select(`
             *,
             challenger:profiles!challenger_id (
-                id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                id, username, avatar_url, reputation_score, duel_wins, duel_losses
             ),
             opponent:profiles!opponent_id (
-                id, username, full_name, avatar_url, reputation_score, duel_wins, duel_losses
+                id, username, avatar_url, reputation_score, duel_wins, duel_losses
             ),
             winner:profiles!winner_id (
                 id, username
@@ -44,7 +44,7 @@ async function getDuelRounds(duelId: string) {
         .select(`
             *,
             author:profiles!author_id (
-                id, username, full_name, avatar_url
+                id, username, avatar_url
             )
         `)
         .eq("duel_id", duelId)

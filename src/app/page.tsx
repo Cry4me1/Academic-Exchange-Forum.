@@ -26,7 +26,6 @@ export default async function Home() {
       author: {
         id: authorObj?.id || "",
         username: authorObj?.username || "学者",
-        full_name: authorObj?.full_name || authorObj?.username || "认证学者",
         avatar_url: authorObj?.avatar_url || null,
         special_title: authorObj?.special_title || "同行评议学者",
       },

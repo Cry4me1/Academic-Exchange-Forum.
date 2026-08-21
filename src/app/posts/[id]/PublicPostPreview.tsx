@@ -39,7 +39,6 @@ interface PublicPostPreviewProps {
         author: {
             id: string;
             username: string;
-            full_name?: string;
             avatar_url?: string;
             is_verified?: boolean;
             auth_provider?: string;
@@ -49,7 +48,7 @@ interface PublicPostPreviewProps {
 }
 
 export default function PublicPostPreview({ post, collections = [] }: PublicPostPreviewProps) {
-    const authorName = post.author?.full_name || post.author?.username || "匿名用户";
+    const authorName = post.author?.username || "学者";
     const authorInitial = authorName.charAt(0).toUpperCase();
 
     return (

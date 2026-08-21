@@ -36,7 +36,7 @@ export default async function AdminReportsPage({
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url")
+    .select("id, username, avatar_url")
     .in("id", Array.from(userIds));
 
   const profileMap = Object.fromEntries(

@@ -14,10 +14,6 @@ export const registerSchema = z
             .min(2, "用户名至少 2 个字符")
             .max(20, "用户名最多 20 个字符")
             .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, "用户名只能包含字母、数字、下划线或中文"),
-        full_name: z
-            .string()
-            .min(2, "真实姓名至少 2 个字符")
-            .max(30, "真实姓名最多 30 个字符"),
         email: z.string().email("请输入有效的邮箱地址"),
         password: passwordSchema,
         confirmPassword: passwordSchema,
@@ -68,10 +64,6 @@ export const usernameRegisterSchema = z
             .min(2, "用户名至少 2 个字符")
             .max(20, "用户名最多 20 个字符")
             .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, "用户名只能包含字母、数字、下划线或中文"),
-        full_name: z
-            .string()
-            .min(2, "真实姓名至少 2 个字符")
-            .max(30, "真实姓名最多 30 个字符"),
         password: passwordSchema,
         confirmPassword: passwordSchema,
         captchaCode: z.string().min(1, "请输入人机验证码"),

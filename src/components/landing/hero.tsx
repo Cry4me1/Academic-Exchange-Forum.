@@ -35,7 +35,6 @@ export interface HeroPostItem {
     author?: {
         id?: string;
         username?: string;
-        full_name?: string;
         avatar_url?: string | null;
         special_title?: string;
     };
@@ -148,7 +147,6 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
             view_count: 520,
             author: {
                 username: "quantum_physicist",
-                full_name: "沈知远 教授",
                 special_title: "国家杰青 · 高能物理所",
             },
         },
@@ -162,7 +160,6 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
             view_count: 890,
             author: {
                 username: "elena_ai",
-                full_name: "Elena Rostova",
                 special_title: "AI 首席科学家",
             },
         },
@@ -176,7 +173,6 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
             view_count: 360,
             author: {
                 username: "topologist",
-                full_name: "林承宇 博士",
                 special_title: "应用数学研究员",
             },
         },
@@ -407,11 +403,11 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-orange-500/20">
-                                                {(currentPost.author?.full_name || currentPost.author?.username || "学").slice(0, 1)}
+                                                {(currentPost.author?.username || "学者").slice(0, 1).toUpperCase()}
                                             </div>
                                             <div>
                                                 <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                                    {currentPost.author?.full_name || currentPost.author?.username || "认证学者"}
+                                                    {currentPost.author?.username || "认证学者"}
                                                     <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
                                                 </div>
                                                 <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">

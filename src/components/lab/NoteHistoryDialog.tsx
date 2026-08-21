@@ -45,7 +45,6 @@ interface Snapshot {
     created_by: string | null;
     created_at: string;
     createdByUser: {
-        full_name?: string;
         username?: string;
         avatar_url?: string;
     } | null;
@@ -296,7 +295,7 @@ export function NoteHistoryDialog({
                                                                     {(snapshot.createdByUser.username || "?").slice(0, 1).toUpperCase()}
                                                                 </AvatarFallback>
                                                             </Avatar>
-                                                            {snapshot.createdByUser.full_name || snapshot.createdByUser.username}
+                                                            {snapshot.createdByUser.username || "学者"}
                                                         </span>
                                                     )}
                                                     <span className="text-[10px] opacity-50">

@@ -139,16 +139,18 @@ export function useMessages(
                 const convList: Conversation[] = partnerIds.map((partnerId) => {
                     const conv = conversationMap.get(partnerId)!;
                     const profile = profiles?.find((p: any) => p.id === partnerId);
+                    const rawContent = conv.lastMessage?.is_revoked
+                        ? "[消息已撤回]"
+                        : (conv.lastMessage?.content || (conv.lastMessage?.content_type === "post_reference" ? "[分享了帖子]" : "[消息]"));
 
                     return {
                         partnerId,
                         partnerUsername: profile?.username || null,
                         partnerEmail: profile?.email || "",
                         partnerAvatarUrl: profile?.avatar_url || null,
-                        lastMessage: conv.lastMessage.content.substring(0, 50) +
-                            (conv.lastMessage.content.length > 50 ? "..." : ""),
-                        lastMessageTime: conv.lastMessage.created_at,
-                        unreadCount: conv.unreadCount,
+                        lastMessage: rawContent.length > 50 ? rawContent.substring(0, 50) + "..." : rawContent,
+                        lastMessageTime: conv.lastMessage?.created_at || new Date().toISOString(),
+                        unreadCount: conv.unreadCount || 0,
                     };
                 });
 
@@ -328,8 +330,9 @@ export function useMessages(
     useEffect(() => {
         if (!currentUserId) return;
 
+        const channelName = `messages-realtime:${currentUserId}:${conversationPartnerId || "all"}`;
         const channel = supabase
-            .channel("messages-realtime")
+            .channel(channelName)
             .on(
                 "postgres_changes",
                 {
@@ -428,7 +431,8 @@ export function useMessages(
         channelRef.current = channel;
 
         return () => {
-            channel.unsubscribe();
+            supabase.removeChannel(channel);
+            channelRef.current = null;
         };
     }, [currentUserId, conversationPartnerId, supabase, fetchConversations]);
 

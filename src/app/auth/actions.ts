@@ -29,14 +29,14 @@ export async function signup(formData: FormData) {
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const fullName = formData.get('full_name') as string || formData.get('username') as string
+    const username = (formData.get('username') as string) || email.split('@')[0]
 
     const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
             data: {
-                full_name: fullName,
+                username,
             },
         },
     })
@@ -140,7 +140,6 @@ export async function signupWithUsername(formData: FormData) {
     const supabase = await createClient()
     
     const username = formData.get('username') as string
-    const fullName = formData.get('full_name') as string
     const password = formData.get('password') as string
     
     // 用户名注册使用伪邮箱
@@ -152,7 +151,6 @@ export async function signupWithUsername(formData: FormData) {
         options: {
             data: {
                 username: username,
-                full_name: fullName,
                 auth_provider: 'username',
             },
         },

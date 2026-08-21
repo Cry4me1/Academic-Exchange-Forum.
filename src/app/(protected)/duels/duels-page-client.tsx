@@ -32,7 +32,6 @@ import { useEffect } from "react";
 interface Profile {
     id: string;
     username: string;
-    full_name?: string;
     avatar_url?: string;
     reputation_score?: number;
 }
@@ -217,7 +216,7 @@ export default function DuelsPageClient({
                                         </AvatarFallback>
                                     </Avatar>
                                     <p className="text-sm font-medium truncate">
-                                        {duel.challenger?.full_name || duel.challenger?.username}
+                                        {duel.challenger?.username || "学者"}
                                     </p>
                                     {duel.challenger?.reputation_score !== undefined && (
                                         <ReputationBadgeCompact score={duel.challenger.reputation_score} />
@@ -258,7 +257,7 @@ export default function DuelsPageClient({
                                                 </AvatarFallback>
                                             </Avatar>
                                             <p className="text-sm font-medium truncate">
-                                                {duel.opponent?.full_name || duel.opponent?.username}
+                                                {duel.opponent?.username || "学者"}
                                             </p>
                                             {duel.opponent?.reputation_score !== undefined && (
                                                 <ReputationBadgeCompact score={duel.opponent.reputation_score} />
@@ -329,7 +328,7 @@ export default function DuelsPageClient({
                             </Avatar>
                             <div>
                                 <p className="font-medium">
-                                    {invitation.duel.challenger?.full_name || invitation.duel.challenger?.username}
+                                    {invitation.duel.challenger?.username || "学者"}
                                     <span className="text-muted-foreground font-normal"> 向你发起决斗！</span>
                                 </p>
                                 <p className="text-sm text-muted-foreground mt-1">

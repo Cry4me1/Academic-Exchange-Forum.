@@ -32,7 +32,6 @@ const DUEL_CREATION_FEE = 100;
 interface Profile {
     id: string;
     username: string;
-    full_name?: string;
     avatar_url?: string;
     reputation_score?: number;
 }
@@ -274,10 +273,10 @@ export function CreateDuelDialog({
                                     </Avatar>
                                     <div>
                                         <p className="font-medium">
-                                            {selectedOpponent.full_name || selectedOpponent.username}
+                                            {selectedOpponent.username}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            @{selectedOpponent.username}
+                                            学术学者
                                         </p>
                                     </div>
                                 </div>
@@ -331,10 +330,10 @@ export function CreateDuelDialog({
                                                 </Avatar>
                                                 <div className="text-left">
                                                     <p className="text-sm font-medium">
-                                                        {user.full_name || user.username}
+                                                        {user.username}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        @{user.username}
+                                                        信誉分: {user.reputation_score ?? 100}
                                                     </p>
                                                 </div>
                                                 <UserPlus className="h-4 w-4 ml-auto text-muted-foreground" />
