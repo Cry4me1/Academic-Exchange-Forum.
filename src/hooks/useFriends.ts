@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 export interface Profile {
     id: string;
     username: string | null;
-    email: string;
+    email: string | null;
     avatar_url: string | null;
 }
 

@@ -50,11 +50,11 @@ export function UserSearchDialog({ currentUserId, trigger }: UserSearchDialogPro
 
     const getRelationshipStatus = (userId: string) => {
         // 检查是否已是好友
-        if (friends.some((f) => f.friend.id === userId)) {
+        if (friends?.some((f) => f.friend?.id === userId)) {
             return "friend";
         }
         // 检查是否已发送请求
-        if (sentRequests.some((r) => r.addressee_id === userId)) {
+        if (sentRequests?.some((r) => r.addressee_id === userId)) {
             return "pending";
         }
         return "none";
@@ -101,6 +101,7 @@ export function UserSearchDialog({ currentUserId, trigger }: UserSearchDialogPro
                             {results.map((user) => {
                                 const relationship = getRelationshipStatus(user.id);
                                 const initials = (user.username || user.email || "?").charAt(0).toUpperCase();
+                                const displayName = user.username || (user.email ? user.email.split("@")[0] : null) || "学者";
 
                                 return (
                                     <div
@@ -116,9 +117,11 @@ export function UserSearchDialog({ currentUserId, trigger }: UserSearchDialogPro
                                             </Avatar>
                                             <div>
                                                 <p className="font-medium text-sm">
-                                                    {user.username || user.email.split("@")[0]}
+                                                    {displayName}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">{user.email}</p>
+                                                {user.email && (
+                                                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                                                )}
                                             </div>
                                         </div>
 

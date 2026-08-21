@@ -19,6 +19,7 @@ export function FriendRequestCard({ request, currentUserId }: FriendRequestCardP
 
     const requester = request.requester;
     const initials = (requester?.username || requester?.email || "?").charAt(0).toUpperCase();
+    const displayName = requester?.username || (requester?.email ? requester.email.split("@")[0] : null) || "学者";
 
     const handleAccept = async () => {
         setProcessing("accept");
@@ -44,8 +45,10 @@ export function FriendRequestCard({ request, currentUserId }: FriendRequestCardP
         }
     };
 
-    const formatTime = (dateString: string) => {
+    const formatTime = (dateString?: string) => {
+        if (!dateString) return "";
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "";
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
@@ -73,7 +76,7 @@ export function FriendRequestCard({ request, currentUserId }: FriendRequestCardP
                         </Avatar>
                         <div>
                             <p className="font-semibold text-foreground">
-                                {requester?.username || requester?.email?.split("@")[0] || "未知用户"}
+                                {displayName}
                             </p>
                             <p className="text-sm text-muted-foreground">
                                 {formatTime(request.created_at)}

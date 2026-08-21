@@ -23,19 +23,50 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+// 安全获取用户显示名称辅助函数
+function getDisplayName(
+    profile?: { username?: string | null; email?: string | null } | null,
+    fallback = "学者"
+): string {
+    if (!profile) return fallback;
+    return (
+        profile.username ||
+        (profile.email ? profile.email.split("@")[0] : null) ||
+        fallback
+    );
+}
+
+// 安全获取首字母辅助函数
+function getInitials(
+    profile?: { username?: string | null; email?: string | null } | null
+): string {
+    if (!profile) return "?";
+    const name = profile.username || profile.email;
+    return name ? name.charAt(0).toUpperCase() : "?";
+}
+
 export default function FriendsPage() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const supabase = createClient();
 
     // 获取当前用户
     useEffect(() => {
+        let isMounted = true;
         const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setCurrentUserId(user.id);
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && isMounted) {
+                    setCurrentUserId(user.id);
+                }
+            } catch (err) {
+                console.error("获取当前用户信息失败:", err);
             }
         };
         getUser();
+
+        return () => {
+            isMounted = false;
+        };
     }, [supabase]);
 
     const {
@@ -137,14 +168,10 @@ export default function FriendsPage() {
                                 <ScrollArea className="max-h-[500px]">
                                     <div className="space-y-2">
                                         {friends.map((f) => {
-                                            const isPartnerOnline = isOnline(f.friend.id);
-                                            const initials = (
-                                                f.friend.username ||
-                                                f.friend.email ||
-                                                "?"
-                                            )
-                                                .charAt(0)
-                                                .toUpperCase();
+                                            const friendProfile = f.friend;
+                                            const isPartnerOnline = friendProfile?.id ? isOnline(friendProfile.id) : false;
+                                            const displayName = getDisplayName(friendProfile);
+                                            const initials = getInitials(friendProfile);
 
                                             return (
                                                 <div
@@ -155,7 +182,7 @@ export default function FriendsPage() {
                                                         <div className="relative">
                                                             <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
                                                                 <AvatarImage
-                                                                    src={f.friend.avatar_url || undefined}
+                                                                    src={friendProfile?.avatar_url || undefined}
                                                                 />
                                                                 <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
                                                                     {initials}
@@ -172,8 +199,7 @@ export default function FriendsPage() {
                                                         </div>
                                                         <div>
                                                             <p className="font-semibold text-foreground">
-                                                                {f.friend.username ||
-                                                                    f.friend.email.split("@")[0]}
+                                                                {displayName}
                                                             </p>
                                                             <p className="text-xs text-muted-foreground">
                                                                 {isPartnerOnline ? "在线" : "离线"}
@@ -182,7 +208,7 @@ export default function FriendsPage() {
                                                     </div>
 
                                                     <div className="flex items-center gap-2">
-                                                        <Link href={`/messages?user=${f.friend.id}`}>
+                                                        <Link href={`/messages?user=${friendProfile?.id}`}>
                                                             <Button variant="outline" size="sm" className="gap-1.5">
                                                                 <MessageCircle className="h-4 w-4" />
                                                                 私信
@@ -195,8 +221,7 @@ export default function FriendsPage() {
                                                             onClick={() =>
                                                                 handleRemoveFriend(
                                                                     f.friendshipId,
-                                                                    f.friend.username ||
-                                                                    f.friend.email.split("@")[0]
+                                                                    displayName
                                                                 )
                                                             }
                                                         >
@@ -264,13 +289,8 @@ export default function FriendsPage() {
                                 <div className="space-y-2">
                                     {sentRequests.map((request) => {
                                         const addressee = request.addressee;
-                                        const initials = (
-                                            addressee?.username ||
-                                            addressee?.email ||
-                                            "?"
-                                        )
-                                            .charAt(0)
-                                            .toUpperCase();
+                                        const displayName = getDisplayName(addressee, "学者");
+                                        const initials = getInitials(addressee);
 
                                         return (
                                             <div
@@ -288,9 +308,7 @@ export default function FriendsPage() {
                                                     </Avatar>
                                                     <div>
                                                         <p className="font-medium text-sm">
-                                                            {addressee?.username ||
-                                                                addressee?.email?.split("@")[0] ||
-                                                                "未知用户"}
+                                                            {displayName}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">
                                                             等待对方确认
