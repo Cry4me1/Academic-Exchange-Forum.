@@ -1,11 +1,10 @@
-"use client";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useFriends, type Profile } from "@/hooks/useFriends";
+import type { FriendWithProfile, Friendship, Profile } from "@/hooks/useFriends";
+import { createClient } from "@/lib/supabase/client";
 import { Check, Clock, Loader2, Search, UserPlus } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -13,38 +12,91 @@ import { toast } from "sonner";
 interface UserSearchDialogProps {
     currentUserId: string;
     trigger?: React.ReactNode;
+    friends?: FriendWithProfile[];
+    sentRequests?: Friendship[];
+    onSuccess?: () => void;
 }
 
-export function UserSearchDialog({ currentUserId, trigger }: UserSearchDialogProps) {
+export function UserSearchDialog({
+    currentUserId,
+    trigger,
+    friends = [],
+    sentRequests = [],
+    onSuccess,
+}: UserSearchDialogProps) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<Profile[]>([]);
     const [searching, setSearching] = useState(false);
     const [sendingTo, setSendingTo] = useState<string | null>(null);
 
-    const { searchUsers, sendFriendRequest, sentRequests, friends } = useFriends(currentUserId);
+    const supabase = createClient();
 
     const handleSearch = useCallback(async () => {
-        if (!query.trim()) {
+        if (!query.trim() || !currentUserId) {
             setResults([]);
             return;
         }
 
         setSearching(true);
-        const users = await searchUsers(query);
-        setResults(users);
-        setSearching(false);
-    }, [query, searchUsers]);
+        try {
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("id, username, email, avatar_url")
+                .neq("id", currentUserId)
+                .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
+                .limit(10);
+
+            if (error) throw error;
+            setResults(data || []);
+        } catch (err: any) {
+            console.error("搜索用户失败:", err);
+            setResults([]);
+        } finally {
+            setSearching(false);
+        }
+    }, [query, currentUserId, supabase]);
 
     const handleSendRequest = async (userId: string) => {
+        if (!currentUserId) return;
         setSendingTo(userId);
-        const result = await sendFriendRequest(userId);
-        setSendingTo(null);
+        try {
+            // 检查是否已有好友关系
+            const { data: existing } = await supabase
+                .from("friendships")
+                .select("id, status")
+                .or(
+                    `and(requester_id.eq.${currentUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${currentUserId})`
+                )
+                .single();
 
-        if (result.success) {
+            if (existing) {
+                if (existing.status === "accepted") {
+                    toast.error("已经是好友了");
+                    return;
+                }
+                if (existing.status === "pending") {
+                    toast.error("好友请求已发送，等待对方确认");
+                    return;
+                }
+            }
+
+            const { error } = await supabase.from("friendships").insert({
+                requester_id: currentUserId,
+                addressee_id: userId,
+                status: "pending",
+            });
+
+            if (error) throw error;
+
             toast.success("好友请求已发送");
-        } else {
-            toast.error(result.error || "发送失败");
+            if (onSuccess) {
+                onSuccess();
+            }
+        } catch (err: any) {
+            toast.error(err?.message || "发送失败");
+        } finally {
+            setSendingTo(null);
         }
     };
 

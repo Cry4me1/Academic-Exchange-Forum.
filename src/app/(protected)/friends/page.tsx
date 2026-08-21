@@ -76,6 +76,8 @@ export default function FriendsPage() {
         loading,
         removeFriend,
         cancelRequest,
+        acceptFriendRequest,
+        rejectFriendRequest,
     } = useFriends(currentUserId);
     const { isOnline } = usePresenceContext();
 
@@ -117,6 +119,11 @@ export default function FriendsPage() {
                 </div>
                 <UserSearchDialog
                     currentUserId={currentUserId}
+                    friends={friends}
+                    sentRequests={sentRequests}
+                    onSuccess={() => {
+                        // 发送成功后刷新
+                    }}
                     trigger={
                         <Button className="gap-2">
                             <UserPlus className="h-4 w-4" />
@@ -261,6 +268,8 @@ export default function FriendsPage() {
                                             key={request.id}
                                             request={request}
                                             currentUserId={currentUserId}
+                                            onAccept={(id) => acceptFriendRequest(id)}
+                                            onReject={(id) => rejectFriendRequest(id)}
                                         />
                                     ))}
                                 </div>

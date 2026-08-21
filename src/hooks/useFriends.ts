@@ -319,7 +319,9 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
     useEffect(() => {
         if (!currentUserId) return;
 
-        const channelName = `friendships-changes:${currentUserId}`;
+        // 生成唯一 channel 标识，防止同名冲突与二次 subscribe 导致崩溃
+        const uniqueId = Math.random().toString(36).slice(2, 9);
+        const channelName = `friendships-changes:${currentUserId}:${uniqueId}`;
         const channel = supabase
             .channel(channelName)
             .on(

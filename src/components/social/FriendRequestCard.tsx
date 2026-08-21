@@ -1,21 +1,21 @@
-"use client";
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, X, Loader2 } from "lucide-react";
-import { useFriends, type Friendship } from "@/hooks/useFriends";
+import type { Friendship } from "@/hooks/useFriends";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 interface FriendRequestCardProps {
     request: Friendship;
     currentUserId: string;
+    onAccept?: (friendshipId: string) => Promise<{ success: boolean; error?: string }> | Promise<void>;
+    onReject?: (friendshipId: string) => Promise<{ success: boolean; error?: string }> | Promise<void>;
 }
 
-export function FriendRequestCard({ request, currentUserId }: FriendRequestCardProps) {
+export function FriendRequestCard({ request, currentUserId, onAccept, onReject }: FriendRequestCardProps) {
     const [processing, setProcessing] = useState<"accept" | "reject" | null>(null);
-    const { acceptFriendRequest, rejectFriendRequest } = useFriends(currentUserId);
 
     const requester = request.requester;
     const initials = (requester?.username || requester?.email || "?").charAt(0).toUpperCase();
@@ -23,25 +23,47 @@ export function FriendRequestCard({ request, currentUserId }: FriendRequestCardP
 
     const handleAccept = async () => {
         setProcessing("accept");
-        const result = await acceptFriendRequest(request.id);
-        setProcessing(null);
+        try {
+            if (onAccept) {
+                await onAccept(request.id);
+            } else {
+                const supabase = createClient();
+                const { error } = await supabase
+                    .from("friendships")
+                    .update({ status: "accepted" })
+                    .eq("id", request.id)
+                    .eq("addressee_id", currentUserId);
 
-        if (result.success) {
-            toast.success("已接受好友请求");
-        } else {
-            toast.error(result.error || "操作失败");
+                if (error) throw error;
+                toast.success("已接受好友请求");
+            }
+        } catch (err: any) {
+            toast.error(err?.message || "操作失败");
+        } finally {
+            setProcessing(null);
         }
     };
 
     const handleReject = async () => {
         setProcessing("reject");
-        const result = await rejectFriendRequest(request.id);
-        setProcessing(null);
+        try {
+            if (onReject) {
+                await onReject(request.id);
+            } else {
+                const supabase = createClient();
+                const { error } = await supabase
+                    .from("friendships")
+                    .update({ status: "rejected" })
+                    .eq("id", request.id)
+                    .eq("addressee_id", currentUserId);
 
-        if (result.success) {
-            toast.success("已拒绝好友请求");
-        } else {
-            toast.error(result.error || "操作失败");
+                if (error) throw error;
+                toast.success("已拒绝好友请求");
+            }
+        } catch (err: any) {
+            toast.error(err?.message || "操作失败");
+        } finally {
+            setProcessing(null);
         }
     };
 
