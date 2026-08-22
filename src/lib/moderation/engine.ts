@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
-import { reviewContentWithAI } from "./ai-moderator";
+import { reviewContentWithAI, reviewCommentWithAI } from "./ai-moderator";
 import { auditPostImages } from "./image-moderator";
 import { scanSensitiveWords } from "./sensitive-words";
 import { FinalAction, ModerationResult, RiskLevel, ReviewStatus } from "./types";
@@ -260,6 +260,294 @@ export async function moderatePostContent(params: {
 }
 
 /**
+ * 评论内容安全审核核心调度引擎
+ */
+export async function moderateCommentContent(params: {
+  commentId?: string;
+  postId: string;
+  authorId: string;
+  content: any;
+}): Promise<ModerationResult> {
+  const { commentId, postId, authorId, content } = params;
+  const startTime = Date.now();
+  const contentText = extractPlainTextFromContent(content);
+  const contentHash = calculateContentHash("comment", contentText);
+  const supabase = await createClient();
+
+  // ==========================================
+  // Layer 1: 敏感词库快速过滤
+  // ==========================================
+  const sensitiveScan = await scanSensitiveWords(contentText);
+
+  // 命中 block 级违规词 -> 直接拦截
+  if (sensitiveScan.hasBlock) {
+    const reason = `评论包含平台禁止的违规关键词（如：${sensitiveScan.matchedBlockWords.slice(0, 3).join("、")}）`;
+    const latencyMs = Date.now() - startTime;
+
+    const result: ModerationResult = {
+      reviewStatus: "rejected",
+      riskLevel: "dangerous",
+      score: 10,
+      reason,
+      suggestedTags: ["学术评论"],
+      matchedSensitiveWords: sensitiveScan.allMatchedWords,
+      finalAction: "auto_rejected",
+      isCached: false,
+      latencyMs,
+      canPublish: false,
+      errorMessage: `发布失败：${reason}，请修改后重新提交。`,
+    };
+
+    await logModerationRecord(supabase, {
+      commentId,
+      postId,
+      authorId,
+      contentHash,
+      result,
+      modelName: "sensitive-keyword-rule",
+    });
+
+    return result;
+  }
+
+  // 命中 pending 级敏感词 -> 转入人工待审
+  if (sensitiveScan.hasPending) {
+    const reason = `评论触发敏感词关注机制（如：${sensitiveScan.matchedPendingWords.slice(0, 3).join("、")}），已自动转入人工审核队列`;
+    const latencyMs = Date.now() - startTime;
+
+    const result: ModerationResult = {
+      reviewStatus: "pending",
+      riskLevel: "sensitive",
+      score: 65,
+      reason,
+      suggestedTags: ["学术评论"],
+      matchedSensitiveWords: sensitiveScan.allMatchedWords,
+      finalAction: "auto_pending",
+      isCached: false,
+      latencyMs,
+      canPublish: false,
+      errorMessage: "评论已提交进入待审队列，审核通过后将公开显示",
+    };
+
+    await logModerationRecord(supabase, {
+      commentId,
+      postId,
+      authorId,
+      contentHash,
+      result,
+      modelName: "sensitive-keyword-rule",
+    });
+
+    return result;
+  }
+
+  // ==========================================
+  // Layer 2: 图片内容安全审核
+  // ==========================================
+  const imageUrls = extractImageUrls(content);
+  if (imageUrls.length > 0) {
+    try {
+      const imageAudit = await auditPostImages(imageUrls);
+
+      if (imageAudit.hasDangerous) {
+        const reason = imageAudit.reasons[0] || "评论配图中包含严重违规内容";
+        const latencyMs = Date.now() - startTime;
+
+        const result: ModerationResult = {
+          reviewStatus: "rejected",
+          riskLevel: "dangerous",
+          score: 20,
+          reason,
+          suggestedTags: ["学术评论"],
+          matchedSensitiveWords: [],
+          finalAction: "auto_rejected",
+          isCached: false,
+          latencyMs,
+          canPublish: false,
+          errorMessage: `发布失败：${reason}，请更换配图后重新发布。`,
+        };
+
+        await logModerationRecord(supabase, {
+          commentId,
+          postId,
+          authorId,
+          contentHash,
+          result,
+          modelName: "baidu-image-censor",
+        });
+
+        return result;
+      }
+
+      if (imageAudit.hasSensitive) {
+        const reason = imageAudit.reasons[0] || "评论配图疑似存在风险，转入人工审核";
+        const latencyMs = Date.now() - startTime;
+
+        const result: ModerationResult = {
+          reviewStatus: "pending",
+          riskLevel: "sensitive",
+          score: 60,
+          reason,
+          suggestedTags: ["学术评论"],
+          matchedSensitiveWords: [],
+          finalAction: "auto_pending",
+          isCached: false,
+          latencyMs,
+          canPublish: false,
+          errorMessage: "评论配图疑似敏感，已提交管理员审核",
+        };
+
+        await logModerationRecord(supabase, {
+          commentId,
+          postId,
+          authorId,
+          contentHash,
+          result,
+          modelName: "baidu-image-censor",
+        });
+
+        return result;
+      }
+    } catch (imgErr) {
+      console.warn("[ModerationEngine] 评论图像审核异常，继续执行文本审核:", imgErr);
+    }
+  }
+
+  // ==========================================
+  // Layer 3: 缓存预检
+  // ==========================================
+  try {
+    const { data: cached } = await supabase
+      .from("content_moderation_cache")
+      .select("score, risk_level, reason, tags, expires_at")
+      .eq("content_hash", contentHash)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (cached) {
+      const latencyMs = Date.now() - startTime;
+      const score = cached.score;
+      const riskLevel = cached.risk_level as RiskLevel;
+      const decision = makeCommentDecision(score, riskLevel);
+
+      const result: ModerationResult = {
+        reviewStatus: decision.reviewStatus,
+        riskLevel,
+        score,
+        reason: `${cached.reason} (缓存复用)`,
+        suggestedTags: cached.tags || ["学术评论"],
+        matchedSensitiveWords: [],
+        finalAction: decision.finalAction,
+        isCached: true,
+        latencyMs,
+        canPublish: decision.canPublish,
+        errorMessage: decision.errorMessage,
+      };
+
+      await logModerationRecord(supabase, {
+        commentId,
+        postId,
+        authorId,
+        contentHash,
+        result,
+        modelName: "cache-hit",
+      });
+
+      return result;
+    }
+  } catch (cacheErr) {
+    console.warn("[ModerationEngine] 检查评论缓存异常，继续调用 AI 初审:", cacheErr);
+  }
+
+  // ==========================================
+  // Layer 4: DeepSeek AI 评论结构化初审
+  // ==========================================
+  // 如果评论纯文本极短（< 5个字符）且无敏感词，直接默认放行以减少开销
+  if (contentText.trim().length < 5 && imageUrls.length === 0) {
+    const latencyMs = Date.now() - startTime;
+    const result: ModerationResult = {
+      reviewStatus: "approved",
+      riskLevel: "safe",
+      score: 95,
+      reason: "短评论快速安全放行",
+      suggestedTags: ["学术评论"],
+      matchedSensitiveWords: [],
+      finalAction: "auto_approved",
+      isCached: false,
+      latencyMs,
+      canPublish: true,
+    };
+    return result;
+  }
+
+  const { output: aiOutput, costTokens, latencyMs: aiLatency } = await reviewCommentWithAI(contentText);
+  const totalLatencyMs = Date.now() - startTime;
+  const decision = makeCommentDecision(aiOutput.score, aiOutput.riskLevel);
+
+  const result: ModerationResult = {
+    reviewStatus: decision.reviewStatus,
+    riskLevel: aiOutput.riskLevel,
+    score: aiOutput.score,
+    reason: aiOutput.reason,
+    suggestedTags: aiOutput.tags && aiOutput.tags.length > 0 ? aiOutput.tags : ["学术评论"],
+    matchedSensitiveWords: [],
+    finalAction: decision.finalAction,
+    isCached: false,
+    latencyMs: totalLatencyMs,
+    costTokens,
+    canPublish: decision.canPublish,
+    errorMessage: decision.errorMessage,
+  };
+
+  writeModerationCache(supabase, contentHash, aiOutput).catch((e) =>
+    console.error("[ModerationEngine] 写入评论审核缓存失败:", e)
+  );
+
+  await logModerationRecord(supabase, {
+    commentId,
+    postId,
+    authorId,
+    contentHash,
+    result,
+    modelName: "deepseek-chat",
+  });
+
+  return result;
+}
+
+/**
+ * 评论自动化决策矩阵
+ */
+function makeCommentDecision(
+  score: number,
+  riskLevel: RiskLevel
+): { reviewStatus: ReviewStatus; finalAction: FinalAction; canPublish: boolean; errorMessage?: string } {
+  if (riskLevel === "safe" && score >= 80) {
+    return {
+      reviewStatus: "approved",
+      finalAction: "auto_approved",
+      canPublish: true,
+    };
+  }
+
+  if (riskLevel === "dangerous" || score < 60) {
+    return {
+      reviewStatus: "rejected",
+      finalAction: "auto_rejected",
+      canPublish: false,
+      errorMessage: "评论内容未通过社区安全审核规范（涉嫌违规信息），已被系统拦截。",
+    };
+  }
+
+  return {
+    reviewStatus: "pending",
+    finalAction: "auto_pending",
+    canPublish: false,
+    errorMessage: "评论已提交，正在等待管理员人工审核后公开展出。",
+  };
+}
+
+/**
  * 自动化决策矩阵
  */
 function makeDecision(
@@ -301,6 +589,7 @@ async function logModerationRecord(
   supabase: any,
   params: {
     postId?: string;
+    commentId?: string;
     authorId: string;
     contentHash: string;
     result: ModerationResult;
@@ -308,9 +597,10 @@ async function logModerationRecord(
   }
 ) {
   try {
-    const { postId, authorId, contentHash, result, modelName } = params;
+    const { postId, commentId, authorId, contentHash, result, modelName } = params;
     await supabase.from("content_moderation_logs").insert({
       post_id: postId || null,
+      comment_id: commentId || null,
       author_id: authorId,
       content_hash: contentHash,
       model_name: modelName,
@@ -351,3 +641,4 @@ async function writeModerationCache(
     console.error("[ModerationEngine] 更新审核缓存失败:", err);
   }
 }
+

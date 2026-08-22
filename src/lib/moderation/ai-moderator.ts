@@ -119,3 +119,88 @@ export async function reviewContentWithAI(
     };
   }
 }
+
+export async function reviewCommentWithAI(
+  content: string
+): Promise<{ output: AIReviewOutput; costTokens: number; latencyMs: number }> {
+  const startTime = Date.now();
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+
+  if (!apiKey) {
+    return {
+      output: {
+        score: 85,
+        riskLevel: "safe",
+        tags: ["学术评论"],
+        reason: "审核服务未配置 API Key，默认放行",
+      },
+      costTokens: 0,
+      latencyMs: Date.now() - startTime,
+    };
+  }
+
+  const deepseek = createDeepSeek({ apiKey });
+  const userPrompt = `【待审核学术评论】\n正文内容：\n${content.slice(0, 1500)}`;
+
+  try {
+    const response = await generateText({
+      model: deepseek("deepseek-chat"),
+      system: MODERATION_SYSTEM_PROMPT,
+      prompt: userPrompt,
+      temperature: 0.1,
+    });
+
+    const latencyMs = Date.now() - startTime;
+    const rawText = response.text.trim();
+    const costTokens = response.usage?.totalTokens || 0;
+
+    let cleanJson = rawText;
+    if (cleanJson.startsWith("```")) {
+      cleanJson = cleanJson.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "").trim();
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(cleanJson);
+    } catch {
+      const match = cleanJson.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        throw new Error("无法解析 AI 返回的 JSON 格式");
+      }
+    }
+
+    const score = typeof parsed.score === "number" ? Math.max(0, Math.min(100, Math.round(parsed.score))) : 85;
+    const riskLevel = ["safe", "sensitive", "dangerous"].includes(parsed.riskLevel)
+      ? parsed.riskLevel
+      : score >= 80 ? "safe" : score >= 60 ? "sensitive" : "dangerous";
+    const resultTags = Array.isArray(parsed.tags) ? parsed.tags.map(String) : ["学术评论"];
+    const reason = typeof parsed.reason === "string" ? parsed.reason : "AI 自动化初审完成";
+
+    return {
+      output: {
+        score,
+        riskLevel,
+        tags: resultTags,
+        reason,
+      },
+      costTokens,
+      latencyMs,
+    };
+  } catch (error) {
+    const latencyMs = Date.now() - startTime;
+    console.error("[AIModerator] 评论 DeepSeek 审核调用异常:", error);
+    return {
+      output: {
+        score: 75,
+        riskLevel: "sensitive",
+        tags: ["学术评论"],
+        reason: "AI 初审服务暂时无响应，转入人工审核队列",
+      },
+      costTokens: 0,
+      latencyMs,
+    };
+  }
+}
+

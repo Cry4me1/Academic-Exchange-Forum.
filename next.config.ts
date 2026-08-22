@@ -56,6 +56,17 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // 重定向：兼容 /rule -> /rules
+  async redirects() {
+    return [
+      {
+        source: "/rule",
+        destination: "/rules",
+        permanent: true,
+      },
+    ];
+  },
+
   // 自定义响应头 - 字体长缓存 + DNS 预解析
   async headers() {
     return [

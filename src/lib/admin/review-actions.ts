@@ -14,17 +14,34 @@ export async function getReviewStats() {
   await requireAdmin("moderator");
   const supabase = await createClient();
 
-  const [pendingRes, approvedRes, rejectedRes, wordsRes] = await Promise.all([
+  const [
+    pendingPostsRes,
+    approvedPostsRes,
+    rejectedPostsRes,
+    pendingCommentsRes,
+    approvedCommentsRes,
+    rejectedCommentsRes,
+    wordsRes,
+  ] = await Promise.all([
     supabase.from("posts").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
     supabase.from("posts").select("id", { count: "exact", head: true }).eq("review_status", "approved"),
     supabase.from("posts").select("id", { count: "exact", head: true }).eq("review_status", "rejected"),
+    supabase.from("comments").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
+    supabase.from("comments").select("id", { count: "exact", head: true }).eq("review_status", "approved"),
+    supabase.from("comments").select("id", { count: "exact", head: true }).eq("review_status", "rejected"),
     supabase.from("sensitive_words").select("id", { count: "exact", head: true }).eq("is_active", true),
   ]);
 
   return {
-    pendingCount: pendingRes.count || 0,
-    approvedCount: approvedRes.count || 0,
-    rejectedCount: rejectedRes.count || 0,
+    pendingCount: (pendingPostsRes.count || 0) + (pendingCommentsRes.count || 0),
+    pendingPostsCount: pendingPostsRes.count || 0,
+    pendingCommentsCount: pendingCommentsRes.count || 0,
+    approvedCount: (approvedPostsRes.count || 0) + (approvedCommentsRes.count || 0),
+    approvedPostsCount: approvedPostsRes.count || 0,
+    approvedCommentsCount: approvedCommentsRes.count || 0,
+    rejectedCount: (rejectedPostsRes.count || 0) + (rejectedCommentsRes.count || 0),
+    rejectedPostsCount: rejectedPostsRes.count || 0,
+    rejectedCommentsCount: rejectedCommentsRes.count || 0,
     activeWordsCount: wordsRes.count || 0,
   };
 }
@@ -214,6 +231,196 @@ export async function rejectPostReview(postId: string, rejectionReason: string) 
   revalidatePath("/admin/review");
   revalidatePath("/admin/posts");
   revalidatePath(`/posts/${postId}`);
+  return { success: true };
+}
+
+/**
+ * 获取待审评论列表
+ */
+export async function getPendingReviewComments(options: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  riskLevel?: string;
+} = {}) {
+  await requireAdmin("moderator");
+  const { page = 1, pageSize = 15, search = "", riskLevel = "" } = options;
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("comments")
+    .select(
+      `
+      id,
+      post_id,
+      parent_id,
+      content,
+      author_id,
+      review_status,
+      ai_score,
+      ai_risk_level,
+      ai_reason,
+      matched_sensitive_words,
+      created_at,
+      post:posts!post_id (
+        id,
+        title
+      ),
+      profile:profiles!author_id (
+        id,
+        username,
+        avatar_url,
+        email
+      )
+    `,
+      { count: "exact" }
+    )
+    .eq("review_status", "pending");
+
+  if (riskLevel && riskLevel !== "all") {
+    query = query.eq("ai_risk_level", riskLevel);
+  }
+
+  const offset = (page - 1) * pageSize;
+  const { data, count, error } = await query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + pageSize - 1);
+
+  if (error) {
+    console.error("[getPendingReviewComments] Error:", error);
+    throw new Error(`获取待审评论失败: ${error.message}`);
+  }
+
+  const comments = (data || []).map((item: any) => ({
+    ...item,
+    post: Array.isArray(item.post) ? item.post[0] || null : item.post,
+    profile: Array.isArray(item.profile) ? item.profile[0] || null : item.profile,
+  }));
+
+  // 如果有搜索关键词，在内存中简单根据评论纯文本或帖子标题过滤
+  let filteredComments = comments;
+  if (search.trim()) {
+    const s = search.trim().toLowerCase();
+    filteredComments = comments.filter((c: any) => {
+      const postTitle = (c.post?.title || "").toLowerCase();
+      const contentStr = JSON.stringify(c.content || "").toLowerCase();
+      return postTitle.includes(s) || contentStr.includes(s);
+    });
+  }
+
+  return {
+    comments: filteredComments,
+    totalCount: count || 0,
+    currentPage: page,
+    pageSize,
+  };
+}
+
+/**
+ * 管理员人工审核评论：通过
+ */
+export async function approveCommentReview(commentId: string, note: string = "") {
+  const admin = await requireAdmin("moderator");
+  const supabase = await createClient();
+
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("id, post_id, author_id, post:posts!post_id(id, title)")
+    .eq("id", commentId)
+    .single();
+
+  if (!comment) throw new Error("评论不存在");
+
+  const { error } = await supabase
+    .from("comments")
+    .update({
+      review_status: "approved",
+      reviewer_id: admin.id,
+      reviewer_note: note || "人工审核通过",
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", commentId);
+
+  if (error) throw new Error(`审核操作失败: ${error.message}`);
+
+  // 记录审计日志
+  await logAdminAction({
+    actionType: "comment_review_approved",
+    targetType: "comment",
+    targetId: commentId,
+    details: { note, author_id: comment.author_id, post_id: comment.post_id },
+  });
+
+  // 向评论作者推送系统通知
+  if (comment.author_id) {
+    const postTitle = (comment.post as any)?.title || "学术文章";
+    await supabase.from("notifications").insert({
+      user_id: comment.author_id,
+      type: "system",
+      title: "评论审核已通过",
+      content: `您在文章《${postTitle}》下的评论已通过审核并公开展出！${note ? `审核备注：${note}` : ""}`,
+    });
+  }
+
+  revalidatePath("/admin/review");
+  revalidatePath(`/admin/posts/${comment.post_id}/comments`);
+  revalidatePath(`/posts/${comment.post_id}`);
+  return { success: true };
+}
+
+/**
+ * 管理员人工审核评论：驳回/拒绝
+ */
+export async function rejectCommentReview(commentId: string, rejectionReason: string) {
+  const admin = await requireAdmin("moderator");
+  const supabase = await createClient();
+
+  if (!rejectionReason.trim()) {
+    throw new Error("请填写驳回原因");
+  }
+
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("id, post_id, author_id, post:posts!post_id(id, title)")
+    .eq("id", commentId)
+    .single();
+
+  if (!comment) throw new Error("评论不存在");
+
+  const { error } = await supabase
+    .from("comments")
+    .update({
+      review_status: "rejected",
+      reviewer_id: admin.id,
+      reviewer_note: rejectionReason,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", commentId);
+
+  if (error) throw new Error(`驳回失败: ${error.message}`);
+
+  // 记录操作日志
+  await logAdminAction({
+    actionType: "comment_review_rejected",
+    targetType: "comment",
+    targetId: commentId,
+    details: { reason: rejectionReason, author_id: comment.author_id, post_id: comment.post_id },
+  });
+
+  // 向评论作者推送驳回通知
+  if (comment.author_id) {
+    const postTitle = (comment.post as any)?.title || "学术文章";
+    await supabase.from("notifications").insert({
+      user_id: comment.author_id,
+      type: "system",
+      title: "评论审核未通过",
+      content: `很抱歉，您在文章《${postTitle}》下的评论未通过安全审核。驳回原因：${rejectionReason}。`,
+    });
+  }
+
+  revalidatePath("/admin/review");
+  revalidatePath(`/admin/posts/${comment.post_id}/comments`);
+  revalidatePath(`/posts/${comment.post_id}`);
   return { success: true };
 }
 

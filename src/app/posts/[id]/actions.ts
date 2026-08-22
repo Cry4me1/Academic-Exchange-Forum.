@@ -5,6 +5,7 @@
 import { deleteImages, extractImageUrls } from "@/lib/storage-cleanup";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { moderateCommentContent } from "@/lib/moderation/engine";
 
 // JSONContent 类型定义
 interface JSONContentNode {
@@ -218,6 +219,21 @@ export async function createComment(data: {
         }
     }
 
+    // 执行 AI + 敏感词评论内容初审
+    const moderation = await moderateCommentContent({
+        postId: data.postId,
+        authorId: user.id,
+        content: data.content,
+    });
+
+    // 若触发直接拦截（违规敏感词或高危严重违规）
+    if (moderation.reviewStatus === "rejected") {
+        return {
+            error: moderation.errorMessage || "评论包含违规内容，已被系统拦截",
+            moderation,
+        };
+    }
+
     const { data: comment, error } = await supabase
         .from("comments")
         .insert({
@@ -225,6 +241,11 @@ export async function createComment(data: {
             author_id: user.id,
             parent_id: data.parentId || null,
             content: data.content,
+            review_status: moderation.reviewStatus,
+            ai_score: moderation.score,
+            ai_risk_level: moderation.riskLevel,
+            ai_reason: moderation.reason,
+            matched_sensitive_words: moderation.matchedSensitiveWords,
         })
         .select(`
             *,
@@ -242,7 +263,7 @@ export async function createComment(data: {
     }
 
     revalidatePath(`/posts/${data.postId}`);
-    return { data: comment };
+    return { data: comment, moderation };
 }
 
 // 删除评论

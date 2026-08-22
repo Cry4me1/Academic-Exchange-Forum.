@@ -6,7 +6,7 @@ import NovelViewer from "@/components/editor/NovelViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn, formatDistanceToNow } from "@/lib/utils";
-import { CheckCircle2, ChevronUp, CornerDownRight, Link2, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronUp, CornerDownRight, Link2, Trash2, Clock, AlertCircle } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -32,6 +32,11 @@ export interface CommentData {
     like_count: number;
     replies?: CommentData[];
     is_accepted?: boolean;
+    review_status?: string;
+    ai_score?: number | null;
+    ai_risk_level?: string | null;
+    ai_reason?: string | null;
+    matched_sensitive_words?: string[] | null;
 }
 
 interface CommentItemProps {
@@ -204,6 +209,18 @@ export function CommentItem({
                                 <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
                                     <CheckCircle2 className="h-3 w-3" />
                                     已采纳
+                                </span>
+                            )}
+                            {comment.review_status === "pending" && (
+                                <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                                    <Clock className="h-3 w-3" />
+                                    审核中
+                                </span>
+                            )}
+                            {comment.review_status === "rejected" && (
+                                <span className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/30">
+                                    <AlertCircle className="h-3 w-3" />
+                                    未通过审核
                                 </span>
                             )}
                             <span className="text-xs text-muted-foreground">

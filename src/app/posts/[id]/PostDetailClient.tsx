@@ -461,7 +461,11 @@ export default function PostDetailClient({
             }, ...prev]);
         }
 
-        toast.success("评论发送成功");
+        if (newComment.review_status === "pending" || result.moderation?.reviewStatus === "pending") {
+            toast.info("评论已提交，触发审核关注，正在等待管理员审核后公开展出", { duration: 4500 });
+        } else {
+            toast.success("评论发送成功");
+        }
     };
 
     return (

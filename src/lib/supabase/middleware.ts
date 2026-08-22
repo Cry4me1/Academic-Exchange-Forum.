@@ -11,29 +11,16 @@ const PUBLIC_ROUTES = [
     "/pending-verification",
     "/auth/callback",
     "/updates",
+    "/rules",
+    "/rule",
 ];
 
 // 使用前缀匹配的公开路由
 const PUBLIC_PREFIXES = [
     "/api/",  // API 路由自行处理认证
+    "/rules",
+    "/rule",
 ];
-
-// 动态公开路由匹配模式
-function isPublicRoute(pathname: string): boolean {
-    // 精确匹配
-    if (PUBLIC_ROUTES.includes(pathname)) return true;
-
-    // 前缀匹配
-    if (PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))) return true;
-
-    // (public) 路由组的路由 — 帖子公开预览等
-    // Next.js 的 (public) 路由组在 URL 中不体现，路径直接是 /posts/[id]
-    // 但我们使用 (public) 路由组，所以 /posts/[id] 会先被 (public) 匹配
-    // 这里不需要特殊处理，因为 (public) 和 (protected) 都有 posts/[id]
-    // Next.js 会按路由组的 layout 来决定
-
-    return false;
-}
 
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
@@ -71,6 +58,15 @@ export async function updateSession(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     const pathname = request.nextUrl.pathname;
+
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", pathname);
+
+    supabaseResponse = NextResponse.next({
+        request: {
+            headers: requestHeaders,
+        },
+    });
 
     // 已登录用户访问登录/注册页面时，重定向到 dashboard
     if (user && (pathname === "/login" || pathname === "/register")) {
