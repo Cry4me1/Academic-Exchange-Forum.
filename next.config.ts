@@ -56,12 +56,22 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // 重定向：兼容 /rule -> /rules
+  // 重定向：兼容 /rule -> /rules 以及 /tutorials -> /announcements/tutorials
   async redirects() {
     return [
       {
         source: "/rule",
         destination: "/rules",
+        permanent: true,
+      },
+      {
+        source: "/tutorials",
+        destination: "/announcements/tutorials",
+        permanent: true,
+      },
+      {
+        source: "/tutorial",
+        destination: "/announcements/tutorials",
         permanent: true,
       },
     ];

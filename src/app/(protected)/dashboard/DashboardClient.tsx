@@ -5,6 +5,7 @@ import {
     AiFeatureCard,
     AnnouncementCard,
     CreditRechargeDialog,
+    DashboardTutorialBanner,
     FeedTabs,
     FriendsList,
     GlobalSearch,
@@ -297,6 +298,9 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                             <AiFeatureCard />
                             <TagCloud />
                         </div>
+
+                        {/* 新手实操训练营微光引导条 */}
+                        <DashboardTutorialBanner />
 
                         {/* 动态横幅 StoryBanner */}
                         <motion.div variants={fadeInUp} className="mb-6">

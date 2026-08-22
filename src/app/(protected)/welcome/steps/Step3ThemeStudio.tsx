@@ -20,8 +20,11 @@ import {
     Layers,
     PartyPopper,
     GraduationCap,
+    ArrowRight,
+    LayoutDashboard,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 
 interface Step3ThemeStudioProps {
@@ -47,7 +50,6 @@ export function Step3ThemeStudio({
 
     // 触发盛大多重烟花秀 (Fireworks Fireworks Cascade)
     const triggerGrandFireworks = () => {
-        // 1. 中央超大礼炮星爆
         const count = 250;
         const defaults = {
             origin: { y: 0.65 },
@@ -68,7 +70,6 @@ export function Step3ThemeStudio({
         fire(0.1, { spread: 140, startVelocity: 30, decay: 0.94, scalar: 1.3 });
         fire(0.1, { spread: 160, startVelocity: 55 });
 
-        // 2. 双侧礼炮连续对冲喷射 (持续 2.2 秒)
         const duration = 2200;
         const animationEnd = Date.now() + duration;
 
@@ -81,7 +82,6 @@ export function Step3ThemeStudio({
 
             const particleCount = 45 * (timeLeft / duration);
 
-            // 左下角对角抛射
             confetti({
                 particleCount,
                 angle: 60,
@@ -90,7 +90,6 @@ export function Step3ThemeStudio({
                 colors: ["#6366f1", "#a855f7", "#ec4899", "#3b82f6", "#eab308"],
                 zIndex: 9999,
             });
-            // 右下角对角抛射
             confetti({
                 particleCount,
                 angle: 120,
@@ -123,16 +122,15 @@ export function Step3ThemeStudio({
                 return;
             }
 
-            // 标记成功态并触发盛大烟花
             setIsSuccess(true);
             triggerGrandFireworks();
             toast.success("欢迎加入 Scholarly！入驻配置全部完成 🎉");
 
-            // 预留 1.8 秒让用户沉浸式享受烟花盛宴与祝贺卡片，随后平滑重定向
+            // 4 秒后自动跳转至仪表盘（如果用户没有手动点击前往教程）
             setTimeout(() => {
                 router.push("/dashboard");
                 router.refresh();
-            }, 1800);
+            }, 4000);
         } catch (error: any) {
             console.error("完成入驻出错:", error);
             toast.error("网络异常，请稍后重试");
@@ -185,42 +183,60 @@ export function Step3ThemeStudio({
                             initial={{ opacity: 0, scale: 0.85, y: 30 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                            className="w-full max-w-lg bg-white/90 dark:bg-card/95 backdrop-blur-2xl border border-primary/30 shadow-2xl shadow-primary/20 rounded-3xl p-8 text-center space-y-6"
+                            className="w-full max-w-lg bg-white/90 dark:bg-card/95 backdrop-blur-2xl border border-primary/30 shadow-2xl shadow-primary/20 rounded-3xl p-6 sm:p-8 text-center space-y-5"
                         >
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ delay: 0.2, type: "spring", damping: 12 }}
-                                className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary via-violet-600 to-indigo-600 shadow-xl shadow-primary/30 text-white"
+                                className="mx-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary via-violet-600 to-indigo-600 shadow-xl shadow-primary/30 text-white"
                             >
-                                <PartyPopper className="h-10 w-10 animate-bounce" />
+                                <PartyPopper className="h-8 w-8 sm:h-10 sm:w-10 animate-bounce" />
                             </motion.div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-primary via-violet-600 to-pink-600 bg-clip-text text-transparent">
                                     欢迎加入 Scholarly！
                                 </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    学者档案与空间主题已全部配置完成，正在前往学术仪表盘...
+                                <p className="text-xs sm:text-sm text-muted-foreground">
+                                    学者档案与空间主题已全部配置完成
                                 </p>
                             </div>
 
-                            <div className="p-4 rounded-2xl bg-muted/40 border border-border/50 flex items-center gap-4 text-left">
-                                <Avatar className="h-12 w-12 border-2 border-primary/40 shadow-sm shrink-0">
+                            <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/50 flex items-center gap-3.5 text-left">
+                                <Avatar className="h-11 w-11 border-2 border-primary/40 shadow-sm shrink-0">
                                     <AvatarImage src={profileData.avatar_url} alt="头像" />
                                     <AvatarFallback className="font-bold bg-primary/20 text-primary">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="min-w-0 flex-1">
-                                    <h4 className="text-sm font-bold text-foreground truncate">
+                                    <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
                                         {profileData.username || "认证学者"}
                                     </h4>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-[11px] text-muted-foreground">
                                         主题空间：{currentGradientObj.name}
                                     </p>
                                 </div>
-                                <Sparkles className="h-5 w-5 text-amber-500 animate-spin" />
+                                <Sparkles className="h-4 w-4 text-amber-500 animate-spin" />
+                            </div>
+
+                            {/* 两个操作入口 */}
+                            <div className="space-y-2.5 pt-1">
+                                <Link href="/tutorials" className="block w-full">
+                                    <Button className="w-full h-11 bg-gradient-to-r from-primary to-violet-600 text-white shadow-lg shadow-primary/25 rounded-xl font-bold gap-2 text-xs sm:text-sm">
+                                        <GraduationCap className="h-4 w-4" />
+                                        开启 3 分钟互动实操训练营
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                </Link>
+
+                                <Link href="/dashboard" className="block w-full">
+                                    <Button variant="outline" className="w-full h-10 rounded-xl text-xs font-semibold gap-1.5 bg-background/80">
+                                        <LayoutDashboard className="h-3.5 w-3.5" />
+                                        直接进入学术仪表盘
+                                    </Button>
+                                </Link>
                             </div>
                         </motion.div>
                     ) : (

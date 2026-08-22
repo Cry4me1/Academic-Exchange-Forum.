@@ -2,6 +2,7 @@ export * from '../payments';
 export * from "./AiFeatureCard";
 export * from "./AnnouncementCard";
 export * from "./AskAiAnimation";
+export * from "./DashboardTutorialBanner";
 export * from "./FeedTabs";
 export * from "./FriendsList";
 export * from "./GlobalSearch";
@@ -16,4 +17,3 @@ export * from "./QuickPostButton";
 export * from "./StoryBanner";
 export * from "./TagCloud";
 export * from "./WelcomeModal";
-
