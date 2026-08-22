@@ -24,16 +24,26 @@ export default async function ProtectedLayout({
   const pathname = headersList.get("x-pathname") || "";
 
   // 检查新用户的入驻与公约签署完成状态
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_completed")
-    .eq("id", user.id)
-    .single();
+  let isOnboardingCompleted = true;
 
-  const isOnboardingCompleted = profile?.onboarding_completed ?? false;
+  try {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .single();
+
+    if (!error && profile && typeof profile.onboarding_completed === "boolean") {
+      isOnboardingCompleted = profile.onboarding_completed;
+    }
+  } catch (err) {
+    console.warn("[ProtectedLayout] Onboarding check fallback:", err);
+  }
+
   const isAllowedPathWithoutOnboarding =
     pathname.startsWith("/welcome") ||
     pathname.startsWith("/rules") ||
+    pathname.startsWith("/rule") ||
     pathname.startsWith("/api/");
 
   if (!isOnboardingCompleted && !isAllowedPathWithoutOnboarding) {

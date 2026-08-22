@@ -4,22 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    Activity,
     ArrowRight,
     BookOpen,
-    Crown,
-    GitMerge,
-    Layers,
-    LayoutDashboard,
     Lock,
-    Palette,
     Printer,
     Rocket,
     Shield,
-    ShieldCheck,
     Sparkles,
-    Users,
-    Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -71,7 +62,8 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
     const handleAction = () => {
         setIsOpen(false);
         if (isNewUser) {
-            router.push("/welcome");
+            // 新用户点击“开始探索”直接关闭弹窗，留在仪表盘开始探索
+            setIsOpen(false);
         } else {
             router.push("/updates");
         }
@@ -85,7 +77,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                 className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none outline-none ring-0"
             >
                 <DialogTitle className="sr-only">
-                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.5 正式版上线"}
+                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.6 正式版上线"}
                 </DialogTitle>
 
                 <AnimatePresence mode="wait">
@@ -147,9 +139,9 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                 >
                                     <Button
                                         onClick={handleAction}
-                                        className="w-full h-11 bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/20 rounded-xl font-medium group"
+                                        className="w-full h-11 bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/20 rounded-xl font-medium group cursor-pointer"
                                     >
-                                        开始探索
+                                        开始探索仪表盘
                                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                                     </Button>
                                     <div className="mt-3 flex items-center justify-center gap-2.5 text-[11px] text-muted-foreground/70">
@@ -172,9 +164,9 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                         <button
                                             type="button"
                                             onClick={() => setIsOpen(false)}
-                                            className="hover:text-foreground transition-colors"
+                                            className="hover:text-foreground transition-colors cursor-pointer"
                                         >
-                                            稍后再看
+                                            关闭
                                         </button>
                                     </div>
                                 </motion.div>
@@ -182,7 +174,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                         </motion.div>
                     ) : (
                         /* ═══════════════════════════════════════
-                         *  老用户 — v1.1.5 正式版上线通知
+                         *  老用户 — v1.1.6 正式版上线通知
                          * ═══════════════════════════════════════ */
                         <motion.div
                             key="existing-user"
@@ -260,14 +252,14 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                 >
                                     <Button
                                         onClick={handleAction}
-                                        className="w-full h-11 bg-gradient-to-r from-violet-500 to-primary hover:from-violet-500/90 hover:to-primary/90 text-white shadow-lg shadow-violet-500/20 rounded-xl font-medium group"
+                                        className="w-full h-11 bg-gradient-to-r from-violet-500 to-primary hover:from-violet-500/90 hover:to-primary/90 text-white shadow-lg shadow-violet-500/20 rounded-xl font-medium group cursor-pointer"
                                     >
                                         查看更新详情
                                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                                     </Button>
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="w-full mt-3 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                                        className="w-full mt-3 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-pointer"
                                     >
                                         我知道了
                                     </button>
