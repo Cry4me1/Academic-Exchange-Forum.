@@ -70,7 +70,7 @@ export default async function AnnouncementsPage() {
             const isNew = (new Date().getTime() - new Date(announcement.start_time).getTime()) < 3 * 24 * 60 * 60 * 1000;
 
             let href = `/announcements/${announcement.id}`;
-            if (announcement.title.includes("v1.0.0") || announcement.title.includes("v1.1.0") || announcement.title.includes("v1.1.5")) href = "/updates";
+            if (announcement.title.includes("v1.0.0") || announcement.title.includes("v1.1.0") || announcement.title.includes("v1.1.5") || announcement.title.includes("v1.1.6")) href = "/updates";
             else if (announcement.title.includes("上线啦")) href = "/announcements/launch-2026";
             else if (announcement.title.includes("新手教程指南")) href = "/announcements/tutorials";
 

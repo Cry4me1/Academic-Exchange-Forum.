@@ -9,6 +9,9 @@ import { TaskList } from "@tiptap/extension-task-list";
 import { TextStyle } from "@tiptap/extension-text-style";
 import StarterKit from "@tiptap/starter-kit";
 import type * as Y from "yjs";
+import { AcademicBlock } from "./extensions/academic-block/academic-block";
+import { CrossRefNode } from "./extensions/cross-ref/cross-ref-node";
+import { SidenoteNode } from "./extensions/sidenote/sidenote-node";
 
 /**
  * 创建带有 Yjs 协作支持的 Tiptap 扩展列表
@@ -53,6 +56,11 @@ export function createCollabExtensions(
         TextStyle,
         Color,
         Highlight.configure({ multicolor: true }),
+
+        // 学术环境与交叉引用扩展
+        AcademicBlock,
+        CrossRefNode,
+        SidenoteNode,
 
         // Yjs 协作
         Collaboration.configure({

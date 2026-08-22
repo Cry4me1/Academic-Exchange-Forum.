@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * 从 Tiptap JSON 内容中提取纯文本
+ * 从 Tiptap JSON 内容中提取结构化纯文本（已优化学术环境块与边注语义）
  */
 export function extractPlainText(content: unknown): string {
     if (!content || typeof content !== "object") return "";
@@ -10,9 +10,25 @@ export function extractPlainText(content: unknown): string {
     const texts: string[] = [];
 
     function walk(node: any) {
+        if (!node || typeof node !== "object") return;
+
+        // 学术环境块前缀标识提取（增强 Embedding 向量学术语义）
+        if (node.type === "academicBlock" && node.attrs) {
+            const type = node.attrs.academicType || "theorem";
+            const num = node.attrs.number ? ` ${node.attrs.number}` : "";
+            const title = node.attrs.title ? ` (${node.attrs.title})` : "";
+            texts.push(`\n【学术${type}${num}${title}】:`);
+        }
+
+        // 提取边注内容
+        if (node.type === "sidenote" && node.attrs?.content) {
+            texts.push(`[边注: ${node.attrs.content}]`);
+        }
+
         if (node.type === "text" && node.text) {
             texts.push(node.text);
         }
+
         if (node.content && Array.isArray(node.content)) {
             for (const child of node.content) {
                 walk(child);
@@ -21,7 +37,7 @@ export function extractPlainText(content: unknown): string {
     }
 
     walk(content);
-    return texts.join(" ");
+    return texts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 /**

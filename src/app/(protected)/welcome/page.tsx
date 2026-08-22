@@ -14,11 +14,14 @@ import {
     GraduationCap,
     Layers,
     LayoutDashboard,
+    Lock,
     MessageSquare,
     MessageSquareHeart,
     Palette,
     PenTool,
+    Printer,
     Rocket,
+    Shield,
     ShieldCheck,
     Sparkles,
     Swords,
@@ -79,35 +82,35 @@ const tutorials = [
     },
 ];
 
-// ─── v1.1.5 正式版核心特性 ─────────────────────────────
-const v1_1_5CoreFeatures = [
+// ─── v1.1.6 正式版核心特性 ─────────────────────────────
+const v1_1_6CoreFeatures = [
     {
-        icon: Activity,
-        title: "Desmos 渐绘数学引擎",
-        desc: "识别 LaTeX 表达式一键拉开画板，自左向右实体画笔般动态渐显函数图像",
-        color: "text-blue-500",
-        bg: "bg-blue-500/8",
+        icon: Printer,
+        title: "标准学术 PDF 导出 (Nature/IEEE)",
+        desc: "单栏与双栏出版级排版自由切换，完美兼容 KaTeX 矢量公式、图表与 BibTeX 交叉引用",
+        color: "text-purple-500",
+        bg: "bg-purple-500/8",
     },
     {
-        icon: Users,
-        title: "洛谷绑定 & 用户名注册",
-        desc: "全面开放自定义用户名注册，并特别支持一键关联绑定洛谷 (Luogu) 凭证",
-        color: "text-orange-500",
-        bg: "bg-orange-500/8",
+        icon: Lock,
+        title: "专属学术邀请制与公开看板",
+        desc: "全面启用严谨邀请码准入体系与 /invite-820 可视化看板，守护高水准学者社区",
+        color: "text-amber-500",
+        bg: "bg-amber-500/8",
     },
     {
-        icon: Layers,
-        title: "游客免登录无缝预览",
-        desc: "公开学术精选帖子开放游客免登只读模式，降低准入门槛，大幅提升知识传播",
+        icon: Shield,
+        title: "多模态 AI 审稿与安全防线",
+        desc: "AI 语义大模型智能评分（ai_score）+ 敏感词过滤 + 待审队列与邮件实时预警推送",
         color: "text-emerald-500",
         bg: "bg-emerald-500/8",
     },
     {
-        icon: GitMerge,
-        title: "双向知识图谱与 AI 推荐",
-        desc: "[[WikiLink]] 双括号跨帖织网与 1024 维语义向量模型提炼交叉共鸣概念",
-        color: "text-indigo-500",
-        bg: "bg-indigo-500/8",
+        icon: BookOpen,
+        title: "60FPS 呼吸沉浸阅读与要素索引",
+        desc: "恒定黄金排版宽度彻底根除公式形变，三次方缓动直达定理证明块并伴随脉冲高亮",
+        color: "text-blue-500",
+        bg: "bg-blue-500/8",
     },
 ];
 
@@ -204,7 +207,7 @@ export default function WelcomePage() {
             </section>
 
             {/* ╔══════════════════════════════════════════════╗ */}
-            {/* ║  Section 2 — v1.1.5 特性介绍                 ║ */}
+            {/* ║  Section 2 — v1.1.6 特性介绍                 ║ */}
             {/* ╚══════════════════════════════════════════════╝ */}
             <section className="max-w-3xl mx-auto px-6 py-16">
                 <motion.div
@@ -217,19 +220,19 @@ export default function WelcomePage() {
                     <motion.div variants={fadeUp} className="text-center mb-10">
                         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-4">
                             <Rocket className="h-3.5 w-3.5" />
-                            v1.1.5 最新版
+                            v1.1.6 最新版
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                            交互数学引擎 & 快捷学术准入
+                            学术出版级 PDF 导出 & 邀请制与 AI 审稿
                         </h2>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            v1.1.5 版本带来的核心视觉与跨渠道准入升级
+                            v1.1.6 版本带来的学术出版排版、准入风控与沉浸阅读革新
                         </p>
                     </motion.div>
 
                     {/* Core features grid */}
                     <div className="grid sm:grid-cols-2 gap-4 mb-12">
-                        {v1_1_5CoreFeatures.map((feature) => (
+                        {v1_1_6CoreFeatures.map((feature) => (
                             <motion.div
                                 key={feature.title}
                                 variants={fadeUp}

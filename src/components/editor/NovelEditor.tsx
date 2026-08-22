@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { onDelete, onUpload } from "@/lib/image-upload";
 import {
     EditorCommand,
@@ -22,6 +23,8 @@ interface NovelEditorProps {
     initialValue?: JSONContent;
     onChange?: (value: JSONContent) => void;
     editable?: boolean;
+    className?: string;
+    contentClassName?: string;
 }
 
 /**
@@ -47,6 +50,8 @@ export default function NovelEditor({
     initialValue,
     onChange,
     editable = true,
+    className,
+    contentClassName,
 }: NovelEditorProps) {
     const extensions = [...defaultExtensions];
 
@@ -83,7 +88,7 @@ export default function NovelEditor({
     }, [onChange]);
 
     return (
-        <div className="novel-editor-container relative w-full border rounded-lg bg-background">
+        <div className={cn("novel-editor-container relative w-full flex-1 flex flex-col", className)}>
             <EditorRoot>
                 <EditorContent
                     initialContent={initialValue}
@@ -101,12 +106,15 @@ export default function NovelEditor({
                         handleDrop: (view, event, _slice, moved) =>
                             handleImageDrop(view, event, moved, onUpload),
                         attributes: {
-                            class: "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full p-4 min-h-[300px]",
+                            class: cn(
+                                "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full p-4 flex-1 min-h-[420px] h-full",
+                                contentClassName
+                            ),
                         },
                         editable: () => editable,
                     }}
                     onUpdate={handleUpdate}
-                    className="w-full h-full"
+                    className="w-full flex-1 flex flex-col"
                 >
                     <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-muted bg-background px-1 py-2 shadow-md transition-all">
                         <EditorCommandEmpty className="px-2 text-muted-foreground">

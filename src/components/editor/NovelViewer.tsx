@@ -43,6 +43,7 @@ class ViewerErrorBoundary extends Component<
 
 interface NovelViewerProps {
     initialValue?: JSONContent;
+    content?: JSONContent;
 }
 
 // 辅助函数，判定 LaTeX 是否为函数公式
@@ -65,7 +66,8 @@ function checkIsFunction(latex: string) {
     }
 }
 
-export default function NovelViewer({ initialValue }: NovelViewerProps) {
+export default function NovelViewer({ initialValue, content }: NovelViewerProps) {
+    const valueToRender = initialValue || content;
     const containerRef = useRef<HTMLDivElement>(null);
     const [mathPortals, setMathPortals] = useState<{ id: string; element: HTMLElement; latex: string }[]>([]);
 
@@ -123,17 +125,17 @@ export default function NovelViewer({ initialValue }: NovelViewerProps) {
                 portals.forEach(el => el.remove());
             }
         };
-    }, [JSON.stringify(initialValue)]);
+    }, [JSON.stringify(valueToRender)]);
 
-    if (!initialValue) return null;
+    if (!valueToRender) return null;
 
     // Debug: log what content shape we receive and the names of registered extensions
     if (typeof window !== "undefined") {
         console.log(
-            "[NovelViewer] initialValue type:",
-            typeof initialValue,
+            "[NovelViewer] valueToRender type:",
+            typeof valueToRender,
             "keys:",
-            Object.keys(initialValue),
+            Object.keys(valueToRender),
         );
         console.log(
             "[NovelViewer] registered extensions:",
@@ -146,7 +148,7 @@ export default function NovelViewer({ initialValue }: NovelViewerProps) {
             <ViewerErrorBoundary>
                 <EditorRoot>
                     <EditorContent
-                        initialContent={initialValue}
+                        initialContent={valueToRender}
                         extensions={viewerExtensions}
                         immediatelyRender={false}
                         editorProps={{

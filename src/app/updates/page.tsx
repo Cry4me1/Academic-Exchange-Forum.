@@ -5,18 +5,25 @@ import { Separator } from "@/components/ui/separator";
 import {
     Activity,
     ArrowLeft,
+    Award,
     BookOpen,
+    CheckCircle2,
     Cloud,
     Crown,
+    EyeOff,
+    FileCode,
     FileText,
     GitMerge,
     Heart,
     Layers,
     LayoutDashboard,
+    Lock,
     MessageSquare,
     Palette,
     PenTool,
+    Printer,
     Rocket,
+    Shield,
     ShieldCheck,
     Sparkles,
     Star,
@@ -77,7 +84,7 @@ export default function UpdatesPage() {
                 <div className="relative border-l-2 border-zinc-200 dark:border-zinc-800 ml-4 md:ml-6 space-y-12">
 
                     {/* ╔══════════════════════════════════════════════════╗ */}
-                    {/* ║  v1.1.5 – 学术图像引擎与多端快捷入驻 🚀         ║ */}
+                    {/* ║  v1.1.6 – 出版级学术PDF导出 & 专属邀请与AI审核 🚀 ║ */}
                     {/* ╚══════════════════════════════════════════════════╝ */}
                     <div className="relative pl-8 md:pl-12 animate-[fadeInUp_0.7s_ease-out]">
                         {/* Pulsing timeline dot for the latest version */}
@@ -87,16 +94,157 @@ export default function UpdatesPage() {
                         </div>
 
                         <div className="flex flex-col gap-3 mb-5">
-                            <time className="text-sm text-muted-foreground font-mono">2026-07-05</time>
+                            <time className="text-sm text-muted-foreground font-mono">2026-08-22</time>
                             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
                                 <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]">
-                                    v1.1.5
+                                    v1.1.6
                                 </span>
-                                <span className="text-foreground">— 交互数学引擎 & 快捷学术准入</span>
+                                <span className="text-foreground">— 学术出版级 PDF 导出 & 邀请制与 AI 审稿</span>
                                 <Badge variant="default" className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/25 animate-[pulse_2s_ease-in-out_infinite] text-xs px-3 py-1">
                                     <Sparkles className="w-3 h-3 mr-1" />
                                     最新版本
                                 </Badge>
+                            </h2>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+                                追求学术严谨与极致阅读。v1.1.6 重磅推出标准学术出版级单栏/双栏 PDF 导出系统与 LaTeX 源码包生成，全面落地超级管理员专属学术邀请制体系，上线多模态 AI 审稿与敏感安全防线，并重构了 60FPS 呼吸式沉浸阅读与学术要素平滑索引。
+                            </p>
+                        </div>
+
+                        {/* Main Card with gradient border effect */}
+                        <div className="relative group mb-12">
+                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
+                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+
+                                <CardHeader className="pt-8">
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                                        全新功能与改进
+                                    </CardTitle>
+                                    <CardDescription>
+                                        标准单/双栏学术 PDF 导出、学术邀请制、多模态 AI 审核、60FPS 沉浸阅读与专栏连载体系。
+                                    </CardDescription>
+                                </CardHeader>
+
+                                <CardContent className="space-y-6 pb-8">
+                                    {/* Feature 1 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                                                <Printer className="w-4 h-4" />
+                                            </span>
+                                            标准学术排版 PDF 导出系统 (Nature / IEEE 格式)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>一键将论坛长文与研讨论文导出为具备正式出版品相的标准学术 PDF：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>单栏 / 双栏自适应排版</strong>：支持 arXiv / Nature 经典单栏与 IEEE / ACM 紧凑双栏学术排版自由切换，自动编排页眉、论文大标题、作者名片、要素提要与 BibTeX 引用代码。</li>
+                                                <li><strong>KaTeX 矢量公式与无截断分页</strong>：严格注入 `@media print` 与 `break-inside: avoid` 规则，确保复杂高阶矩阵公式、代码块、定理证明块与 Mermaid 图表在分页处不被生硬截断。</li>
+                                                <li><strong>LaTeX (.tex) & Markdown 源码导出</strong>：遵循 RFC 6266 标准完美兼容中文文件名下载，提供完整的编译级 LaTeX 宏包源码包导出。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 2 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                                                <Lock className="w-4 h-4" />
+                                            </span>
+                                            超级管理员专属学术邀请制体系与公开看板
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>打造高质量严谨学术交流圈，保障高水平学者社区氛围：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>严谨邀请准入</strong>：全面启用邀请码注册制，支持邀请码批量生成、使用次数限制、有效期控制与管理员一键批量清理。</li>
+                                                <li><strong>公开可视化看板</strong>：上线 `/invite-820` 专属邀请状态看板与邀请链路追踪，直观掌握学术同仁的入驻轨迹。</li>
+                                                <li><strong>全模式智能登录</strong>：无缝融合邮箱登录、自定义用户名注册与洛谷 (Luogu) 凭证绑定，支持智能回填邀请码。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 3 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                                                <Shield className="w-4 h-4" />
+                                            </span>
+                                            多模态内容智能安全审核体系 (AI 审稿 + 敏感词拦截)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>构建 AI 大模型语义评分与多层级安全防御网：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>AI 语义审稿与评分</strong>：对新发布学术长文自动生成 0~100 分 AI 质量与安全性评分（`ai_score`），精准识别学术违规与灌水内容。</li>
+                                                <li><strong>多层防御与待审队列</strong>：命中敏感词或疑似风险的帖子自动拦截进入管理员审稿队列（Pending），全方位保护社区内容纯净。</li>
+                                                <li><strong>邮件实时预警推送</strong>：帖子进入待审状态时自动向管理员和作者推送邮件提交通知，审核结果即时双向闭环。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 4 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                <BookOpen className="w-4 h-4" />
+                                            </span>
+                                            60FPS 呼吸式沉浸阅读与学术要素平滑索引
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>消除任何视觉形变与卡顿，带来沉浸无干扰的学术研读环境：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>恒定阅读宽度与呼吸缓动</strong>：锁定 768px 国际标准单栏学术阅读排版宽度，两侧边栏以 300ms `cubic-bezier(0.22, 1, 0.36, 1)` 柔和淡出折叠，彻底根除正文文字重新断行与 LaTeX 公式形变撕裂。</li>
+                                                <li><strong>学术要素确定性索引</strong>：定义、定理、证明、引理环境块生成确定性序号索引，彻底解决锚点点击失效问题。</li>
+                                                <li><strong>三次方平滑滚动与脉冲高亮</strong>：`requestAnimationFrame` 高精度数学缓动滚动直达目标学术块，并伴随蓝紫脉冲呼吸发光（Pulse Glow）提示。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 5 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                                                <Layers className="w-4 h-4" />
+                                            </span>
+                                            专栏连载体系、全站匿名制改造与 Realtime 架构优化
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>赋能成体系的学术知识沉淀，捍卫学者自由探索隐私：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>专栏连载体系</strong>：支持作者创建个人学术专栏、自定义预设精美封面、收录关联帖子，并在正文侧边栏展示连载进度追踪。</li>
+                                                <li><strong>全站匿名制改造</strong>：彻底清除真实姓名依赖，保障全站匿名学术研讨与学术自由表达。</li>
+                                                <li><strong>Realtime 架构解耦</strong>：彻底修复 Realtime Channel 订阅碰撞与好友列表 Null 异常，社交互动更轻快稳定。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* ╔══════════════════════════════════════════════════╗ */}
+                    {/* ║  v1.1.5 – 学术图像引擎与多端快捷入驻             ║ */}
+                    {/* ╚══════════════════════════════════════════════════╝ */}
+                    <div className="relative pl-8 md:pl-12">
+                        {/* Normal timeline dot */}
+                        <div className="absolute -left-[5px] top-2 flex items-center justify-center">
+                            <span className="h-2.5 w-2.5 rounded-full bg-zinc-300 dark:bg-zinc-600 ring-4 ring-background" />
+                        </div>
+
+                        <div className="flex flex-col gap-3 mb-5">
+                            <time className="text-sm text-muted-foreground font-mono">2026-07-05</time>
+                            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
+                                <span className="text-foreground">
+                                    v1.1.5
+                                </span>
+                                <span className="text-muted-foreground">— 交互数学引擎 & 快捷学术准入</span>
                             </h2>
                             <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
                                 突破视觉与便捷极限。v1.1.5 带来全新交互式函数图像绘制引擎，在正文 LaTeX 表达式中一键拉开画板，呈献手绘渐显图像；同时扩展了多渠道的账号支持（洛谷账号登录绑定与自定义用户名注册），并支持游客无缝预览学术内容，为社区注入更广泛的学术活力。

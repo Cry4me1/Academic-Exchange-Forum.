@@ -20,6 +20,9 @@ import { CustomImage } from "./extensions/custom-image";
 import { MermaidBlock } from "./extensions/mermaid-block";
 import { Command, renderItems } from "./extensions/slash-command-extension";
 import { WikiLink } from "./extensions/wiki-link";
+import { AcademicBlock } from "./extensions/academic-block/academic-block";
+import { CrossRefNode } from "./extensions/cross-ref/cross-ref-node";
+import { SidenoteNode } from "./extensions/sidenote/sidenote-node";
 import { suggestionItems } from "./slash-command";
 
 // Explicitly create lowlight instance
@@ -139,6 +142,10 @@ export function createExtensions(options: ExtensionOptions = {}): any[] {
         }),
         // WikiLink extension - [[wiki link]] suggestion
         WikiLink,
+        // Academic extensions
+        AcademicBlock,
+        CrossRefNode,
+        SidenoteNode,
     ];
 }
 

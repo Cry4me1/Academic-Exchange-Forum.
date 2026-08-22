@@ -16,6 +16,9 @@ import {
 import { CodeBlockComponent } from "./extensions/code-block-component";
 import { CustomImage } from "./extensions/custom-image";
 import { MermaidBlock } from "./extensions/mermaid-block";
+import { AcademicBlock } from "./extensions/academic-block/academic-block";
+import { CrossRefNode } from "./extensions/cross-ref/cross-ref-node";
+import { SidenoteNode } from "./extensions/sidenote/sidenote-node";
 
 // Explicitly create lowlight instance
 const lowlight = createLowlight(all);
@@ -145,4 +148,8 @@ export const viewerExtensions: any[] = [
     }),
     // WikiLink node — pure HTML rendering, no React NodeView
     WikiLinkViewerNode,
+    // Academic extensions
+    AcademicBlock,
+    CrossRefNode,
+    SidenoteNode,
 ];

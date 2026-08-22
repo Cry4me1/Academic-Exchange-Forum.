@@ -3,6 +3,7 @@
 // Force dev server Action ID re-mapping & refresh manifest
 
 
+import { extractAcademicMeta } from "@/lib/academic-meta";
 import { deleteImages, extractImageUrls, findRemovedImages } from "@/lib/storage-cleanup";
 import { syncPostLinks } from "@/lib/post-links";
 import { generatePostEmbedding } from "@/lib/post-embed";
@@ -67,6 +68,7 @@ export async function createPost(data: {
     }
 
     const isApproved = moderation.reviewStatus === "approved";
+    const academicMeta = extractAcademicMeta(data.content);
 
     const { data: post, error } = await supabase
         .from("posts")
@@ -83,6 +85,8 @@ export async function createPost(data: {
             ai_reason: moderation.reason,
             ai_suggested_tags: moderation.suggestedTags,
             matched_sensitive_words: moderation.matchedSensitiveWords,
+            academic_meta: academicMeta,
+            theorem_count: academicMeta.totalAcademicCount,
         })
         .select("id, review_status, ai_score, ai_risk_level")
         .single();
@@ -196,6 +200,8 @@ export async function updatePost(
 
         moderationResult = moderation;
         const isApproved = moderation.reviewStatus === "approved";
+        const academicMeta = extractAcademicMeta(contentToReview);
+
         updatePayload.review_status = moderation.reviewStatus;
         updatePayload.is_published = isApproved;
         updatePayload.ai_score = moderation.score;
@@ -203,6 +209,8 @@ export async function updatePost(
         updatePayload.ai_reason = moderation.reason;
         updatePayload.ai_suggested_tags = moderation.suggestedTags;
         updatePayload.matched_sensitive_words = moderation.matchedSensitiveWords;
+        updatePayload.academic_meta = academicMeta;
+        updatePayload.theorem_count = academicMeta.totalAcademicCount;
     }
 
     const { error } = await supabase

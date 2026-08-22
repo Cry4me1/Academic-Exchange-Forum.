@@ -11,8 +11,11 @@ import {
     GitMerge,
     Layers,
     LayoutDashboard,
+    Lock,
     Palette,
+    Printer,
     Rocket,
+    Shield,
     ShieldCheck,
     Sparkles,
     Users,
@@ -22,15 +25,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-// 正式版发布日期（UTC）- 升级至 v1.1.5 节点以达成 seen 状态重置
-const V1_LAUNCH_DATE = "2026-07-05T00:00:00Z";
+// 正式版发布日期（UTC）- 升级至 v1.1.6 节点以达成 seen 状态重置
+const V1_LAUNCH_DATE = "2026-08-22T00:00:00Z";
 
-// 老用户弹窗：v1.1.5 四大更新
-const v1_1_5Features = [
-    { icon: Activity, label: "Desmos 渐绘数学引擎", color: "text-blue-500" },
-    { icon: Users, label: "洛谷绑定 & 用户名注册", color: "text-orange-500" },
-    { icon: Layers, label: "游客无缝免登只读预览", color: "text-emerald-500" },
-    { icon: Sparkles, label: "LaTeX 公式动态绘图展开", color: "text-violet-500" },
+// 老用户弹窗：v1.1.6 四大更新
+const v1_1_6Features = [
+    { icon: Printer, label: "Nature/IEEE 学术 PDF 导出", color: "text-purple-500" },
+    { icon: Lock, label: "Hansszh 专属学术邀请制", color: "text-amber-500" },
+    { icon: Shield, label: "多模态 AI 审稿与安全拦截", color: "text-emerald-500" },
+    { icon: BookOpen, label: "60FPS 沉浸阅读 & 要素索引", color: "text-blue-500" },
 ];
 
 interface WelcomeModalProps {
@@ -50,8 +53,8 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
         const newUser = createdAt >= launchDate;
 
         const storageKey = newUser
-            ? "scholarly_welcome_v1_1_5_seen"
-            : "scholarly_v1_1_5_update_seen";
+            ? "scholarly_welcome_v1_1_6_seen"
+            : "scholarly_v1_1_6_update_seen";
 
         if (localStorage.getItem(storageKey)) return;
 
@@ -211,7 +214,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.3 }}
                                     className="text-2xl font-bold tracking-tight text-foreground"
                                 >
-                                    v1.1.5 交互数学引擎已上线
+                                    v1.1.6 学术出版级导出已上线
                                 </motion.h2>
                                 <motion.p
                                     initial={{ opacity: 0, y: 10 }}
@@ -219,7 +222,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.4 }}
                                     className="mt-2 text-sm text-muted-foreground"
                                 >
-                                    手绘渐现数学图像、洛谷绑定、用户名注册与游客无缝预览
+                                    标准学术 PDF 导出、学术邀请制、多模态 AI 审稿与 60FPS 沉浸阅读
                                 </motion.p>
                             </div>
 
@@ -231,7 +234,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.45 }}
                                     className="grid grid-cols-2 gap-2.5"
                                 >
-                                    {v1_1_5Features.map((feature, i) => (
+                                    {v1_1_6Features.map((feature, i) => (
                                         <motion.div
                                             key={feature.label}
                                             initial={{ opacity: 0, y: 10 }}

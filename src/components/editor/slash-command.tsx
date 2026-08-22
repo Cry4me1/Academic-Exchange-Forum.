@@ -155,6 +155,272 @@ export const suggestionItems: CommandItemProps[] = [
         },
     },
     {
+        title: "学术定理",
+        description: "插入【定理 (Theorem)】学术环境块",
+        searchTerms: ["theorem", "dingli", "定理", "学术", "math"],
+        icon: <Sparkles size={18} className="text-blue-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: "theorem",
+                        title: "",
+                        number: "",
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "在此输入定理内容...",
+                                },
+                            ],
+                        },
+                    ],
+                })
+                .run();
+        },
+    },
+    {
+        title: "学术证明",
+        description: "插入【证明 (Proof)】块（支持折叠与 Q.E.D. 结尾）",
+        searchTerms: ["proof", "zhengming", "证明", "qed", "推导"],
+        icon: <CheckSquare size={18} className="text-slate-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: "proof",
+                        title: "",
+                        number: "",
+                        isFolded: false,
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "在此输入严谨的推导与证明步骤...",
+                                },
+                            ],
+                        },
+                    ],
+                })
+                .run();
+        },
+    },
+    {
+        title: "学术定义",
+        description: "插入【定义 (Definition)】学术环境块",
+        searchTerms: ["definition", "dingyi", "定义", "术语"],
+        icon: <TextQuote size={18} className="text-emerald-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: "definition",
+                        title: "",
+                        number: "",
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "在此输入精确的学术定义...",
+                                },
+                            ],
+                        },
+                    ],
+                })
+                .run();
+        },
+    },
+    {
+        title: "学术引理",
+        description: "插入【引理 (Lemma)】学术环境块",
+        searchTerms: ["lemma", "yinli", "引理"],
+        icon: <Code size={18} className="text-cyan-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: "lemma",
+                        title: "",
+                        number: "",
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "在此输入辅助引理...",
+                                },
+                            ],
+                        },
+                    ],
+                })
+                .run();
+        },
+    },
+    {
+        title: "学术命题",
+        description: "插入【命题 (Proposition)】学术环境块",
+        searchTerms: ["proposition", "mingti", "命题"],
+        icon: <Sparkles size={18} className="text-purple-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: "proposition",
+                        title: "",
+                        number: "",
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "在此输入命题陈述...",
+                                },
+                            ],
+                        },
+                    ],
+                })
+                .run();
+        },
+    },
+    {
+        title: "学术推论",
+        description: "插入【推论 (Corollary)】学术环境块",
+        searchTerms: ["corollary", "tuilun", "推论"],
+        icon: <Workflow size={18} className="text-amber-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: "corollary",
+                        title: "",
+                        number: "",
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "由上可得以下推论...",
+                                },
+                            ],
+                        },
+                    ],
+                })
+                .run();
+        },
+    },
+    {
+        title: "学术例题",
+        description: "插入【例题 (Example)】学术环境块",
+        searchTerms: ["example", "liti", "例题", "算例"],
+        icon: <Heading3 size={18} className="text-indigo-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: "example",
+                        title: "",
+                        number: "",
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "【例】设...",
+                                },
+                            ],
+                        },
+                    ],
+                })
+                .run();
+        },
+    },
+    {
+        title: "学术边注",
+        description: "插入正文学术旁注/脚注标记",
+        searchTerms: ["sidenote", "footnote", "bianzhu", "边注", "脚注", "注释"],
+        icon: <MessageSquarePlus size={18} className="text-amber-600" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "sidenote",
+                    attrs: {
+                        noteNumber: "1",
+                        content: "在此输入补充学术说明...",
+                    },
+                })
+                .run();
+        },
+    },
+    {
+        title: "交叉引用",
+        description: "插入公式/图表/定理的跳转引用徽章",
+        searchTerms: ["crossref", "ref", "yinyong", "引用", "公式引用", "图表引用"],
+        icon: <Heading2 size={18} className="text-primary" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "crossRef",
+                    attrs: {
+                        label: "式 (1)",
+                        targetId: "",
+                        refType: "equation",
+                    },
+                })
+                .run();
+        },
+    },
+    {
         title: "上传图片",
         description: "从设备上传图片（最大 2MB）",
         searchTerms: ["image", "photo", "picture", "upload"],

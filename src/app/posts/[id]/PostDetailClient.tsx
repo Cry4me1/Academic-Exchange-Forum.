@@ -7,7 +7,7 @@ import NovelViewer from "@/components/editor/NovelViewer";
 import PeerReviewPanel from "@/components/editor/peer-review-panel";
 import { CoAuthorBadge } from "@/components/lab/co-author/CoAuthorBadge";
 import { CoAuthorPanel, type CoAuthor } from "@/components/lab/co-author/CoAuthorPanel";
-import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations, ShareCardDialog, TableOfContents, type HeadingItem } from "@/components/posts";
+import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations, ShareCardDialog, TableOfContents, AcademicPdfExportDialog, type HeadingItem } from "@/components/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
@@ -57,11 +57,15 @@ import {
     Trophy,
     AlertTriangle,
     ShieldAlert,
+    Download,
+    FileCode,
+    Printer,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { extractAcademicMeta } from "@/lib/academic-meta";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
     createComment,
@@ -199,7 +203,13 @@ export default function PostDetailClient({
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
     const [duelDialogOpen, setDuelDialogOpen] = useState(false);
     const [addToCollectionOpen, setAddToCollectionOpen] = useState(false);
+    const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
     const [collectionsList, setCollectionsList] = useState<CollectionSummary[]>(collections);
+
+    // 解析当前帖子的学术定理、定义与边注元数据
+    const academicMeta = useMemo(() => {
+        return extractAcademicMeta(post.content);
+    }, [post.content]);
 
     useEffect(() => {
         setCollectionsList(collections);
@@ -488,11 +498,11 @@ export default function PostDetailClient({
                     )}
                 </AnimatePresence>
 
-                {/* 顶部导航 - 始终在 DOM，沉浸模式下 CSS 隐藏 */}
+                {/* 顶部导航 */}
                 <header
                     className={cn(
                         "sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50",
-                        "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]",
+                        "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]",
                         isImmersive && "opacity-0 -translate-y-full pointer-events-none"
                     )}
                 >
@@ -548,7 +558,7 @@ export default function PostDetailClient({
                                             <>
                                                 <DropdownMenuItem
                                                     onClick={() => {
-                                                        window.location.href = `/posts/${post.id}/edit`;
+                                                        router.push(`/posts/${post.id}/edit`);
                                                     }}
                                                 >
                                                     <Pencil className="mr-2 h-4 w-4" />
@@ -562,10 +572,10 @@ export default function PostDetailClient({
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={async () => {
-                                                        if (confirm("确定要删除这篇帖子吗？此操作不可撤销。")) {
-                                                            const result = await deletePost(post.id);
-                                                            if (result.error) {
-                                                                toast.error(result.error);
+                                                        if (confirm("确定要删除这篇帖子吗？此操作无法撤销。")) {
+                                                            const res = await deletePost(post.id);
+                                                            if (res.error) {
+                                                                toast.error(res.error);
                                                             } else {
                                                                 toast.success("帖子已删除");
                                                                 window.location.href = "/dashboard";
@@ -605,6 +615,40 @@ export default function PostDetailClient({
                                                 查看历史
                                             </Link>
                                         </DropdownMenuItem>
+
+                                        <DropdownMenuSeparator />
+
+                                        {/* 学术导出操作 */}
+                                        <DropdownMenuItem
+                                            onClick={() => {
+                                                window.open(`/api/posts/${post.id}/export?format=latex`, "_blank");
+                                                toast.success("正在生成并导出 LaTeX 源码包...");
+                                            }}
+                                        >
+                                            <FileCode className="mr-2 h-4 w-4 text-blue-500" />
+                                            导出 LaTeX (.tex)
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuItem
+                                            onClick={() => setPdfDialogOpen(true)}
+                                            className="font-medium text-foreground"
+                                        >
+                                            <Printer className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                            导出学术 PDF (单/双栏)
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuItem
+                                            onClick={() => {
+                                                window.open(`/api/posts/${post.id}/export?format=markdown`, "_blank");
+                                                toast.success("正在生成并导出 Markdown 文档...");
+                                            }}
+                                        >
+                                            <Download className="mr-2 h-4 w-4 text-emerald-500" />
+                                            导出 Markdown (.md)
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuSeparator />
+
                                         <DropdownMenuItem
                                             onClick={() => setReportDialogOpen(true)}
                                             className="text-orange-600 focus:text-orange-600"
@@ -619,24 +663,72 @@ export default function PostDetailClient({
                     </div>
                 </header>
 
-                {/* 沉浸模式: 浮动目录 (桌面端) */}
-                {isImmersive && headings.length > 0 && (
+                {/* 沉浸模式: 浮动目录 (桌面端) - 始终就绪，纯 GPU 显隐 */}
+                {(headings.length > 0 || academicMeta.totalAcademicCount > 0) && (
                     <div className="hidden lg:block">
-                        <TableOfContents headings={headings} mode="floating" />
+                        <TableOfContents
+                            headings={headings}
+                            academicMeta={academicMeta}
+                            mode="floating"
+                            className={cn(
+                                "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]",
+                                isImmersive
+                                    ? "opacity-100 translate-x-0 pointer-events-auto"
+                                    : "opacity-0 -translate-x-4 pointer-events-none"
+                            )}
+                        />
                     </div>
                 )}
 
-                <div
-                    className="mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10"
-                    style={{
-                        maxWidth: isImmersive ? "56rem" : "80rem",
-                        paddingTop: isImmersive ? "4.5rem" : undefined,
-                        transition: "max-width 0.5s cubic-bezier(0.22, 1, 0.36, 1), padding-top 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
-                    }}
-                >
-                    <div className="flex gap-8">
-                        {/* 左侧主内容 */}
-                        <main className="flex-1 min-w-0">
+                {/* 文章主容器：排版宽度恒定，文字与 LaTeX 公式绝对不折行不形变 */}
+                <div className={cn(
+                    "mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    isImmersive ? "max-w-4xl pt-16" : "max-w-[94rem]"
+                )}>
+                    <div className="flex justify-center gap-8 items-start">
+                        {/* 左侧边栏：纯 GPU 不透明度淡入淡出，不触发布局挤压 */}
+                        <aside
+                            className={cn(
+                                "hidden xl:block flex-shrink-0 overflow-hidden",
+                                "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-width,opacity,transform]",
+                                isImmersive
+                                    ? "max-w-0 opacity-0 -translate-x-4 pointer-events-none"
+                                    : "max-w-[16rem] w-64 opacity-100 translate-x-0"
+                            )}
+                        >
+                            <div className="sticky top-24 space-y-6 w-64">
+                                {/* 作者其他文章 */}
+                                {authorOtherPosts.length > 0 && (
+                                    <motion.div
+                                        variants={itemVariants}
+                                        className="bg-card border border-border/50 rounded-xl p-4 shadow-xs"
+                                    >
+                                        <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-1.5">
+                                            <BookOpen className="w-4 h-4 text-blue-500" />
+                                            作者的其他文章
+                                        </h3>
+                                        <ul className="space-y-2.5">
+                                            {authorOtherPosts.map((otherPost) => (
+                                                <li key={otherPost.id}>
+                                                    <Link
+                                                        href={`/posts/${otherPost.id}`}
+                                                        className="block text-xs text-muted-foreground hover:text-foreground transition-colors line-clamp-2 leading-relaxed"
+                                                    >
+                                                        {otherPost.title}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </motion.div>
+                                )}
+
+                                {/* AI 语义推荐 */}
+                                <SemanticRecommendations postId={post.id} />
+                            </div>
+                        </aside>
+
+                        {/* 中间主内容：锁定黄金排版宽度，文字与 KaTeX 公式完全不动如山 */}
+                        <main className="w-full max-w-3xl min-w-0 flex-shrink-0">
                             {/* 文章头部 */}
                             <motion.article variants={itemVariants} className="mb-8">
                                 {/* 所属专栏收录标识 */}
@@ -1053,14 +1145,14 @@ export default function PostDetailClient({
                                     <div className="divide-y divide-border/30">
                                         {comments.map((comment) => (
                                             <div key={comment.id} className="py-1">
-                                                    <CommentItem
-                                                        comment={comment}
-                                                        postId={post.id}
-                                                        postAuthorId={post.author.id}
-                                                        currentUserId={currentUser?.id}
-                                                        maxDepth={2}
-                                                        onReply={post.is_locked ? undefined : handleReply}
-                                                        onDelete={(commentId) => {
+                                                <CommentItem
+                                                    comment={comment}
+                                                    postId={post.id}
+                                                    postAuthorId={post.author.id}
+                                                    currentUserId={currentUser?.id}
+                                                    maxDepth={2}
+                                                    onReply={post.is_locked ? undefined : handleReply}
+                                                    onDelete={(commentId) => {
                                                         setComments((prev) => prev.filter((c) => c.id !== commentId));
                                                     }}
                                                     isLiked={commentLikeStatus[comment.id]}
@@ -1112,36 +1204,13 @@ export default function PostDetailClient({
                                     </div>
                                 ) : null}
                             </motion.section>
-                        </main>
 
-                        {/* 右侧侧边栏（桌面端显示，沉浸模式收起） */}
-                        <aside
-                            className={cn(
-                                "hidden lg:block flex-shrink-0 overflow-hidden",
-                                "transition-[width,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                                isImmersive
-                                    ? "w-0 opacity-0 pointer-events-none"
-                                    : "w-72 opacity-100"
-                            )}
-                        >
-                            <div className="sticky top-24 space-y-6 w-72">
-                                {/* 所属专栏连载导读与目录 */}
-                                {collectionsList.length > 0 && (
-                                    <motion.div variants={itemVariants}>
-                                        <PostCollectionSidebarWidget
-                                            collection={collectionsList[0]}
-                                            currentPostId={post.id}
-                                        />
-                                    </motion.div>
-                                )}
-
-                                {/* 作者其他文章 */}
+                            {/* 小屏幕（< xl）文末推荐与作者文章兜底展示 */}
+                            <div className="xl:hidden mt-10 space-y-6 pt-6 border-t border-border/50">
                                 {authorOtherPosts.length > 0 && (
-                                    <motion.div
-                                        variants={itemVariants}
-                                        className="bg-card border border-border/50 rounded-xl p-4"
-                                    >
-                                        <h3 className="font-semibold text-sm text-foreground mb-3">
+                                    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-xs">
+                                        <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-1.5">
+                                            <BookOpen className="w-4 h-4 text-blue-500" />
                                             作者的其他文章
                                         </h3>
                                         <ul className="space-y-2">
@@ -1156,12 +1225,46 @@ export default function PostDetailClient({
                                                 </li>
                                             ))}
                                         </ul>
+                                    </div>
+                                )}
+                                <SemanticRecommendations postId={post.id} />
+                            </div>
+                        </main>
+
+                        {/* 右侧边栏：300ms 柔和淡出与折叠 */}
+                        <aside
+                            className={cn(
+                                "hidden lg:block flex-shrink-0 overflow-hidden",
+                                "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-width,opacity,transform]",
+                                isImmersive
+                                    ? "max-w-0 opacity-0 translate-x-4 pointer-events-none"
+                                    : "max-w-[18rem] w-72 opacity-100 translate-x-0"
+                            )}
+                        >
+                            <div className="sticky top-24 space-y-6 w-72">
+                                {/* 文章目录与学术大纲速览 */}
+                                {(headings.length > 0 || academicMeta.totalAcademicCount > 0) && (
+                                    <motion.div
+                                        variants={itemVariants}
+                                        className="bg-card border border-border/50 rounded-xl p-4 shadow-xs"
+                                    >
+                                        <TableOfContents
+                                            headings={headings}
+                                            academicMeta={academicMeta}
+                                            mode="sidebar"
+                                        />
                                     </motion.div>
                                 )}
 
-                                {/* AI 语义推荐 */}
-                                <SemanticRecommendations postId={post.id} />
-
+                                {/* 所属专栏连载导读与目录 */}
+                                {collectionsList.length > 0 && (
+                                    <motion.div variants={itemVariants}>
+                                        <PostCollectionSidebarWidget
+                                            collection={collectionsList[0]}
+                                            currentPostId={post.id}
+                                        />
+                                    </motion.div>
+                                )}
                             </div>
                         </aside>
                     </div>
@@ -1206,6 +1309,14 @@ export default function PostDetailClient({
                     initialCollectionIds={collectionsList.map(c => c.id)}
                 />
             )}
+
+            {/* 学术排版 PDF 导出配置对话框 */}
+            <AcademicPdfExportDialog
+                open={pdfDialogOpen}
+                onOpenChange={setPdfDialogOpen}
+                post={post}
+                academicMeta={academicMeta}
+            />
         </>
     );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { EditorBubbleItem, useEditor } from "novel";
-import { Bold, Italic, Strikethrough, Code, Link, Palette, Highlighter, Sigma } from "lucide-react";
+import { Bold, Italic, Strikethrough, Code, Link, Palette, Highlighter, Sigma, MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -314,6 +314,30 @@ export default function BubbleMenu() {
                             title="渲染为数学公式（选中 LaTeX 文本后点击）"
                         >
                             <Sigma className="h-4 w-4" />
+                        </BubbleButton>
+                    </EditorBubbleItem>
+
+                    {/* Sidenote Button */}
+                    <EditorBubbleItem
+                        onSelect={(editor) => {
+                            const { from, to } = editor.state.selection;
+                            const selectedText = editor.state.doc.textBetween(from, to, " ");
+                            editor.chain().focus().insertContent({
+                                type: "sidenote",
+                                attrs: {
+                                    noteNumber: "1",
+                                    content: selectedText || "补充学术注记说明...",
+                                },
+                            }).run();
+                            toast.success("已插入学术边注");
+                        }}
+                    >
+                        <BubbleButton
+                            isActive={false}
+                            onClick={() => { }}
+                            title="将选中文本转为学术边注"
+                        >
+                            <MessageSquarePlus className="h-4 w-4 text-amber-600" />
                         </BubbleButton>
                     </EditorBubbleItem>
 

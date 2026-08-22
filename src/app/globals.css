@@ -883,6 +883,20 @@
 
 
 
+/* Novel Editor Container & ProseMirror full-height layout */
+.novel-editor-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.novel-editor-container .tiptap.ProseMirror {
+  min-height: 100%;
+  flex: 1 1 0%;
+  outline: none;
+}
+
 /* Novel Editor/Viewer code block dark mode consistency */
 .dark .novel-editor-container pre,
 .dark .novel-viewer-container pre {
@@ -1538,4 +1552,105 @@
 /* 协作选区高亮 */
 .ProseMirror .selection {
   background: rgba(124, 58, 237, 0.15);
+}
+
+/* ============================================
+   Scholarly Typography & Cross-ref Pulse Styles
+   ============================================ */
+
+@keyframes academic-pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6);
+    outline: 2px solid rgba(59, 130, 246, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.15);
+    outline: 2px solid rgba(59, 130, 246, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    outline: 2px solid transparent;
+  }
+}
+
+.academic-pulse-highlight {
+  animation: academic-pulse-glow 1.8s cubic-bezier(0, 0, 0.2, 1) forwards !important;
+  border-radius: 0.75rem;
+}
+
+/* 学术块内部排版调整 */
+.academic-block-inner p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.academic-block-inner p:first-child {
+  margin-top: 0;
+}
+
+.academic-block-inner p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================
+   Academic Print & PDF Multi-Column Typography
+   ============================================ */
+
+.academic-two-column {
+  columns: 2;
+  column-gap: 2.2rem;
+  column-rule: 1px solid rgba(148, 163, 184, 0.35);
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+
+.academic-single-column {
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.8cm 1.5cm 1.8cm 1.5cm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 隐藏所有非打印 UI 元素 */
+  header.sticky,
+  aside[aria-label="打印工具栏"],
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* 避免代码块、定理块、图表、引用在换页时被生硬截断 */
+  .academic-block-wrapper,
+  pre,
+  blockquote,
+  figure,
+  table,
+  .mermaid-preview-area,
+  section {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* 保持公式与高清排版清晰 */
+  .katex-display {
+    margin: 0.8em 0 !important;
+    break-inside: avoid !important;
+  }
+
+  /* 打印时链接以正常文字颜色显示 */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
 }

@@ -101,8 +101,8 @@ export const getCachedAnnouncements = unstable_cache(
 
     return data || [];
   },
-  ["announcements-v1.1.1"],
-  { revalidate: 300, tags: ["announcements"] }
+  ["announcements-v1.1.6"],
+  { revalidate: 60, tags: ["announcements"] }
 );
 
 /**

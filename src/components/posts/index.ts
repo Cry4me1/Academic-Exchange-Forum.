@@ -5,5 +5,6 @@ export { PostHistoryDialog } from "./PostHistoryDialog";
 export { SemanticRecommendations } from "./SemanticRecommendations";
 export { ShareCardDialog } from "./ShareCardDialog";
 export { TableOfContents, type HeadingItem } from "./TableOfContents";
+export { AcademicPdfExportDialog } from "./AcademicPdfExportDialog";
 
 
